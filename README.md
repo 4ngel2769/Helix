@@ -1,11 +1,6 @@
 # Helix
 The official repo of Helix the Discord bot. (current repo version: alpha 0.1)
 
-## ((under construction)
-=======
-# Helix <img src="https://media.discordapp.net/attachments/850437588195999766/851617384976089138/98a55025fe82d92bb090008b0185c90b.webp" alt="alt text" width="30" height="30">
-![GitHub Logo](https://images-ext-2.discordapp.net/external/cO1ijbNvQPAVIDgWUs2ES5supYbghET9-BNeQkFZGRU/https/media.discordapp.net/attachments/733828522400940075/783512735551848448/helixbanner.png?width=1260&height=591)
-
 ![an image](https://media.discordapp.net/attachments/771476325356797963/788160344522620958/helixbanner.png "HelixTheBot")
 
 ## Helix is a fun and useful moderation discord bot. He comes jam-packed with a ton of fun and useful commands!
