@@ -57,6 +57,10 @@ The official repo of Helix the Discord bot. (current repo version: alpha 0.1)
 |Music|🔳|
 |Weather |🔳|
 
+<iframe src="https://ptb.discord.com/widget?id=747111170531393679&theme=dark" width="350" height="500" allowtransparency="true" frameborder="0" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"></iframe>
+
+## Support Server
+
 ## For more information about the [bot](https://discord.com/oauth2/authorize?client_id=723697439638290482&scope=bot&permissions=481684598) join the [support server](https://discord.gg/GapmaCt)!
 
 [Website](https://crumberry.github.io/helixio/) <img src="https://media.discordapp.net/attachments/850437588195999766/851617384976089138/98a55025fe82d92bb090008b0185c90b.webp" alt="alt text" width="20" height="20">    
