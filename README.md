@@ -44,4 +44,4 @@ The official repo of Helix the Discord bot. (current repo version: alpha 0.1)
 
 ## Website
 ![Website](https://media.discordapp.net/attachments/850437588195999766/851619941589450804/unknown.png?width=1260&height=581) 
->>>>>>> Stashed changes
+
