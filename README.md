@@ -33,11 +33,11 @@ The official repo of Helix the Discord bot. (current repo version: alpha 0.1)
 
 ## For more information about the [bot](https://discord.com/oauth2/authorize?client_id=723697439638290482&scope=bot&permissions=481684598) join the [support server](https://discord.gg/GapmaCt)!
 
-[Website](https://crumberry.github.io/helixio/) <img src="https://media.discordapp.net/attachments/850437588195999766/851617384976089138/98a55025fe82d92bb090008b0185c90b.webp" alt="alt text" width="20" height="20">    
+- **[Website](https://helix.angellabs.xyz/)** <img src="https://media.discordapp.net/attachments/850437588195999766/851617384976089138/98a55025fe82d92bb090008b0185c90b.webp" alt="alt text" width="20" height="20">    
 
-[Support Server](https://discord.gg/qBJkncfjKx) <img src="https://media.discordapp.net/attachments/850437588195999766/851617384976089138/98a55025fe82d92bb090008b0185c90b.webp" alt="alt text" width="20" height="20">   
+- **[Support Server](https://discord.gg/GapmaCt)** <img src="https://media.discordapp.net/attachments/850437588195999766/851617384976089138/98a55025fe82d92bb090008b0185c90b.webp" alt="alt text" width="20" height="20">   
  
-[Add Me](https://discord.com/oauth2/authorize?scope=bot&client_id=723697439638290482&scope=bot&permissions=481684598) <img src="https://media.discordapp.net/attachments/850437588195999766/851617384976089138/98a55025fe82d92bb090008b0185c90b.webp" alt="alt text" width="20" height="20">
+- **[Add Me!](https://discord.com/oauth2/authorize?scope=bot&client_id=723697439638290482&scope=bot&permissions=1099510967799)** <img src="https://media.discordapp.net/attachments/850437588195999766/851617384976089138/98a55025fe82d92bb090008b0185c90b.webp" alt="alt text" width="20" height="20">
 ## How to Use
 
 ![Help Command](https://media.discordapp.net/attachments/850437588195999766/851616755462045716/unknown.png?width=500&height=657)
