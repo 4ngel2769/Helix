@@ -1,7 +1,10 @@
 {
-  "token": "", // Your bot token.
-  "ownerID": "", // Your user ID.
-  "bugReportID": "", // The ID of the channel used to report bugs.
-  "feedbackID": "", // The channel where users of your bot will have their feedback sent.
-  "joinID": "" //  Where your bot will display servers it is added in or removed from.
+  "token": "Your bot token.",
+  "ownerID": "Your user ID.",
+  "bugReportID": "The ID of the channel used to report bugs.",
+  "feedbackID": "The channel where users of your bot will have their feedback sent.",
+  "joinID": "Where your bot will display servers it is added in or removed from.",
+  "api_keys": {
+    "api1": "" 
+  }
 }
