@@ -16,7 +16,7 @@ The official repo of Helix the Discord bot. (current repo version: alpha 0.1)
 ### ══════════════════════════════════
 ## To Do list : 
 |Modules :| D/ND|
-| ------------- |:-------------:|
+| ------------- |:-------------:| 
 |Moderation|✔️|
 |Loggigng System|✔️|
 |Image Commands|✔️|
