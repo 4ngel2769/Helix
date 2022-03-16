@@ -38,10 +38,3 @@ The official repo of Helix the Discord bot. (current repo version: alpha 0.1)
 - **[Support Server](https://discord.gg/GapmaCt)** <img src="https://media.discordapp.net/attachments/850437588195999766/851617384976089138/98a55025fe82d92bb090008b0185c90b.webp" alt="alt text" width="20" height="20">   
  
 - **[Add Me!](https://discord.com/oauth2/authorize?scope=bot&client_id=723697439638290482&scope=bot&permissions=1099510967799)** <img src="https://media.discordapp.net/attachments/850437588195999766/851617384976089138/98a55025fe82d92bb090008b0185c90b.webp" alt="alt text" width="20" height="20">
-## How to Use
-
-![Help Command](https://media.discordapp.net/attachments/850437588195999766/851616755462045716/unknown.png?width=500&height=657)
-
-## Website
-![Website](https://media.discordapp.net/attachments/850437588195999766/851619941589450804/unknown.png?width=1260&height=581) 
-
