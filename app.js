@@ -1,4 +1,4 @@
-const Discord = require('discord.js');
+const Discord = require('.src/Client.js');
 const client = new Discord.Client({disableMentions: "all"})
 
 client.on('ready', () => {
