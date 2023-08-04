@@ -1,4 +1,4 @@
-const Discord = require('.src/Client.js');
+const Discord = require('.src/helixmod.js');
 const client = new Discord.Client({disableMentions: "all"})
 
 client.on('ready', () => {
