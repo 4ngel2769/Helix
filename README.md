@@ -13,11 +13,11 @@
     <a href="https://js.org/">
         <img src="src/db/assets/branding/badges/JS.svg" alt="JavaScript" />
     </a>
-    <a href="https://www.patreon.com/">
-        <img src="src/db/assets/branding/badges/Patreon.svg" alt="Patreon" />
+    <a href="https://www.typescriptlang.org/">
+        <img src="src/db/assets/branding/badges/TS.svg" alt="TypeScript" />
     </a>
-    <a href="https://www.buymeacoffee.com/">
-        <img src="src/db/assets/branding/badges/BMC.svg" alt="Buy Me A Coffee" />
+    <a href="https://discord.js.org/">
+        <img src="src/db/assets/branding/badges/djs.svg" alt="Discord.JS" />
     </a>
     <a href="/LICENSE.md">
         <img src="src/db/assets/branding/badges/Apache.svg" alt="License" />
