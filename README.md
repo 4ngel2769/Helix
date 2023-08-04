@@ -53,7 +53,15 @@ The current repo version is alpha 1.1
 	    		<ul>
 	    			<li>
 	    				<details>
-	    					<summary><a href="#modules">Modules</a></summary>
+	    					<summary><a href="#modules">Modules (click to expand></a></summary> 
+	    					<ul>
+	    						<p float="left">
+	    							<li><a href="###music">Music</a></li>
+	    							<li><a href="###moderation">Moderation</a></li>
+	    							<li><a href="###chatgpt"></a>AI</li>
+	    							<li><a href="###image-manipulation">Image Manipulation</a></li>
+	    						</p>
+	    					</ul>
 	    				</details>
 	    			</li>
 	    			<li><a href="#commands">Commands</a></li>
