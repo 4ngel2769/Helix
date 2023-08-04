@@ -22,6 +22,10 @@
     <a href="/LICENSE.md">
         <img src="src/db/assets/branding/badges/Apache.svg" alt="License" />
     </a>
+    <br>
+    <a href="https://discord.gg/GapmaCt">
+    	<img src="https://dcbadge.vercel.app/api/server/GapmaCt" alt="Discord" />
+    </a>
 </div>
 
 The official repo of Helix the Discord bot.
