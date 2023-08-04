@@ -19,6 +19,9 @@
     <a href="https://www.typescriptlang.org/">
         <img src="src/db/assets/branding/badges/TS.svg" alt="TypeScript" />
     </a>
+    <a href="https://chat.openai.com/">
+    	<img src="https://img.shields.io/badge/chatGPT-74aa9c?style=for-the-badge&logo=openai&logoColor=white" alt="Chat GPT" />
+    </a>
     <a href="https://discord.js.org/">
         <img src="src/db/assets/branding/badges/djs.svg" alt="Discord.JS" />
     </a>
@@ -38,24 +41,30 @@ The current repo version is alpha 1.1
 ## Versions:
 
 ```Legend:
+# Versions' status
 🟢 Active Development
 🟡 Inactive
 🔴 Deprecated
 🟣 Unofficial
 🔵 Dev/Beta
 ⚪ Alpha/Unstable (for testing, not public)
+
+# Chat GPT implementation
+✅ Has full functionality
+🤖 Partially (has limited functionality)
+❌ Not implementaion
 ```
 
-|Name|Version|Status|API|"Engine"|
-| --- | :---: | :---: | :---: | :--- |
-| --- | v1.1 | 🔴 | 6 | d.js 12.2.0 |
-| --- | v2-2.6 | 🔴 | 7 | d.js 12.4.1 |
-| --- | v3 | 🔴 | 7 | d.js 12.5.3 |
-| --- | v4 | 🟡 | 7 | d.js 12.5.3 |
-| --- | v5 | 🟢 | 8 | d.js 13.6.0 |
-| --- | v5.1 | 🟢 | 9 | d.js 13.11.0 |
-| --- | v6.0 | 🔵 | 9 | d.js 13.14.0 |
-| --- | v6.1 | 🔵 | 9 | d.js 14.9.0 |
+|Name|Version|Status|API|"Engine"|AI|
+| --- | :---: | :---: | :---: | :--- | :---: |
+| --- | v1.1 | 🔴 | 6 | d.js 12.2.0 | ❌ |
+| --- | v2-2.6 | 🔴 | 7 | d.js 12.4.1 | ❌ |
+| --- | v3 | 🔴 | 7 | d.js 12.5.3 | ❌ |
+| --- | v4 | 🟡 | 7 | d.js 12.5.3 | ❌ |
+| --- | v5 | 🟢 | 8 | d.js 13.6.0 | ❌ |
+| --- | v5.1 | 🟢 | 9 | d.js 13.11.0 | ❌ |
+| --- | v6.0 | 🔵 | 9 | d.js 13.14.0 | ❌ |
+| --- | v6.1 | 🔵 | 9 | d.js 14.9.0 | 
 | --- | v7.0 | ⚪ | 9 | d.js 14.11.0 |
 | Cranberry | x | 🟣 | 6 | custom d.js 13.6.0 |
 
