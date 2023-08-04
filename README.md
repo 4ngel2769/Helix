@@ -1,3 +1,4 @@
+<img src="./src/db/assets/brainding/wave-top2.svg" alt="just some waves">
 # Helix
 The official repo of Helix the Discord bot. (current repo version: alpha 0.1)
 
