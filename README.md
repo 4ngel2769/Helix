@@ -1,7 +1,7 @@
 <img src="./src/db/assets/branding/wave-top3.svg" alt="just some waves">
 
 <h1 align="center">
-    <img src="src/db/assets/branding/helix.png" alt="Helix" />
+    <img src="src/db/assets/branding/helix.png" alt="Helix" width="80px" />
     <br />
     <b>Helix</b>
 </h1>
