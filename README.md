@@ -41,6 +41,19 @@
 The official repo of Helix the Discord bot.
 The current repo version is alpha 1.1
 
+<details>
+  <summary>Navigaction (click to expand)</summary>
+
+  <div>
+    <p float="left">
+    	<a href="#versions">Versions</a>
+    	<a href="#todo-list">ToDo List</a>
+    </p>
+    <p>
+    </p>
+  </div>
+</details>
+
 ## Versions:
 
 ```Legend:
@@ -73,7 +86,7 @@ The current repo version is alpha 1.1
 | Cranberry | x | `🟣` | 6 | custom d.js 13.6.0 | `🤖` |
 
 
-## To Do list : 
+## ToDo list : 
 |Modules :| D/ND|
 | ------------- |:-------------:| 
 |More coming soong|-|
