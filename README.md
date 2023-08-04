@@ -16,6 +16,9 @@
     <a href="https://www.typescriptlang.org/">
         <img src="src/db/assets/branding/badges/TS.svg" alt="TypeScript" />
     </a>
+    <a href="https://svelte.dev/">
+    	<img src="src/db/assets/branding/badges/svelte.svg" alt="Svelte" />
+    </a>
     <a href="https://discord.js.org/">
         <img src="src/db/assets/branding/badges/djs.svg" alt="Discord.JS" />
     </a>
