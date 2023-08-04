@@ -53,12 +53,12 @@ The current repo version is alpha 1.1
 	    		<ul>
 	    			<li>
 	    				<details>
-	    					<summary><a href="#modules">Modules (click to expand></a></summary> 
+	    					<summary><a href="#modules">Modules (click to expand)</a></summary> 
 	    					<ul>
 	    						<p float="left">
 	    							<li><a href="###music">Music</a></li>
 	    							<li><a href="###moderation">Moderation</a></li>
-	    							<li><a href="###chatgpt"></a>AI</li>
+	    							<li><a href="###chatgpt">AI</a></li>
 	    							<li><a href="###image-manipulation">Image Manipulation</a></li>
 	    						</p>
 	    					</ul>
@@ -68,8 +68,8 @@ The current repo version is alpha 1.1
 	    		</ul>
 	    	</li>
 	    	<li><a href="#todo-list-">ToDo List</a></li>
-	    	<li><a href="#todo-list-">ToDo List</a></li>
-	    	<li><a href="#todo-list-">ToDo List</a></li>
+	    	<li><a href="#todo-list-">Credits</a></li>
+	    	<li><a href="#todo-list-">License</a></li>
     	</p>
     </ul>
     <p>
@@ -113,6 +113,18 @@ The current repo version is alpha 1.1
 | Cranberry | x | `🟣` | 6 | custom d.js 13.6.0 | `🤖` |
 
 
+## Features
+
+## Modules
+
+### Music
+
+### Moderation
+
+### ChatGPT
+
+### Image Manipulation
+
 ## ToDo list : 
 |Modules :| D/ND|
 | ------------- |:-------------:| 
@@ -120,11 +132,13 @@ The current repo version is alpha 1.1
 
 ## For more information about the [bot](https://discord.com/oauth2/authorize?client_id=723697439638290482&scope=bot&permissions=481684598) join the [support server](https://discord.gg/GapmaCt)!
 
-- **[Website](https://helix.angellabs.xyz/)** <img src="https://media.discordapp.net/attachments/850437588195999766/851617384976089138/98a55025fe82d92bb090008b0185c90b.webp" alt="alt text" width="20" height="20">    
+- **[Website](https://helix.angellabs.xyz/)**
 
-- **[Support Server](https://discord.gg/GapmaCt)** <img src="https://media.discordapp.net/attachments/850437588195999766/851617384976089138/98a55025fe82d92bb090008b0185c90b.webp" alt="alt text" width="20" height="20">   
- 
-- **[Add Me!](https://discord.com/oauth2/authorize?scope=bot&client_id=723697439638290482&scope=bot&permissions=1099510967799)** <img src="https://media.discordapp.net/attachments/850437588195999766/851617384976089138/98a55025fe82d92bb090008b0185c90b.webp" alt="alt text" width="20" height="20">
+- **[Support Server](https://discord.gg/GapmaCt)**
+
+# Credits
+
+# License
 
 <img src="https://media.discordapp.net/attachments/771476325356797963/788160344522620958/helixbanner.png" alt="Old Banner" />
 <img src="src/db/assets/branding/helix-banner-2023.png" alt="Banner" />
