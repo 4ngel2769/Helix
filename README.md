@@ -79,8 +79,8 @@ The current repo version is alpha 1.1
 ⚗️ Working on it
 ```
 
-|Name|Version|Status|API|"Engine"|AI|
-| --- | :---: | :---: | :---: | :--- | :---: |
+|Version Name|Version|Status|API|"Engine"|AI|
+| :--- | :---: | :---: | :---: | :---: | :---: |
 | --- | v1.1 | `🔴` | 6 | d.js 12.2.0 | `❌` |
 | --- | v2-2.6 | `🔴` | 7 | d.js 12.4.1 | `❌` |
 | --- | v3 | `🔴` | 7 | d.js 12.5.3 | `❌` |
