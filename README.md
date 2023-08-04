@@ -6,6 +6,24 @@
     <b>Helix</b>
 </h1>
 
+<div align="center">
+    <a href="https://discord.gg/GampaCt/">
+        <img src="https://img.shields.io/badge/Discord-%235865F2.svg?style=for-the-badge&logo=discord&logoColor=white" alt="Discord" />
+    </a>
+    <a href="https://js.org/">
+        <img src="src/db/assets/branding/badges/JS.svg" alt="JavaScript" />
+    </a>
+    <a href="https://www.patreon.com/">
+        <img src="src/db/assets/branding/badges/Patreon.svg" alt="Patreon" />
+    </a>
+    <a href="https://www.buymeacoffee.com/">
+        <img src="src/db/assets/branding/badges/BMC.svg" alt="Buy Me A Coffee" />
+    </a>
+    <a href="/LICENSE.md">
+        <img src="src/db/assets/branding/badges/Apache.svg" alt="License" />
+    </a>
+</div>
+
 The official repo of Helix the Discord bot.
 The current repo version is alpha 1.1
 
