@@ -57,7 +57,7 @@ The current repo version is alpha 1.1
 
 ## About Helix
 
-##### Helix is a multipurpose Discord bot created as a project for me to better understand and learn *JavaScript*, *TypeScript*, APIs, and more stuff about programming.
+<p>Helix is a multipurpose Discord bot created as a project for me to better understand and learn <u>JavaScript</u>, <u>TypeScript</u>, <u>APIs</u>, and more stuff about programming.</p>
 
 ## Versions:
 
