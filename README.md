@@ -86,5 +86,5 @@ The current repo version is alpha 1.1
  
 - **[Add Me!](https://discord.com/oauth2/authorize?scope=bot&client_id=723697439638290482&scope=bot&permissions=1099510967799)** <img src="https://media.discordapp.net/attachments/850437588195999766/851617384976089138/98a55025fe82d92bb090008b0185c90b.webp" alt="alt text" width="20" height="20">
 
-<img src="https://media.discordapp.net/attachments/771476325356797963/788160344522620958/helixbanner.png" alt="HelixTheBot" />
+<img src="https://media.discordapp.net/attachments/771476325356797963/788160344522620958/helixbanner.png" alt="Old Banner" />
 <img src="src/db/assets/branding/helix-banner-2023.png" alt="Banner" />
