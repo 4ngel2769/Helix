@@ -3,6 +3,7 @@
 <h1 align="center">
     <img src="src/db/assets/branding/helix.png" alt="Helix" width="120px" />
     <br />
+    <img src="https://media.discordapp.net/attachments/771476325356797963/788160344522620958/helixbanner.png" alt="HelixTheBot" />
     <b>Helix</b>
 </h1>
 
@@ -72,7 +73,6 @@ The current repo version is alpha 1.1
 | --- | v7.0 | ⚪ | 9 | d.js 14.11.0 | ⚗️ |
 | Cranberry | x | 🟣 | 6 | custom d.js 13.6.0 | 🤖 |
 
-![an image](https://media.discordapp.net/attachments/771476325356797963/788160344522620958/helixbanner.png "HelixTheBot")
 
 ## To Do list : 
 |Modules :| D/ND|
