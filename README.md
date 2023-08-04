@@ -16,6 +16,9 @@
     <a href="https://js.org/">
         <img src="src/db/assets/branding/badges/JS.svg" alt="JavaScript" />
     </a>
+    <a href="https://nodejs.org/">
+        <img src="https://img.shields.io/badge/node.js-6DA55F?style=for-the-badge&logo=node.js&logoColor=white" alt="JavaScript" />
+    </a>
     <a href="https://www.typescriptlang.org/">
         <img src="src/db/assets/branding/badges/TS.svg" alt="TypeScript" />
     </a>
