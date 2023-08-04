@@ -10,24 +10,25 @@
     <a href="https://discord.gg/GampaCt/">
         <img src="https://img.shields.io/badge/Discord-%235865F2.svg?style=for-the-badge&logo=discord&logoColor=white" alt="Discord" />
     </a>
+    <a href="https://svelte.dev/">
+    	<img src="src/db/assets/branding/badges/svelte.svg" alt="Svelte" />
+    </a>
     <a href="https://js.org/">
         <img src="src/db/assets/branding/badges/JS.svg" alt="JavaScript" />
     </a>
     <a href="https://www.typescriptlang.org/">
         <img src="src/db/assets/branding/badges/TS.svg" alt="TypeScript" />
     </a>
-    <a href="https://svelte.dev/">
-    	<img src="src/db/assets/branding/badges/svelte.svg" alt="Svelte" />
-    </a>
     <a href="https://discord.js.org/">
         <img src="src/db/assets/branding/badges/djs.svg" alt="Discord.JS" />
-    </a>
-    <a href="/LICENSE.md">
-        <img src="src/db/assets/branding/badges/Apache.svg" alt="License" />
     </a>
     <br>
     <a href="https://discord.gg/GapmaCt">
     	<img src="https://dcbadge.vercel.app/api/server/GapmaCt" alt="Discord" />
+    </a>
+    <br>
+    <a href="/LICENSE.md">
+        <img src="src/db/assets/branding/badges/Apache.svg" alt="License" />
     </a>
 </div>
 
