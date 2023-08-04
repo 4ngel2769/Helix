@@ -21,8 +21,17 @@ The current repo version is alpha 1.1
 ```
 
 |Name|Version|Status|API|"Engine"|
-| --- | :---: | :--- | :---: | :--- |
+| --- | :---: | :---: | :---: | :--- |
 | --- | v1.1 | 🔴 | 6 | d.js 12.2.0 |
+| --- | v2-2.6 | 🔴 | 7 | d.js 12.4.1 |
+| --- | v3 | 🔴 | 7 | d.js 12.5.3 |
+| --- | v4 | 🟡 | 7 | d.js 12.5.3 |
+| --- | v5 | 🟢 | 8 | d.js 13.6.0 |
+| --- | v5.1 | 🟢 | 9 | d.js 13.11.0 |
+| --- | v6.0 | 🔵 | 9 | d.js 13.14.0 |
+| --- | v6.1 | 🔵 | 9 | d.js 14.9.0 |
+| --- | v7.0 | ⚪ | 9 | d.js 14.11.0 |
+| Cranberry | x | 🟣 | 6 | custom d.js 13.6.0 |
 
 ![an image](https://media.discordapp.net/attachments/771476325356797963/788160344522620958/helixbanner.png "HelixTheBot")
 
