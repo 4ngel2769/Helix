@@ -1,4 +1,11 @@
 <img src="./src/db/assets/branding/wave-top3.svg" alt="just some waves">
+
+<h1 align="center">
+    <img src="src/db/assets/branding/helix.png" alt="Helix" />
+    <br />
+    <b>Helix</b>
+</h1>
+
 # Helix
 The official repo of Helix the Discord bot. (current repo version: alpha 0.1)
 
@@ -27,8 +34,6 @@ The official repo of Helix the Discord bot. (current repo version: alpha 0.1)
 |Roleplay|✔️|
 |Music|🔳|
 |Weather |🔳|
-
-<iframe src="https://ptb.discord.com/widget?id=747111170531393679&theme=dark" width="350" height="500" allowtransparency="true" frameborder="0" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"></iframe>
 
 ## Support Server
 
