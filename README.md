@@ -45,11 +45,13 @@ The current repo version is alpha 1.1
   <summary>Navigaction (click to expand)</summary>
 
   <div>
-    <p float="left">
-    	<a href="#about-helix">About Helix</a>
-    	<a href="#versions">Versions</a>
-    	<a href="#todo-list-">ToDo List</a>
-    </p>
+    <ul>
+    	<p float="left">
+	    	<li><a href="#about-helix">About Helix</a></li>
+	    	<li><a href="#versions">Versions</a></li>
+	    	<li><a href="#todo-list-">ToDo List</a></li>
+    	</p>
+    </ul>
     <p>
     </p>
   </div>
