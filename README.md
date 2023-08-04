@@ -46,13 +46,18 @@ The current repo version is alpha 1.1
 
   <div>
     <p float="left">
+    	<a href="#about-helix">About Helix</a>
     	<a href="#versions">Versions</a>
-    	<a href="#todo-list">ToDo List</a>
+    	<a href="#todo-list-">ToDo List</a>
     </p>
     <p>
     </p>
   </div>
 </details>
+
+## About Helix
+
+<p>Helix is a multipurpose Discord bot created as a project for me to better understand and learn JavaScript, TypeScript, APIs, and more stuff about programming.</p>
 
 ## Versions:
 
