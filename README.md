@@ -1,9 +1,9 @@
 <img src="./src/db/assets/branding/wave-top4.svg" alt="just some waves">
 
 <h1 align="center">
-    <img src="src/db/assets/branding/helix-gh-logo.png" alt="Helix" width="120px" />
+    <img src="src/db/assets/branding/helix-gh-logo2.png" alt="Helix" width="120px" />
     <br />
-    <b>Helix</b>
+    <!--<b>Helix</b>-->
 </h1>
 
 <div align="center">
