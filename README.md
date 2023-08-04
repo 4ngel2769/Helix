@@ -49,6 +49,14 @@ The current repo version is alpha 1.1
     	<p float="left">
 	    	<li><a href="#about-helix">About Helix</a></li>
 	    	<li><a href="#versions">Versions</a></li>
+	    	<li><a href="#features">Features</a>
+	    		<ul>
+	    			<li><a href="#modules">Modules</a></li>
+	    			<li><a href="#commands">Commands</a></li>
+	    		</ul>
+	    	</li>
+	    	<li><a href="#todo-list-">ToDo List</a></li>
+	    	<li><a href="#todo-list-">ToDo List</a></li>
 	    	<li><a href="#todo-list-">ToDo List</a></li>
     	</p>
     </ul>
