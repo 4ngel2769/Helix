@@ -118,12 +118,16 @@ The current repo version is alpha 1.1
 ## Modules
 
 ### Music
+```coming soon```
 
 ### Moderation
+```coming soon```
 
 ### ChatGPT
+```coming soon```
 
 ### Image Manipulation
+```coming soon```
 
 ## ToDo list : 
 |Modules :| D/ND|
@@ -137,8 +141,10 @@ The current repo version is alpha 1.1
 - **[Support Server](https://discord.gg/GapmaCt)**
 
 # Credits
+```coming soon```
 
 # License
+```coming soon```
 
 <img src="https://media.discordapp.net/attachments/771476325356797963/788160344522620958/helixbanner.png" alt="Old Banner" />
 <img src="src/db/assets/branding/helix-banner-2023.png" alt="Banner" />
