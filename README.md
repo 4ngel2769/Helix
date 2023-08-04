@@ -44,7 +44,7 @@ The current repo version is alpha 1.1
 # Versions' status
 🟢 Active Development
 🟡 Inactive
-🔴 Deprecated
+🔴 Discontinued
 🟣 Unofficial
 🔵 Dev/Beta
 ⚪ Alpha/Unstable (for testing, not public)
@@ -53,6 +53,7 @@ The current repo version is alpha 1.1
 ✅ Has full functionality
 🤖 Partially (has limited functionality)
 ❌ Not implementaion
+⚗️ Working on it
 ```
 
 |Name|Version|Status|API|"Engine"|AI|
@@ -64,9 +65,9 @@ The current repo version is alpha 1.1
 | --- | v5 | 🟢 | 8 | d.js 13.6.0 | ❌ |
 | --- | v5.1 | 🟢 | 9 | d.js 13.11.0 | ❌ |
 | --- | v6.0 | 🔵 | 9 | d.js 13.14.0 | ❌ |
-| --- | v6.1 | 🔵 | 9 | d.js 14.9.0 | 
-| --- | v7.0 | ⚪ | 9 | d.js 14.11.0 |
-| Cranberry | x | 🟣 | 6 | custom d.js 13.6.0 |
+| --- | v6.1 | 🔵 | 9 | d.js 14.9.0 | ✅ |
+| --- | v7.0 | ⚪ | 9 | d.js 14.11.0 | ⚗️ |
+| Cranberry | x | 🟣 | 6 | custom d.js 13.6.0 | 🤖 |
 
 ![an image](https://media.discordapp.net/attachments/771476325356797963/788160344522620958/helixbanner.png "HelixTheBot")
 
