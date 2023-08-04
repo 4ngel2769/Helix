@@ -6,36 +6,30 @@
     <b>Helix</b>
 </h1>
 
-# Helix
-The official repo of Helix the Discord bot. (current repo version: alpha 0.1)
+The official repo of Helix the Discord bot.
+The current repo version is alpha 1.1
+
+## Versions:
+
+```Legend:
+🟢 Active Development
+🟡 Inactive
+🔴 Deprecated
+🟣 Unofficial
+🔵 Dev/Beta
+⚪ Alpha/Unstable (for testing, not public)
+```
+
+|Name|Version|Status|API|"Engine"|
+| --- | :---: | :--- | :---: | :--- |
+| --- | v1.1 | 🔴 | 6 | d.js 12.2.0 |
 
 ![an image](https://media.discordapp.net/attachments/771476325356797963/788160344522620958/helixbanner.png "HelixTheBot")
 
-## Helix is a fun and useful moderation discord bot. He comes jam-packed with a ton of fun and useful commands!
-
-### ══════════════════════════════════
-
-
-## Useful Links:
-
-#### If you need any help or support feel free to join the [support server](https://discord.gg/GapmaCt)!
-#### You can invite Helix [here](https://discord.com/oauth2/authorize?client_id=723697439638290482&scope=bot&permissions=481684598)!
-
-### ══════════════════════════════════
 ## To Do list : 
 |Modules :| D/ND|
 | ------------- |:-------------:| 
-|Moderation|✔️|
-|Loggigng System|✔️|
-|Image Commands|✔️|
-|Verification|✔️|
-|Role commands|✔️|
-|Information CMDS|✔️|
-|Roleplay|✔️|
-|Music|🔳|
-|Weather |🔳|
-
-## Support Server
+|More coming soong|-|
 
 ## For more information about the [bot](https://discord.com/oauth2/authorize?client_id=723697439638290482&scope=bot&permissions=481684598) join the [support server](https://discord.gg/GapmaCt)!
 
