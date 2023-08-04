@@ -140,10 +140,13 @@ The current repo version is alpha 1.1
 
 - **[Support Server](https://discord.gg/GapmaCt)**
 
-# Credits
+## Credits
 ```coming soon```
 
-# License
+## Used Software
+```coming soon```
+
+## License
 ```coming soon```
 
 <img src="https://media.discordapp.net/attachments/771476325356797963/788160344522620958/helixbanner.png" alt="Old Banner" />
