@@ -1,8 +1,0 @@
-{
-  "token": "Your bot token.",
-  "ownerID": "Your user ID.",
-  "api_keys": {
-    "api1": "<key2>",
-    "api2": "<key2>"
-  }
-}
