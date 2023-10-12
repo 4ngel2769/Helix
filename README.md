@@ -85,12 +85,12 @@ The current repo version is alpha 1.1
 
 ```Legend:
 # Versions' status
-🟢 Active Development
-🟡 Inactive
 🔴 Discontinued
-🟣 Unofficial
+🟡 Inactive Development
+🟢 Active Development
 🔵 Dev/Beta
 ⚪ Alpha/Unstable (for testing, not public)
+🟣 Unofficial
 
 # Chat GPT implementation
 ✅ Has full functionality
