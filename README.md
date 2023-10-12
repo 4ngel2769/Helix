@@ -93,23 +93,24 @@ The current repo version is alpha 1.1
 🟣 Unofficial
 
 # Chat GPT implementation
-✅ Has full functionality
-🤖 Partially (has limited functionality)
-❌ Not implementaion
+✅ Fully Implemented
+🤖 Partial Implementation (has limited functionality)
+❌ No Implementaion
 ⚗️ Working on it
 ```
 
 |Version Name|Version|Status|API|"Engine"|AI|
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| --- | v1.1 | `🔴` | 6 | d.js 12.2.0 | `❌` |
-| --- | v2-2.6 | `🔴` | 7 | d.js 12.4.1 | `❌` |
-| --- | v3 | `🔴` | 7 | d.js 12.5.3 | `❌` |
-| --- | v4 | `🟡` | 7 | d.js 12.5.3 | `❌` |
-| --- | v5 | `🟢` | 8 | d.js 13.6.0 | `❌` |
+| --- | v1.0 → 1.1 | `🔴` | 6 | d.js 12.2.0 | `❌` |
+| --- | v2.0 → 2.6 | `🔴` | 7 | d.js 12.4.1 | `❌` |
+| --- | v3.0 → 3.5 | `🔴` | 7 | d.js 12.5.3 | `❌` |
+| --- | v4.0 → 4.1 | `🟡` | 7 | d.js 12.5.3 | `❌` |
+| --- | v5.0 | `🟢` | 8 | d.js 13.6.0 | `❌` |
 | --- | v5.1 | `🟢` | 9 | d.js 13.11.0 | `❌` |
 | --- | v6.0 | `🔵` | 9 | d.js 13.14.0 | `❌` |
 | --- | v6.1 | `🔵` | 9 | d.js 14.9.0 | `✅` |
 | --- | v7.0 | `⚪` | 9 | d.js 14.11.0 | `⚗️` |
+| Hex_1 | v9.0 | `⚪` | 10 | d.js 14.6.0 | `⚗️` |
 | Cranberry | x | `🟣` | 6 | custom d.js 13.6.0 | `🤖` |
 
 
