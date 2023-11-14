@@ -99,7 +99,7 @@ The current repo version is alpha 1.1
 ⚗️ Working on it
 ```
 
-|Version Name|Version|Status|API|"Engine"|AI|
+|Core|Version|Status|API|"Engine"|AI|
 | :--- | :---: | :---: | :---: | :---: | :---: |
 | --- | v1.0 **→** 1.1 | `🔴` | 6 | d.js 12.2.0 | `❌` |
 | --- | v2.0 **→** 2.6 | `🔴` | 7 | d.js 12.4.1 | `❌` |
@@ -112,6 +112,9 @@ The current repo version is alpha 1.1
 | --- | v7.0 | `⚪` | 9 | d.js 14.11.0 | `⚗️` |
 | Hex_1 | v9.0 | `⚪` | 10 | d.js 14.6.0 | `⚗️` |
 | Cranberry | x | `🟣` | 6 | custom d.js 13.6.0 | `🤖` |
+
+> Versions 9.0 and onwards run on [Paperplane](https://github.com/Helix-Labs/framework), a custom fork of the [Sapphire framework](https://github.com/sapphiredev/framework).
+
 
 
 ## Features
