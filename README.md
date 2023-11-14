@@ -12,7 +12,8 @@
     </a>
     <a href="https://svelte.dev/">
     	<img src="src/db/assets/branding/badges/svelte.svg" alt="Svelte" />
-    </a><a href="https://js.org/">
+    </a>
+    <a href="https://js.org/">
         <img src="src/db/assets/branding/badges/JS.svg" alt="JavaScript" />
     </a>
     <a href="https://nodejs.org/">
