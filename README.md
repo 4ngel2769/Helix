@@ -12,8 +12,7 @@
     </a>
     <a href="https://svelte.dev/">
     	<img src="src/db/assets/branding/badges/svelte.svg" alt="Svelte" />
-    </a>
-    <a href="https://js.org/">
+    </a><a href="https://js.org/">
         <img src="src/db/assets/branding/badges/JS.svg" alt="JavaScript" />
     </a>
     <a href="https://nodejs.org/">
@@ -148,7 +147,8 @@ The current repo version is alpha 1.1
 ```coming soon```
 
 ## Used Software
-```coming soon```
+- [Sapphire](https://github.com/sapphiredev/framework)
+- [Paperplane](https://github.com/Helix-Labs/framework) (fork of Sapphire)
 
 ## License
 ```coming soon```
