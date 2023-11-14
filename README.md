@@ -38,11 +38,10 @@
     </a>
 </div>
 
-The official repo of Helix the Discord bot.
-The current repo version is alpha 1.1
-
+The official repository of Helix the Discord bot.
+## 📝 Table Of Contents
 <details>
-  <summary>Navigaction (click to expand)</summary>
+  <summary>(click to expand)</summary>
 
   <div>
     <ul>
