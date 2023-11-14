@@ -138,11 +138,11 @@ The current repo version is alpha 1.1
 | ------------- |:-------------:| 
 |More coming soong|-|
 
-## For more information about the [bot](https://discord.com/oauth2/authorize?client_id=723697439638290482&scope=bot&permissions=481684598) join the [support server](https://discord.gg/GapmaCt)!
+## For more information and support join the [Discord server](https://discord.gg/GapmaCt).
 
 - **[Website](https://helix.angellabs.xyz/)**
 
-- **[Support Server](https://discord.gg/GapmaCt)**
+- **[Add Helix](https://discord.com/oauth2/authorize?client_id=723697439638290482&scope=bot&permissions=481684598)**
 
 ## Credits
 ```coming soon```
