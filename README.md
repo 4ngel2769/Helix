@@ -37,7 +37,13 @@
         <img src="src/db/assets/branding/badges/Apache.svg" alt="License" />
     </a>
 </div>
+<!--
+<div align="center">
 
+[![a](https://skillicons.dev/icons?i=nodejs,mongo,typescript,discord,js&theme=dark)](https://skillicons.dev)
+
+</div>
+-->
 The official repository of Helix the Discord bot.
 ## 📝 Table Of Contents
 <details>
