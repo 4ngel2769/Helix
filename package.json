@@ -1,0 +1,33 @@
+{
+  "name": "helix",
+  "version": "9.0.0",
+  "description": "The perfect multipurpose Discord bot built with nodejs and typescript",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/4ngel2769/Helix.git"
+  },
+  "keywords": [
+    "helix",
+    "discord-bot",
+    "typescript",
+    "discord-js",
+    "discord-js-v14"
+  ],
+  "author": "4ngel2769",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/4ngel2769/Helix/issues"
+  },
+  "homepage": "https://github.com/4ngel2769/Helix#readme",
+  "dependencies": {
+    "@sapphire/framework": "^5.0.4",
+    "discord.js": "^14.14.1"
+  },
+  "devDependencies": {
+    "@sapphire/cli": "^1.9.1"
+  }
+}
