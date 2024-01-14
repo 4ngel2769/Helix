@@ -45,6 +45,7 @@
 </div>
 -->
 The official repository of Helix the Discord bot.
+
 ## 📝 Table Of Contents
 <details>
   <summary>(click to expand)</summary>
