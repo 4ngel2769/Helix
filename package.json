@@ -2,9 +2,17 @@
   "name": "helix",
   "version": "9.0.0",
   "description": "The perfect multipurpose Discord bot built with nodejs and typescript",
+  "type": "module",
   "main": "src/index.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "gts lint",
+    "clean": "gts clean",
+    "compile": "tsc",
+    "fix": "gts fix",
+    "prepare": "npm.cmd run compile",
+    "pretest": "npm.cmd run compile",
+    "posttest": "npm.cmd run lint"
   },
   "repository": {
     "type": "git",
@@ -24,10 +32,25 @@
   },
   "homepage": "https://github.com/4ngel2769/Helix#readme",
   "dependencies": {
+    "@sapphire/decorators": "^6.0.3",
     "@sapphire/framework": "^5.0.4",
-    "discord.js": "^14.14.1"
+    "chalk": "^5.3.0",
+    "cross-env": "^7.0.3",
+    "discord.js": "^14.14.1",
+    "dotenv": "^16.3.1",
+    "fs": "^0.0.1-security",
+    "node-os-utils": "^1.3.7",
+    "ts-toolbelt": "^9.6.0",
+    "tsyringe": "^4.8.0",
+    "typesafe-i18n": "^5.26.2"
   },
   "devDependencies": {
-    "@sapphire/cli": "^1.9.1"
+    "@sapphire/cli": "^1.9.1",
+    "gts": "^5.2.0",
+    "ts-node": "^10.9.2",
+    "tsc-alias": "^1.8.8",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.3.3",
+    "@types/node": "20.8.2"
   }
 }
