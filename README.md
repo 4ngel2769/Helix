@@ -62,10 +62,10 @@ The official repository of Helix the Discord bot.
 	    					<summary><a href="#modules">Modules (click to expand)</a></summary> 
 	    					<ul>
 	    						<p float="left">
-	    							<li><a href="#music">Music</a></li>
-	    							<li><a href="#moderation">Moderation</a></li>
-	    							<li><a href="#chatgpt">AI</a></li>
-	    							<li><a href="#image-manipulation">Image Manipulation</a></li>
+	    							<li>🎵 <a href="#music">Music</a></li>
+	    							<li>⚒️ <a href="#moderation">Moderation</a></li>
+	    							<li>🦾 <a href="#chatgpt">AI</a></li>
+	    							<li>🖼️ <a href="#image-manipulation">Image Manipulation</a></li>
 	    						</p>
 	    					</ul>
 	    				</details>
