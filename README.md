@@ -53,9 +53,9 @@ The official repository of Helix the Discord bot.
   <div>
     <ul>
     	<p float="left">
-	    	<li><a href="#about-helix">📖 About Helix</a></li>
-	    	<li><a href="#versions">🔖 Versions</a></li>
-	    	<li><a href="#features">✨ Features</a>
+	    	<li>📖 <a href="#about-helix">About Helix</a></li>
+	    	<li>🔖 <a href="#versions">Versions</a></li>
+	    	<li>✨ <a href="#features">Features</a>
 	    		<ul>
 	    			<li>
 	    				<details>
@@ -73,9 +73,9 @@ The official repository of Helix the Discord bot.
 	    			<li><a href="#commands">Commands</a></li>
 	    		</ul>
 	    	</li>
-	    	<li><a href="#todo-list-">📝 ToDo List</a></li>
-	    	<li><a href="#todo-list-">🫶 Credits</a></li>
-	    	<li><a href="#todo-list-">🪪 License</a></li>
+	    	<li>📝 <a href="#todo-list-">ToDo List</a></li>
+	    	<li>🫶 <a href="#todo-list-">Credits</a></li>
+	    	<li>🪪 <a href="#todo-list-">License</a></li>
     	</p>
     </ul>
     <p>
