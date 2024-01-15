@@ -73,9 +73,9 @@ The official repository of Helix the Discord bot.
 	    			<li><a href="#commands">Commands</a></li>
 	    		</ul>
 	    	</li>
-	    	<li><a href="#todo-list-">ToDo List</a></li>
-	    	<li><a href="#todo-list-">Credits</a></li>
-	    	<li><a href="#todo-list-">License</a></li>
+	    	<li><a href="#todo-list-">📝 ToDo List</a></li>
+	    	<li><a href="#todo-list-">🫶 Credits</a></li>
+	    	<li><a href="#todo-list-">🪪 License</a></li>
     	</p>
     </ul>
     <p>
