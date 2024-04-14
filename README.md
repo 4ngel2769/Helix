@@ -102,7 +102,7 @@ The official repository of Helix the Discord bot.
 # Chat GPT implementation
 ✅ Fully Implemented
 🤖 Partial Implementation (has limited functionality)
-❌ No Implementaion
+❌ No Implementation
 ⚗️ Working on it
 ```
 
@@ -118,7 +118,7 @@ The official repository of Helix the Discord bot.
 | --- | v6.1.0 | `🔵` | 9 | d.js 14.9.0 | `✅` |
 | --- | v7.0.0 | `⚪` | 9 | d.js 14.11.0 | `⚗️` |
 | Hex_1 | v9.0.0 **→** 9.0.6 | `⚪` | 10 | d.js 14.6.0 | `⚗️` |
-| Hex_2 | v9.1.0 | `⚪` | 10 | d.js 14.14.1 |  `⚗️` |
+| Hex_2 | v10.0.0 | `⚪` | 10 | d.js 14.14.1 |  `⚗️` |
 | Cranberry | x | `🟣` | 6 | custom d.js 13.6.0 | `🤖` |
 
 > Versions 9.0 and onwards run on [Paperplane](https://github.com/Helix-Labs/framework), a custom fork of the [Sapphire framework](https://github.com/sapphiredev/framework).
