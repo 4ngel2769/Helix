@@ -98,6 +98,7 @@ The official repository of Helix the Discord bot.
 🔵 Dev/Beta
 ⚪ Alpha/Unstable (for testing, not public)
 🟣 Unofficial
+Ⓜ️ Very Active Development 
 
 # Chat GPT implementation
 ✅ Fully Implemented
@@ -107,23 +108,25 @@ The official repository of Helix the Discord bot.
 ```
 
 |Core|Version|Status|API|"Engine"|AI|
-| :--- | :---: | :---: | :---: | :---: | :---: |
-| --- | v1.0.0 **→** 1.1.8 | `🔴` | 6 | d.js 12.2.0 | `❌` |
-| --- | v2.0.0 **→** 2.6.0 | `🔴` | 7 | d.js 12.4.1 | `❌` |
-| --- | v3.0.0 **→** 3.5.0 | `🔴` | 7 | d.js 12.5.3 | `❌` |
-| --- | v4.0.0 **→** 4.1.2 | `🟡` | 7 | d.js 12.5.3 | `❌` |
-| --- | v5.0.0 | `🟢` | 8 | d.js 13.6.0 | `❌` |
-| --- | v5.1.0 | `🟢` | 9 | d.js 13.11.0 | `❌` |
-| --- | v6.0.0 | `🔵` | 9 | d.js 13.14.0 | `❌` |
-| --- | v6.1.0 | `🔵` | 9 | d.js 14.9.0 | `✅` |
-| --- | v7.0.0 | `⚪` | 9 | d.js 14.11.0 | `⚗️` |
-| Hex_1 | v9.0.0 **→** 9.0.6 | `⚪` | 10 | d.js 14.6.0 | `⚗️` |
-| Hex_2 | v10.0.0 | `⚪` | 10 | d.js 14.14.1 |  `⚗️` |
+| :--- | :---: | :---: | :---: | :--- | :---: |
+| --- | v1.0.0 **→** 1.1.8 | `🔴` | 6 | D.js 12.2.0 | `❌` |
+| --- | v2.0.0 **→** 2.6.0 | `🔴` | 7 | D.js 12.4.1 | `❌` |
+| --- | v3.0.0 **→** 3.5.0 | `🔴` | 7 | D.js 12.5.3 | `❌` |
+| --- | v4.0.0 **→** 4.1.2 | `🟡` | 7 | D.js 12.5.3 | `❌` |
+| --- | v5.0.0 | `🟡` | 8 | D.js 13.6.0 | `❌` |
+| --- | v5.1.0 | `🟢` | 9 | D.js 13.11.0 | `❌` |
+| --- | v6.0.0 | `🔵` | 9 | D.js 13.14.0 | `❌` |
+| --- | v6.1.0 | `🔵` | 9 | D.js 14.9.0 | `✅` |
+| --- | v7.0.0 | `🔴` | 9 | D.js 14.11.0 | `⚗️` |
+| Hex_1 | v9.0.0 **→** 9.0.6 | `⚪` | 10 | D.js 14.6.0 | `⚗️` |
+| Hex_2 | v10.0.0 | `Ⓜ️` | 10 | D.js 14.14.1 |  `⚗️` |
+| Cranberry | x | `🟣` | 6 | Custom D.js 13.6.0 | `🤖` |
 
+<!--
 Other
 |Core|Version|Status|API|"Engine"|AI|
 |:-|:-:|:-:|:-:|:-:|:-:|
-| Cranberry | x | `🟣` | 6 | custom d.js 13.6.0 | `🤖` |
+-->
 
 > Versions 9.0 and onwards run on [Paperplane](https://github.com/Helix-Labs/framework), a custom fork of the [Sapphire framework](https://github.com/sapphiredev/framework).
 
