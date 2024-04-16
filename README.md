@@ -142,6 +142,9 @@ Other
 ### Moderation
 ```coming soon```
 
+### Auto-moderation
+```coming soon```
+
 ### ChatGPT
 ```coming soon```
 
