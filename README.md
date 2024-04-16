@@ -172,5 +172,16 @@ Other
 ## License
 ```coming soon```
 
-<img src="https://media.discordapp.net/attachments/771476325356797963/788160344522620958/helixbanner.png" alt="Old Banner" />
+<!--<img src="https://media.discordapp.net/attachments/771476325356797963/788160344522620958/helixbanner.png" alt="Old Banner" />
 <img src="src/db/assets/branding/helix-banner-2023.png" alt="Banner" />
+-->
+
+## Star History
+
+<a href="https://star-history.com/#4ngel2769/Helix&Timeline">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=4ngel2769/Helix&type=Timeline&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=4ngel2769/Helix&type=Timeline" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=4ngel2769/Helix&type=Timeline" />
+ </picture>
+</a>
