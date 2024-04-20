@@ -29,7 +29,7 @@ export class UserEvent extends Listener {
 
 		console.log(
 			String.raw`
-${line01} ${pad}${blc('1.0.0')}
+${line01} ${pad}${blc('10.0.0')}
 ${line02} ${pad}[${success}] Gateway
 ${line03}${dev ? ` ${pad}${blc('<')}${llc('/')}${blc('>')} ${llc('DEVELOPMENT MODE')}` : ''}
 		`.trim()
