@@ -4,9 +4,16 @@ import { send } from '@sapphire/plugin-editable-commands';
 import { ApplicationCommandType, type Message } from 'discord.js';
 
 @ApplyOptions<Command.Options>({
+	enabled: true,
+	nsfw: false,
+	name: 'ping',
 	description: 'Bot ping',
+	detailedDescription: 'Get the latency of the bot\'s connection to the Discord WebService and database.',
 	aliases: ['latency'],
-	name: 'ping'
+	fullCategory: ['General'],
+	cooldownDelay: 5000,
+	cooldownLimit: 3,
+	cooldownFilteredUsers: ['angeldev0']
 })
 export class UserCommand extends Command {
 	// Register slash and context menu command
@@ -43,7 +50,7 @@ export class UserCommand extends Command {
 
 	// slash command
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-		const msg = await interaction.reply({ content: 'Ping?', fetchReply: true });
+		const msg = await interaction.reply({ content: 'Ping?', ephemeral: true, fetchReply: true });
 
 		const content = `Pong! Bot Latency ${Math.round(this.container.client.ws.ping)}ms. API Latency ${
 			msg.createdTimestamp - interaction.createdTimestamp
