@@ -2,6 +2,8 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Listener } from '@sapphire/framework';
 import type { StoreRegistryValue } from '@sapphire/pieces';
 import { blue, gray, green, magenta, magentaBright, white, yellow } from 'colorette';
+import { ActivityType } from 'discord.js';
+// import { Client } from 'discord.js';
 
 const dev = process.env.NODE_ENV !== 'production';
 
@@ -10,9 +12,22 @@ export class UserEvent extends Listener {
 	private readonly style = dev ? yellow : blue;
 
 	public override run() {
+		// this.botStartup();
 		this.printBanner();
 		this.printStoreDebugInformation();
+		this.botStartupFinish();
 	}
+
+	// Experimental
+
+	// private botStartup() {
+	// 	const { client } = this.container;
+
+	// 	client.user?.setPresence({
+	// 		status: 'dnd',
+	// 		activities: [{name: 'Starting up...', type: ActivityType.Custom}]
+	// 	})
+	// }
 
 	private printBanner() {
 		const success = green('+');
@@ -29,9 +44,9 @@ export class UserEvent extends Listener {
 
 		console.log(
 			String.raw`
-${line01} ${pad}${blc('10.0.0')}
-${line02} ${pad}[${success}] Gateway
-${line03}${dev ? ` ${pad}${blc('<')}${llc('/')}${blc('>')} ${llc('DEVELOPMENT MODE')}` : ''}
+				${line01} ${pad}${blc('10.0.0')}
+				${line02} ${pad}[${success}] Gateway
+				${line03}${dev ? ` ${pad}${blc('<')}${llc('/')}${blc('>')} ${llc('DEVELOPMENT MODE')}` : ''}
 		`.trim()
 		);
 	}
@@ -41,11 +56,24 @@ ${line03}${dev ? ` ${pad}${blc('<')}${llc('/')}${blc('>')} ${llc('DEVELOPMENT MO
 		const stores = [...client.stores.values()];
 		const last = stores.pop()!;
 
+		// Send current count of guilds in console
+		this.container.logger.debug(`${this.container.client.user?.username} is in a total of ${this.container.client.guilds.cache.size}`);
+
 		for (const store of stores) logger.info(this.styleStore(store, false));
 		logger.info(this.styleStore(last, true));
 	}
 
 	private styleStore(store: StoreRegistryValue, last: boolean) {
 		return gray(`${last ? '└─' : '├─'} Loaded ${this.style(store.size.toString().padEnd(3, ' '))} ${store.name}.`);
+	}
+	
+	private botStartupFinish() {
+		const { client } = this.container;
+
+		// Set status and presence things
+		client.user?.setPresence({
+			status: 'online',
+			activities: [{ name: 'Online', type: ActivityType.Custom}]
+		})
 	}
 }

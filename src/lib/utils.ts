@@ -1,7 +1,7 @@
 import type { ChatInputCommandSuccessPayload, Command, ContextMenuCommandSuccessPayload, MessageCommandSuccessPayload } from '@sapphire/framework';
 import { container } from '@sapphire/framework';
 import { send } from '@sapphire/plugin-editable-commands';
-import { cyan } from 'colorette';
+import { cyan, greenBright } from 'colorette';
 import { EmbedBuilder, type APIUser, type Guild, type Message, type User } from 'discord.js';
 import { RandomLoadingMessage } from './constants';
 
@@ -46,7 +46,7 @@ export function getSuccessLoggerData(guild: Guild | null, user: User, command: C
 }
 
 function getShardInfo(id: number) {
-	return `[${cyan(id.toString())}]`;
+	return `[${greenBright(id.toString())}]`;
 }
 
 function getCommandInfo(command: Command) {
