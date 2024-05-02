@@ -4,7 +4,9 @@ import { send } from '@sapphire/plugin-editable-commands';
 import { ApplicationCommandType, type Message } from 'discord.js';
 
 @ApplyOptions<Command.Options>({
-	description: 'Bot ping'
+	description: 'Bot ping',
+	aliases: ['latency'],
+	name: 'ping'
 })
 export class UserCommand extends Command {
 	// Register slash and context menu command

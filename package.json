@@ -8,7 +8,7 @@
   "dependencies": {
     "@sapphire/decorators": "^6.0.4",
     "@sapphire/discord-utilities": "^3.2.2",
-    "@sapphire/discord.js-utilities": "7.1.6",
+    "@sapphire/discord.js-utilities": "^7.1.6",
     "@sapphire/fetch": "^3.0.2",
     "@sapphire/framework": "^5.1.0",
     "@sapphire/plugin-api": "^6.1.1",

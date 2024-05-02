@@ -4,9 +4,9 @@ import { LogLevel, SapphireClient } from '@sapphire/framework';
 import { GatewayIntentBits, Partials } from 'discord.js';
 
 const client = new SapphireClient({
-	defaultPrefix: '!',
+	defaultPrefix: 'x',
 	regexPrefix: /^(hey +)?bot[,! ]/i,
-	caseInsensitiveCommands: true,
+	caseInsensitiveCommands: false,
 	logger: {
 		level: LogLevel.Debug
 	},
