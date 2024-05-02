@@ -3,7 +3,6 @@ import { Listener } from '@sapphire/framework';
 import type { StoreRegistryValue } from '@sapphire/pieces';
 import { blue, gray, green, magenta, magentaBright, white, yellow } from 'colorette';
 import { ActivityType } from 'discord.js';
-// import { Client } from 'discord.js';
 
 const dev = process.env.NODE_ENV !== 'production';
 
