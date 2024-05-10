@@ -15,6 +15,7 @@ dist/
 
 # Ignore the config file (contains sensitive information such as tokens)
 config.ts
+config.json
 
 # Ignore heapsnapshot and log files
 *.heapsnapshot

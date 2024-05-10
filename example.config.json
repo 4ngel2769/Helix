@@ -1,0 +1,12 @@
+{
+    "dashboard" : {
+        "port" : 80,
+        "domain" : "http://domain.tld",
+        "redirectUri" : "/discord/callback",
+        "license" : "dbd-license",
+        "ownerIDs" : [
+            "ownerID1",
+            "ownerID2"
+        ]
+    }
+}
