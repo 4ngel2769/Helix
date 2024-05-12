@@ -56,7 +56,7 @@ export class UserEvent extends Listener {
 		const last = stores.pop()!;
 
 		// Send current count of guilds in console
-		this.container.logger.debug(`${this.container.client.user?.username} is in a total of ${this.container.client.guilds.cache.size}`);
+		this.container.logger.debug(`${this.container.client.user?.username} is in a total of ${this.container.client.guilds.cache.size} guilds with ${this.container.client.guilds.cache.reduce((a, b) => a + b.memberCount, 0)} members.`);
 
 		for (const store of stores) logger.info(this.styleStore(store, false));
 		logger.info(this.styleStore(last, true));
@@ -71,8 +71,8 @@ export class UserEvent extends Listener {
 
 		// Set status and presence things
 		client.user?.setPresence({
-			status: 'online',
-			activities: [{ name: 'Online', type: ActivityType.Custom}]
+			status: 'idle',
+			activities: [{ name: 'Eating pizza', type: ActivityType.Custom}]
 		})
 	}
 }

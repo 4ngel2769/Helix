@@ -2,6 +2,7 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 // import { send } from '@sapphire/plugin-editable-commands';
 import { ApplicationCommandType, EmbedBuilder } from 'discord.js';
+import { pickRandom } from '../../lib/utils';
 import { RandomLoadingMessage } from '../../lib/constants';
 // const { EmbedBuilder } = require('discord.js');
 
@@ -56,9 +57,10 @@ export class UserCommand extends Command {
 		const createDate = memberToGet?.user.createdAt;
 		
 		const loadingEmbed = new EmbedBuilder()
-			.setDescription(`${RandomLoadingMessage}`)
+			.setDescription(`${pickRandom(RandomLoadingMessage)}`)
 
 		await interaction.reply({ embeds: [loadingEmbed]})
+	
 		// const client = this.container;
 		// const topRoleId = interaction.guild?.members.me?.roles.cache.sort((a, b) => b.position - a.position).first()?.id;
 		// const topRole = interaction.guild?.roles.cache.get(`${topRoleId}`);
