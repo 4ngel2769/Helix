@@ -1,3 +1,5 @@
+import { ModuleCommand } from '@kbotdev/plugin-modules';
+import type { ExampleModule } from '../../modules/Example';
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 // import { send } from '@sapphire/plugin-editable-commands';
@@ -9,9 +11,16 @@ import { RandomLoadingMessage } from '../../lib/constants';
 @ApplyOptions<Command.Options>({
 	description: 'Information about a given user',
 	name: 'userinfo',
-	cooldownDelay: 5000
+	cooldownDelay: 5000,
+	preconditions: ['ModuleEnabled']
 })
-export class UserCommand extends Command {
+export class UserCommand extends ModuleCommand<ExampleModule> {
+	public constructor(context: ModuleCommand.LoaderContext, options: Command.Options) {
+		super(context, {
+			...options,
+			module: 'ExampleModule'
+		})
+	}
 	// Register slash and context menu command
 	public override registerApplicationCommands(registry: Command.Registry) {
 		// Register slash command
