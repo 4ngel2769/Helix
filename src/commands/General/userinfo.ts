@@ -1,33 +1,30 @@
 import { ModuleCommand } from '@kbotdev/plugin-modules';
-import type { ExampleModule } from '../../modules/Example';
+import type { GeneralModule } from '../../modules/General';
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 // import { send } from '@sapphire/plugin-editable-commands';
 import { ApplicationCommandType, EmbedBuilder } from 'discord.js';
-import { pickRandom } from '../../lib/utils';
-import { RandomLoadingMessage } from '../../lib/constants';
+// import { pickRandom } from '../../lib/utils';
+// import { RandomLoadingMessage } from '../../lib/constants';
 // const { EmbedBuilder } = require('discord.js');
 
 @ApplyOptions<Command.Options>({
 	description: 'Information about a given user',
 	name: 'userinfo',
-	cooldownDelay: 5000,
-	preconditions: ['ModuleEnabled']
+	cooldownDelay: 5000
 })
-export class UserCommand extends ModuleCommand<ExampleModule> {
+// export class UserCommand extends Command {
+export class UserCommand extends ModuleCommand<GeneralModule> {
 	public constructor(context: ModuleCommand.LoaderContext, options: Command.Options) {
 		super(context, {
 			...options,
-			module: 'ExampleModule'
+			module: 'GeneralModule',
+			preconditions: ['ModuleEnabled'],
+			enabled: true
 		})
 	}
 	// Register slash and context menu command
 	public override registerApplicationCommands(registry: Command.Registry) {
-		// Register slash command
-		// registry.registerChatInputCommand({
-		// 	name: this.name,
-		// 	description: this.description
-		// });
 
 		registry.registerChatInputCommand((builder) =>
 		builder //
@@ -57,18 +54,19 @@ export class UserCommand extends ModuleCommand<ExampleModule> {
 			idHints: ['1235654649911054388']
 		});
 	}
-
+	
 	// slash command
-	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
+	public override async chatInputRun(interaction: ModuleCommand.ChatInputCommandInteraction) {
+		// const { module } = this;
 		const userToGet = interaction.options.getUser('user') || interaction.member?.user;
 		const memberToGet = interaction.guild?.members.cache.get(userToGet!.id);
 		const joinDate = memberToGet?.joinedAt;
 		const createDate = memberToGet?.user.createdAt;
 		
-		const loadingEmbed = new EmbedBuilder()
-			.setDescription(`${pickRandom(RandomLoadingMessage)}`)
+		// const loadingEmbed = new EmbedBuilder()
+			// .setDescription(`${pickRandom(RandomLoadingMessage)}`)
 
-		await interaction.reply({ embeds: [loadingEmbed]})
+		// await interaction.reply({ embeds: [loadingEmbed]})
 	
 		// const client = this.container;
 		// const topRoleId = interaction.guild?.members.me?.roles.cache.sort((a, b) => b.position - a.position).first()?.id;
@@ -78,15 +76,15 @@ export class UserCommand extends ModuleCommand<ExampleModule> {
 		const embed = new EmbedBuilder()
 			.setColor('Blurple')
 			.setTitle(`${memberToGet?.displayName}`)
-			.setDescription(`${userToGet?.username}`)
 			.setThumbnail(`${memberToGet?.displayAvatarURL()}?size=1024`)
 			// .setImage(`https://raw.githubusercontent.com/4ngel2769/Helix/main/src/db/assets/branding/helix-banner-2023.png`)
 			.addFields({
 				name: `General`,
 				value: `
+				> **Username :** \`${userToGet?.username}\`
+				> **ID :** \`${userToGet?.id}\`
 				> **Joined Discord :** <t:${Math.floor(joinDate!.getTime() / 1000)}:f>
 				> **Joined server :** <t:${Math.floor(createDate!.getTime() / 1000 )}:f>
-				> **ID :** \`${userToGet?.id}\`
 				`
 			},{
 				name:`Guild`,
@@ -96,7 +94,7 @@ export class UserCommand extends ModuleCommand<ExampleModule> {
 			})
 			// .setFooter({text: `a`})
 		console.log(userToGet)
-		return interaction.editReply({ embeds: [embed] });
+		return interaction.reply({ embeds: [embed] });
 	}
 
 	// context menu command

@@ -1,23 +1,23 @@
 import { Module, type IsEnabledContext, type ModuleError } from '@kbotdev/plugin-modules';
 import type { Piece, Result } from '@sapphire/framework';
 
-export class ExampleModule extends Module {
+export class GeneralModule extends Module {
     public constructor(context: Module.LoaderContext, options: Piece.Options) {
         super(context, {
             ...options,
-            fullName: 'Example Module',
-            description: 'An Example Module'
+            fullName: 'General Commands',
+            description: 'Commands used by everyone',
+            enabled: true
         });
     }
 
     public IsEnabled(_context: IsEnabledContext): Result<Boolean, ModuleError> {
         return this.ok(true);
-        // console.log(context);
     }
 }
 
 declare module '@kbotdev/plugin-modules' {
     interface Modules {
-        ExampleModule: never;
+        GeneralModule: never;
     }
 }
