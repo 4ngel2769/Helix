@@ -1,7 +1,7 @@
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import type { GeneralModule } from '../../modules/General';
 import { ApplyOptions } from '@sapphire/decorators';
-import { Command } from '@sapphire/framework';
+import { Command, MessageCommand } from '@sapphire/framework';
 // import { send } from '@sapphire/plugin-editable-commands';
 import { ApplicationCommandType, EmbedBuilder } from 'discord.js';
 // import { pickRandom } from '../../lib/utils';
@@ -15,12 +15,11 @@ import { ApplicationCommandType, EmbedBuilder } from 'discord.js';
 })
 // export class UserCommand extends Command {
 export class UserCommand extends ModuleCommand<GeneralModule> {
-	public constructor(context: ModuleCommand.LoaderContext, options: Command.Options) {
+	public constructor(context: ModuleCommand.LoaderContext, options: MessageCommand.Options) {
 		super(context, {
 			...options,
 			module: 'GeneralModule',
-			preconditions: ['ModuleEnabled'],
-			enabled: true
+			preconditions: ['ModuleEnabled']
 		})
 	}
 	// Register slash and context menu command

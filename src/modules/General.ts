@@ -18,6 +18,6 @@ export class GeneralModule extends Module {
 
 declare module '@kbotdev/plugin-modules' {
     interface Modules {
-        GeneralModule: never;
+        GeneralModule: true;
     }
 }

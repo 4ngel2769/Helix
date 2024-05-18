@@ -1,7 +1,10 @@
+import { ModuleCommand } from '@kbotdev/plugin-modules';
+import { GeneralModule } from '../../modules/General'; 
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { send } from '@sapphire/plugin-editable-commands';
 import { ApplicationCommandType, type Message } from 'discord.js';
+import { env } from 'process';
 
 @ApplyOptions<Command.Options>({
 	enabled: true,
@@ -13,9 +16,19 @@ import { ApplicationCommandType, type Message } from 'discord.js';
 	fullCategory: ['General'],
 	cooldownDelay: 5000,
 	cooldownLimit: 3,
-	cooldownFilteredUsers: ['angeldev0']
+	cooldownFilteredUsers: [env.OWNERS],
+	flags: true
 })
-export class UserCommand extends Command {
+export class UserCommand extends ModuleCommand<GeneralModule> {
+
+	public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
+		super(context, {
+			...options,
+			module: 'GeneralModule',
+			description: 'ping command',
+			// preconditions: ['ModuleEnabled']
+		})
+	}
 	// Register slash and context menu command
 	public override registerApplicationCommands(registry: Command.Registry) {
 		// Register slash command
@@ -49,18 +62,19 @@ export class UserCommand extends Command {
 	}
 
 	// slash command
-	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
+	public override async chatInputRun(interaction: ModuleCommand.ChatInputCommandInteraction) {
 		const msg = await interaction.reply({ content: 'Ping?', ephemeral: true, fetchReply: true });
 
 		const content = `Pong! Bot Latency ${Math.round(this.container.client.ws.ping)}ms. API Latency ${
 			msg.createdTimestamp - interaction.createdTimestamp
-		}ms.`;
+		}ms.
+		`;
 
 		return interaction.editReply({ content });
 	}
 
 	// context menu command
-	public override async contextMenuRun(interaction: Command.ContextMenuCommandInteraction) {
+	public override async contextMenuRun(interaction: ModuleCommand.ContextMenuCommandInteraction) {
 		const msg = await interaction.reply({ content: 'Ping?', fetchReply: true });
 
 		const content = `Pong! Bot Latency ${Math.round(this.container.client.ws.ping)}ms. API Latency ${
