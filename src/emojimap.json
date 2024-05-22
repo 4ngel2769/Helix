@@ -1,40 +1,40 @@
 {
-    "emojis" : [{
-        "general" : [{
-            "":""
-        }],
-        "util" : [{
-            "rules":"<:blurple_rules:899907179430166528>",
-            "gift":"<:blurple_gift:899907386435829780>",
-            "blurpleHunter1":"<:blurple_bughunder_1:899907420086730803>",
-            "blurpleHunter2":"<:blurple_bughunter_2:899907500130861106>"
-        }],
-        "badgesBlurple" : [{
-            "developer":"<:verified_bot_developer:899907230307069973>",
-            "staff":"<:blurple_employee:899907312280563722>",
-            "owner":"<:crown:899903075148505119>",
-            "verified":"<:verified:899907048576278548>",
-            "partner":"<:partner:899907131757695016>"
-        }],
-        "badges" : [{
-            "hype" : [{
-                "balance":"<:balance:914817815993806848>",
-                "bravery":"<:bravery:914817815687606273>",
-                "brilliance":"<:brilliance:914817816073478164>",
-                "hypesquad":"<:hypesquad:914817815721168918>"
-            }],
-            "bugHunter1":"<:discord_bughunter_1:914817650180370483>",
-            "bugHunter2":"<:discord_bughunter_2:914817650121642015>",
-            "verifiedApp":"<:verified_app:1242889751217049712>",
-            "discordApp":"<:discord_app:1242889663115427841>",
-            "activeDeveloper":"<:active_developer:1242891214785744916>"
+    "emojis" : {
+        "general" : {
+            "" : ""
+        },
+        "util" : {
+            "rules" : "<:blurple_rules:899907179430166528>",
+            "gift" : "<:blurple_gift:899907386435829780>",
+            "blurpleHunter1" : "<:blurple_bughunder_1:899907420086730803>",
+            "blurpleHunter2" : "<:blurple_bughunter_2:899907500130861106>"
+        },
+        "badgesBlurple" : {
+            "developer" : "<:verified_bot_developer:899907230307069973>",
+            "staff" : "<:blurple_employee:899907312280563722>",
+            "owner" : "<:crown:899903075148505119>",
+            "verified" : "<:verified:899907048576278548>",
+            "partner" : "<:partner:899907131757695016>"
+        },
+        "badges" : {
+            "hype" : {
+                "balance" : "<:balance:914817815993806848>",
+                "bravery" : "<:bravery:914817815687606273>",
+                "brilliance" : "<:brilliance:914817816073478164>",
+                "hypesquad" : "<:hypesquad:914817815721168918>"
+            },
+            "bugHunter1" : "<:discord_bughunter_1:914817650180370483>",
+            "bugHunter2" : "<:discord_bughunter_2:914817650121642015>",
+            "verifiedApp" : "<:verified_app:1242889751217049712>",
+            "discordApp" : "<:discord_app:1242889663115427841>",
+            "activeDeveloper" : "<:active_developer:1242891214785744916>"
     
-        }],
-        "economy" : [
-            ""
-        ],
-        "special" : [
-            ""
-        ]
-    }]
+        },
+        "economy" : {
+
+        },
+        "special" : {
+
+        }
+    }
 }

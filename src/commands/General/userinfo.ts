@@ -1,7 +1,7 @@
 // import { ModuleCommand } from '@kbotdev/plugin-modules';
 import type { GeneralModule } from '../../modules/General';
 import { ApplyOptions } from '@sapphire/decorators';
-import { Command, MessageCommand } from '@sapphire/framework';
+import { Command } from '@sapphire/framework';
 // import { send } from '@sapphire/plugin-editable-commands';
 import { ApplicationCommandType, EmbedBuilder } from 'discord.js';
 import { bot } from '../../../config.json';
@@ -14,12 +14,6 @@ import { emojis } from '../../emojimap.json'
 })
 // export class UserCommand extends Command {
 export class UserinfoCommand extends Command<GeneralModule> {
-	public constructor(context: Command.LoaderContext, options: MessageCommand.Options) {
-		super(context, {
-			...options,
-			name: 'userinfo'
-		})
-	}
 	// Register slash and context menu command
 	public override registerApplicationCommands(registry: Command.Registry) {
 
@@ -102,7 +96,7 @@ export class UserinfoCommand extends Command<GeneralModule> {
 			if (memberToGet && bot.ownerIDs.includes(memberToGet.id)) {
 				embed.addFields({
 					name: 'Notables',
-					value: `This user is the Bot developer ${emojis.util.rules}`
+					value: `${emojis.badgesBlurple.developer} \` This user is the Bot developer \``
 				})
 			}
 
