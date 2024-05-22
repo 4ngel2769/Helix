@@ -1,23 +1,37 @@
-import { ApplyOptions } from '@sapphire/decorators';
-import { Command } from '@sapphire/framework';
+import { Subcommand } from '@sapphire/plugin-subcommands';
 // import { EmbedBuilder } from 'discord.js';
 
-@ApplyOptions<Command.Options>({
-    name: 'embed',
-    description: 'Embed command'
-})
-export class UserCommand extends Command {
-    public override registerApplicationCommands(registry: Command.Registry) {
+export class EmbedCommand extends Subcommand {
+    public constructor(context: Subcommand.LoaderContext, options: Subcommand.Options) {
+        super(context, {
+            ...options,
+            name: 'embed',
+            description: 'embed stuff',
+            subcommands: [
+                { name: 'embedsubcommand', chatInputRun: 'embedChatInput'},
+                {
+                    name: 'embedGroup',
+                    type: 'group',
+                    entries: [
+                        { name: 'send', chatInputRun: 'embedSubSend' },
+                        { name: 'remove', chatInputRun: 'embedSubRemove' }
+                    ]
+                }
+            ]
+        });
+    }
+
+    public override registerApplicationCommands(registry: Subcommand.Registry) {
         registry.registerChatInputCommand((builder) =>
             builder//
                 .setName(this.name)
                 .setDescription(this.description)
-                .addSubcommandGroup((builder) => 
-                    builder //
+                .addSubcommandGroup((group) => 
+                    group //
                         .setName('group')
                         .setDescription('Group of commands')
-                        .addSubcommand((builder) =>
-                            builder //
+                        .addSubcommand((command) =>
+                            command //
                                 .setName('subcommand')
                                 .setDescription('Subcommand')
                                 .addStringOption((option) =>
@@ -30,7 +44,8 @@ export class UserCommand extends Command {
             )
         )
     }
-    public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-        
+
+    public async embedChatInput(interaction: Subcommand.ChatInputCommandInteraction) {
+        interaction.reply('bro');
     }
 }

@@ -1,11 +1,9 @@
-import { ModuleCommand } from '@kbotdev/plugin-modules';
+// import { ModuleCommand } from '@kbotdev/plugin-modules';
 import type { GeneralModule } from '../../modules/General';
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command, MessageCommand } from '@sapphire/framework';
 // import { send } from '@sapphire/plugin-editable-commands';
 import { ApplicationCommandType, EmbedBuilder } from 'discord.js';
-// import { pickRandom } from '../../lib/utils';
-// import { RandomLoadingMessage } from '../../lib/constants';
 // const { EmbedBuilder } = require('discord.js');
 
 @ApplyOptions<Command.Options>({
@@ -14,12 +12,11 @@ import { ApplicationCommandType, EmbedBuilder } from 'discord.js';
 	cooldownDelay: 5000
 })
 // export class UserCommand extends Command {
-export class UserCommand extends ModuleCommand<GeneralModule> {
-	public constructor(context: ModuleCommand.LoaderContext, options: MessageCommand.Options) {
+export class UserinfoCommand extends Command<GeneralModule> {
+	public constructor(context: Command.LoaderContext, options: MessageCommand.Options) {
 		super(context, {
 			...options,
-			module: 'GeneralModule',
-			preconditions: ['ModuleEnabled']
+			name: 'userinfo'
 		})
 	}
 	// Register slash and context menu command
@@ -50,22 +47,18 @@ export class UserCommand extends ModuleCommand<GeneralModule> {
 			name: this.name,
 			type: ApplicationCommandType.User
 		},{
-			idHints: ['1235654649911054388']
+			idHints: ['1239874327713939507']
 		});
 	}
 	
 	// slash command
-	public override async chatInputRun(interaction: ModuleCommand.ChatInputCommandInteraction) {
-		// const { module } = this;
+	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
+
 		const userToGet = interaction.options.getUser('user') || interaction.member?.user;
 		const memberToGet = interaction.guild?.members.cache.get(userToGet!.id);
 		const joinDate = memberToGet?.joinedAt;
 		const createDate = memberToGet?.user.createdAt;
-		
-		// const loadingEmbed = new EmbedBuilder()
-			// .setDescription(`${pickRandom(RandomLoadingMessage)}`)
-
-		// await interaction.reply({ embeds: [loadingEmbed]})
+		const highestRole = memberToGet?.roles.highest.id;
 	
 		// const client = this.container;
 		// const topRoleId = interaction.guild?.members.me?.roles.cache.sort((a, b) => b.position - a.position).first()?.id;
@@ -88,11 +81,22 @@ export class UserCommand extends ModuleCommand<GeneralModule> {
 			},{
 				name:`Guild`,
 				value: `
-				> **Top role :** **<@${memberToGet?.roles.highest.id}>**
+				> **Top role :** **<@&${highestRole}>**
+				`
+			},{
+				name: `Roles`,
+				value: `> ${memberToGet?.roles.cache
+					.filter((role) => role.id !== interaction.guild?.id)
+					.map((role) => role.toString()).join(', ') || '**No roles**'}
 				`
 			})
-			// .setFooter({text: `a`})
-		console.log(userToGet)
+		
+			if (memberToGet?.user.flags && memberToGet.user.flags.toArray().length > 0) {
+				embed.addFields({
+					name: 'Badges', 
+					value: `${memberToGet.user.flags.toArray().map((flag) => flag).join(' ')}`
+				});
+			}
 		return interaction.reply({ embeds: [embed] });
 	}
 
