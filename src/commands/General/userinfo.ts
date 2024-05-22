@@ -3,7 +3,7 @@ import type { GeneralModule } from '../../modules/General';
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 // import { send } from '@sapphire/plugin-editable-commands';
-import { ApplicationCommandType, EmbedBuilder } from 'discord.js';
+import { ActionRowBuilder, ApplicationCommandType, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js';
 import { bot } from '../../../config.json';
 import { emojis } from '../../emojimap.json'
 
@@ -60,6 +60,14 @@ export class UserinfoCommand extends Command<GeneralModule> {
 		// const topRole = interaction.guild?.roles.cache.get(`${topRoleId}`);
 		// const embedColor = topRole?.color;
 
+		const userProfileUrlButton = new ButtonBuilder()
+			.setLabel('Profile picture')
+			.setURL(`${memberToGet?.displayAvatarURL()}?size=1024`)
+			.setStyle(ButtonStyle.Link);
+
+		const row = new ActionRowBuilder<ButtonBuilder>()
+			.addComponents(userProfileUrlButton);
+
 		const embed = new EmbedBuilder()
 			.setColor('Blurple')
 			.setTitle(`${memberToGet?.displayName}`)
@@ -98,9 +106,12 @@ export class UserinfoCommand extends Command<GeneralModule> {
 					name: 'Notables',
 					value: `${emojis.badgesBlurple.developer} \` This user is the Bot developer \``
 				})
-			}
+			};
 
-		return interaction.reply({ embeds: [embed] });
+		return interaction.reply({
+			embeds: [embed],
+			components: [row]
+		});
 	}
 
 	// context menu command

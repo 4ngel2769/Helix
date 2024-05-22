@@ -1,5 +1,6 @@
 import './lib/setup';
 import '@kbotdev/plugin-modules/register';
+import mongoose from 'mongoose';
 
 import { LogLevel, SapphireClient } from '@sapphire/framework';
 import { GatewayIntentBits, Partials } from 'discord.js';
@@ -10,6 +11,10 @@ import { env } from 'process';
 // import config from '../config.json';
 
 // let DBD = require('discord-dashboard');
+
+mongoose.connect(`${env.MONGO}`, {})
+	.then(() => console.log('Connected to MongoDB'))
+	.catch(err => console.error('Failed to connect to MongoDB', err));
 
 const client = new SapphireClient({
 	subcommandsAdvanced: {
