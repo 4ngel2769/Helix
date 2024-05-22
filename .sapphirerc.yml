@@ -1,5 +1,4 @@
-$schema: "./node_modules/@sapphire/cli/templates/schemas/.sapphirerc.scheme.json"
-projectLanguage: "ts"
+projectLanguage: ts
 locations:
   base: src
   arguments: arguments
@@ -7,7 +6,7 @@ locations:
   listeners: listeners
   preconditions: preconditions
   interaction-handlers: interaction-handlers
-  routes: routes
+  routes: ''
 customFileTemplates:
-  enabled: false
-  location: ""
+  enabled: true
+  location: templates
