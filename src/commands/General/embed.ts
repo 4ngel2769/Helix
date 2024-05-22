@@ -28,18 +28,23 @@ export class EmbedCommand extends Subcommand {
                 .setDescription(this.description)
                 .addSubcommandGroup((group) => 
                     group //
-                        .setName('group')
+                        .setName('embedGroup')
                         .setDescription('Group of commands')
                         .addSubcommand((command) =>
                             command //
-                                .setName('subcommand')
-                                .setDescription('Subcommand')
+                                .setName('send')
+                                .setDescription('send subcommand')
                                 .addStringOption((option) =>
                                     option //
                                         .setName('string')
                                         .setDescription('String option')
                                         .setRequired(true)
-                    )
+                            )
+                        
+                )
+                .addSubcommand((command) =>
+                command //
+                
                 )
             )
         )
