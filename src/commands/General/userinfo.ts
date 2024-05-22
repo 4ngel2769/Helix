@@ -4,7 +4,8 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Command, MessageCommand } from '@sapphire/framework';
 // import { send } from '@sapphire/plugin-editable-commands';
 import { ApplicationCommandType, EmbedBuilder } from 'discord.js';
-// const { EmbedBuilder } = require('discord.js');
+import { bot } from '../../../config.json';
+import { emojis } from '../../emojimap.json'
 
 @ApplyOptions<Command.Options>({
 	description: 'Information about a given user',
@@ -97,6 +98,14 @@ export class UserinfoCommand extends Command<GeneralModule> {
 					value: `${memberToGet.user.flags.toArray().map((flag) => flag).join(' ')}`
 				});
 			}
+
+			if (memberToGet && bot.ownerIDs.includes(memberToGet.id)) {
+				embed.addFields({
+					name: 'Notables',
+					value: `This user is the Bot developer ${emojis.util.rules}`
+				})
+			}
+
 		return interaction.reply({ embeds: [embed] });
 	}
 
