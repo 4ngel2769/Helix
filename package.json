@@ -28,7 +28,8 @@
     "discord-dashboard": "^2.3.62",
     "discord.js": "^14.15.2",
     "express": "^4.19.2",
-    "mongoose": "^8.4.0"
+    "mongoose": "^8.4.0",
+    "tsc": "^2.0.4"
   },
   "devDependencies": {
     "@keyv/mongo": "^2.2.8",
