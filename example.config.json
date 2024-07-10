@@ -1,12 +1,40 @@
 {
+    "bot" : {
+        "token" : "YOUR_BOT_TOKEN",
+        "client" : {
+            "id" : "YOUR_BOT_ID",
+            "secret" : "YOUR_BOT_SECRET"
+        },
+        "embedColor" : {
+            "err" : "#db2b1f",
+            "warn" : "#ffd817",
+            "success" : "#49e358",
+            "magic" : "#8727f5",
+            "helix" : "#3ca2ff",
+            "default" : "#2b2d31"
+        },
+        "ownerIDs" : [
+            "YOUR_ID",
+            "OTHER_OWNER_ID"
+        ],
+        "port": 4000,
+        "mongoUri": "mongo://yourmongouri"
+    },
     "dashboard" : {
         "port" : 80,
-        "domain" : "http://domain.tld",
+        "domain" : "http://localhost",
         "redirectUri" : "/discord/callback",
-        "license" : "dbd-license",
+        "license" : "---",
         "ownerIDs" : [
-            "ownerID1",
-            "ownerID2"
-        ]
+            "YOUR_ID",
+            "OTHER_OWNER_ID"
+        ],
+        "mongoUri" : "mongo://",
+        "supportMail" : "support@helix.angellabs.xyz",
+        "ui" : {
+            "darkLogo" : "./src/db/assets/branding/Helix 000.png",
+            "lightLogo" : "./src/db/assets/branding/Helix 000.png",
+            "preload" : "./src/db/assets/branding/logo.png"
+        }
     }
 }

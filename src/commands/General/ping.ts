@@ -5,6 +5,7 @@ import { Command } from '@sapphire/framework';
 import { send } from '@sapphire/plugin-editable-commands';
 import { ApplicationCommandType, type Message } from 'discord.js';
 import { env } from 'process';
+import { getDefReply } from '../../lib/utils';
 
 @ApplyOptions<Command.Options>({
 	enabled: true,
@@ -52,13 +53,16 @@ export class UserCommand extends ModuleCommand<GeneralModule> {
 
 	// Message command
 	public override async messageRun(message: Message) {
-		const msg = await send(message, 'Ping?');
+		// const msg = await send(message, 'Ping?');
 
-		const content = `Pong! Bot Latency ${Math.round(this.container.client.ws.ping)}ms. API Latency ${
-			(msg.editedTimestamp || msg.createdTimestamp) - (message.editedTimestamp || message.createdTimestamp)
-		}ms.`;
+		// const content = `Pong! Bot Latency ${Math.round(this.container.client.ws.ping)}ms. API Latency ${
+		// 	(msg.editedTimestamp || msg.createdTimestamp) - (message.editedTimestamp || message.createdTimestamp)
+		// }ms.`;
 
-		return send(message, content);
+		// return send(message, content);
+		let defReply = await getDefReply('welcome');
+
+		return send(message, `${defReply}`);
 	}
 
 	// slash command

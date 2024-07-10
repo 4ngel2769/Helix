@@ -4,6 +4,8 @@ import { send } from '@sapphire/plugin-editable-commands';
 import { cyan, greenBright } from 'colorette';
 import { EmbedBuilder, type APIUser, type Guild, type Message, type User } from 'discord.js';
 import { RandomLoadingMessage } from './constants';
+import { promises as fs } from 'fs';
+import YAML from 'yaml';
 
 /**
  * Picks a random item from an array
@@ -60,4 +62,27 @@ function getAuthorInfo(author: User | APIUser) {
 function getGuildInfo(guild: Guild | null) {
 	if (guild === null) return 'Direct Messages';
 	return `${guild.name}[${cyan(guild.id)}]`;
+}
+
+interface Replies {
+	[key: string]: string;
+}
+
+let cachedReplies: Replies | null = null;
+
+async function readYamlFile<T>(filePath: string): Promise<T> {
+	const replyContent = await fs.readFile(filePath, 'utf-8');
+	return YAML.parse(replyContent) as T;
+}
+
+async function loadReply(filePath: string = './defaultreplies.yaml'): Promise<Replies> {
+	if(!cachedReplies) {
+		cachedReplies = await readYamlFile<Replies>(filePath);
+	}
+	return cachedReplies;
+}
+
+export async function getDefReply(key: string, filePath: string = './defaultreplies.yaml'): Promise<string | undefined> {
+	const replies = await loadReply(filePath);
+	return replies[key];
 }

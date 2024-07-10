@@ -6,7 +6,6 @@
   "license": "GNU",
   "type": "commonjs",
   "dependencies": {
-    "@frostzzone/discord-easy-dashboard": "^1.2.2",
     "@kaname-png/plugin-subcommands-advanced": "^2.4.2",
     "@kbotdev/plugin-modules": "^3.0.0",
     "@sapphire/decorators": "^6.0.4",
@@ -28,7 +27,8 @@
     "discord-dashboard": "^2.3.62",
     "discord.js": "^14.15.2",
     "express": "^4.19.2",
-    "mongoose": "^8.4.0"
+    "mongoose": "^8.4.0",
+    "yaml": "^2.4.5"
   },
   "devDependencies": {
     "@keyv/mongo": "^2.2.8",
