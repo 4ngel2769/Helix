@@ -21,7 +21,7 @@ export class ModuleCommand extends Command {
       const status = await args.pick('boolean').catch(() => null);
 
       if (status === null) {
-        return message.channel.send('Please specify true or false.');
+        return message.channel.isSendable() && message.channel.send('Please specify true or false.');
       }
 
       let guildData = await Guild.findOne({ guildId });
@@ -34,20 +34,20 @@ export class ModuleCommand extends Command {
 
       await guildData.save();
 
-      return message.channel.send(`Module status set to ${status}.`);
+      return message.channel.isSendable() && message.channel.send(`Module status set to ${status}.`);
     }
 
     if (action === 'get') {
       const guildData = await Guild.findOne({ guildId });
 
       if (!guildData) {
-        return message.channel.send('Module status is not set.');
+        return message.channel.isSendable() && message.channel.send('Module status is not set.');
       }
 
-      return message.channel.send(`Module status is ${guildData.isModule}.`);
+      return message.channel.isSendable() && message.channel.send(`Module status is ${guildData.isModule}.`);
     }
 
-    return message.channel.send('Invalid action. Use "set" or "get".');
+    return message.channel.isSendable() && message.channel.send('Invalid action. Use "set" or "get".');
   }
 }
 

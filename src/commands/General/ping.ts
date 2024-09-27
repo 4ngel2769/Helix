@@ -27,6 +27,9 @@ export class UserCommand extends ModuleCommand<GeneralModule> {
 			...options,
 			module: 'GeneralModule',
 			description: 'ping command',
+			enabled: true,
+			nsfw: false,
+			preconditions: ['Enabled'],
 			// preconditions: ['ModuleEnabled']
 		})
 	}
@@ -60,9 +63,12 @@ export class UserCommand extends ModuleCommand<GeneralModule> {
 		// }ms.`;
 
 		// return send(message, content);
-		let defReply = await getDefReply('welcome');
-
-		return send(message, `${defReply}`);
+		if (message.guild) {
+			let defReply = await getDefReply('welcome');
+			return send(message, `${defReply}`);
+		} else {
+			return send(message, `DM command`);
+		}
 	}
 
 	// slash command
