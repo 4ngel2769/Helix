@@ -23,8 +23,8 @@ const COMMANDS_PER_PAGE = 5;
     enabled: true
 })
 export class HelpCommand extends Command {
-    public override registerApplicationCommands(registry: Command.Registry) {
-        registry.registerChatInputCommand((builder) =>
+    public override async registerApplicationCommands(registry: Command.Registry): Promise<void> {
+        await registry.registerChatInputCommand((builder) =>
             builder
                 .setName('help')
                 .setDescription('Shows all available commands')
@@ -35,6 +35,11 @@ export class HelpCommand extends Command {
                         .setRequired(false)
                 )
         );
+        
+        // Store the command ID
+        this.container.applicationCommandRegistries.commands.set(this.name, command);
+        
+        return command;
     }
 
     public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
@@ -65,28 +70,15 @@ export class HelpCommand extends Command {
             return moduleStatus === undefined || moduleStatus === true;
         });
 
-        // Create module selection menu
-        const moduleSelect = new StringSelectMenuBuilder()
-            .setCustomId('module-select')
-            .setPlaceholder('Select a module')
-            .addOptions(
-                enabledModules.map(module => ({
-                    label: module,
-                    description: `View ${module} commands`,
-                    value: module.toLowerCase()
-                }))
-            );
+        const moduleSelect = this.createModuleSelect(enabledModules);
 
         const mainEmbed = new EmbedBuilder()
             .setColor(config.bot.embedColor.default as ColorResolvable)
             .setTitle('Help Menu')
-            .setDescription('Select a module from the dropdown menu below to view its commands.')
-            .addFields(
-                enabledModules.map(module => ({
-                    name: module,
-                    value: `Use the dropdown to view ${module} commands`,
-                    inline: true
-                }))
+            .setDescription(
+                'Select a module from the dropdown menu below to view its commands.\n\n' +
+                '**Available Modules:**\n' +
+                enabledModules.map(module => `↳ • \`${module}\``).join('\n')
             );
 
         const row = new ActionRowBuilder<StringSelectMenuBuilder>()
@@ -163,7 +155,38 @@ export class HelpCommand extends Command {
 
     private async handlePaginationButton(interaction: ButtonInteraction) {
         if (interaction.customId === 'back-to-main') {
-            await this.handleHelp(interaction.message as Message);
+            // Get guild settings
+            const guildId = interaction.guildId!;
+            const guildData = await Guild.findOne({ guildId });
+            if (!guildData) return;
+
+            // Get all categories (modules)
+            const categories = new Set<string>();
+            for (const command of container.stores.get('commands').values()) {
+                if (command.category) categories.add(command.category);
+            }
+
+            // Filter enabled modules
+            const enabledModules = Array.from(categories).filter(category => {
+                const moduleStatus = guildData[`is${category}Module` as keyof typeof guildData];
+                return moduleStatus === undefined || moduleStatus === true;
+            });
+
+            const moduleSelect = this.createModuleSelect(enabledModules);
+
+            const mainEmbed = new EmbedBuilder()
+                .setColor(config.bot.embedColor.default as ColorResolvable)
+                .setTitle('Help Menu')
+                .setDescription(
+                    'Select a module from the dropdown menu below to view its commands.\n\n' +
+                    '**Available Modules:**\n' +
+                    enabledModules.map(module => `↳ • \`${module}\``).join('\n')
+                );
+
+            const row = new ActionRowBuilder<StringSelectMenuBuilder>()
+                .addComponents(moduleSelect);
+
+            await interaction.update({ embeds: [mainEmbed], components: [row] });
             return;
         }
 
@@ -214,18 +237,18 @@ export class HelpCommand extends Command {
         const embed = new EmbedBuilder()
             .setColor(config.bot.embedColor.default as ColorResolvable)
             .setTitle(`${moduleName.charAt(0).toUpperCase() + moduleName.slice(1)} Commands`)
+            .setDescription(
+                commands.map(cmd => {
+                    const commandId = (cmd as any).applicationCommandRegistry?.globalCommandId;
+                    const commandMention = commandId ? `</$(cmd.name):${commandId}>` : `\`/${cmd.name}\``;
+                    const options = cmd.options && Array.isArray(cmd.options)
+                        ? `\nOptions: ${cmd.options.map(opt => `\`${opt.name}\``).join(', ')}`
+                        : '';
+                    
+                    return `${commandMention}\n↳ ${cmd.description || 'No description available'}${options}\n`;
+                }).join('\n')
+            )
             .setFooter({ text: `Page ${currentPage}/${totalPages}` });
-        commands.forEach(cmd => {
-            const options = cmd.options && Array.isArray(cmd.options)
-                ? `\nOptions: ${cmd.options.map(opt => `\`${opt.name}\``).join(', ')}`
-                : '';
-            
-            embed.addFields({
-                name: `/${cmd.name}`,
-                value: (cmd.description || 'No description available') + options,
-                inline: false
-            });
-        });
 
         return embed;
     }
@@ -244,5 +267,29 @@ export class HelpCommand extends Command {
             .setDisabled(currentPage === totalPages - 1);
 
         return [previousButton, nextButton];
+    }
+
+    private createModuleSelect(enabledModules: string[]) {
+        const emojiMap: { [key: string]: string } = {
+            general: '⚙️',
+            moderation: '🛡️',
+            fun: '🎮',
+            utility: '🔧',
+            music: '🎵',
+            economy: '💰',
+            leveling: '📈'
+        };
+
+        return new StringSelectMenuBuilder()
+            .setCustomId('module-select')
+            .setPlaceholder('Select a module')
+            .addOptions(
+                enabledModules.map(module => ({
+                    label: module,
+                    description: `View ${module} commands`,
+                    value: module.toLowerCase(),
+                    emoji: emojiMap[module.toLowerCase()] || '📁'
+                }))
+            );
     }
 } 
