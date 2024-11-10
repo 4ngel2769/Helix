@@ -35,11 +35,8 @@ export class HelpCommand extends Command {
                         .setRequired(false)
                 )
         );
-        
-        // Store the command ID
-        this.container.applicationCommandRegistries.commands.set(this.name, command);
-        
-        return command;
+        // No need to store command ID or return anything
+        return;
     }
 
     public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
