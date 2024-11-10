@@ -1,16 +1,16 @@
 import { ApplyOptions } from '@sapphire/decorators';
-import { Command } from '@sapphire/framework';
+import { Command, container } from '@sapphire/framework';
 import { 
     ActionRowBuilder, 
     ButtonBuilder, 
     EmbedBuilder, 
     StringSelectMenuBuilder,
     ButtonStyle,
-    ComponentType,
     StringSelectMenuInteraction,
     ButtonInteraction,
     ColorResolvable,
-    Message
+    Message,
+    TextChannel
 } from 'discord.js';
 import { Guild } from '../../models/Guild';
 import config from '../../config';
@@ -52,10 +52,16 @@ export class HelpCommand extends Command {
         // Get guild settings
         const guildData = await Guild.findOne({ guildId });
         if (!guildData) return;
-        // Get all available modules
-        const modules = this.container.stores.get('modules');
-        const enabledModules = [...modules.values()].filter((module: { name: string }) => {
-            const moduleStatus = guildData[`is${module.name}Module` as keyof typeof guildData];
+
+        // Get all categories (modules)
+        const categories = new Set<string>();
+        for (const command of container.stores.get('commands').values()) {
+            if (command.category) categories.add(command.category);
+        }
+
+        // Filter enabled modules
+        const enabledModules = Array.from(categories).filter(category => {
+            const moduleStatus = guildData[`is${category}Module` as keyof typeof guildData];
             return moduleStatus === undefined || moduleStatus === true;
         });
 
@@ -65,9 +71,9 @@ export class HelpCommand extends Command {
             .setPlaceholder('Select a module')
             .addOptions(
                 enabledModules.map(module => ({
-                    label: module.name,
-                    description: `View ${module.name} commands`,
-                    value: module.name.toLowerCase()
+                    label: module,
+                    description: `View ${module} commands`,
+                    value: module.toLowerCase()
                 }))
             );
 
@@ -77,8 +83,8 @@ export class HelpCommand extends Command {
             .setDescription('Select a module from the dropdown menu below to view its commands.')
             .addFields(
                 enabledModules.map(module => ({
-                    name: module.name,
-                    value: `Use the dropdown to view ${module.name} commands`,
+                    name: module,
+                    value: `Use the dropdown to view ${module} commands`,
                     inline: true
                 }))
             );
@@ -88,19 +94,18 @@ export class HelpCommand extends Command {
 
         const response = await (isSlash ? 
             interaction.reply({ embeds: [mainEmbed], components: [row], fetchReply: true }) :
-            interaction.channel!.send({ embeds: [mainEmbed], components: [row] }));
-
-        const collector = (response as Message).createMessageComponentCollector({
-            filter: i => i.user.id === (isSlash ? interaction.user.id : interaction.author.id),
-            time: 300000,
-            componentType: ComponentType.StringSelect | ComponentType.Button
+            (interaction.channel as TextChannel).send({ embeds: [mainEmbed], components: [row] }));
+        const collector = response.createMessageComponentCollector({
+            filter: (i) => 
+                i.user.id === (isSlash ? interaction.user.id : (interaction as Message).author.id),
+            time: 300000
         });
 
-        collector.on('collect', async (i) => {
+        collector.on('collect', async (i: ButtonInteraction | StringSelectMenuInteraction) => {
             if (i.isStringSelectMenu()) {
-                await this.handleModuleSelect(i, guildData);
+                await this.handleModuleSelect(i);
             } else if (i.isButton()) {
-                await this.handlePaginationButton(i, guildData);
+                await this.handlePaginationButton(i);
             }
         });
 
@@ -111,14 +116,11 @@ export class HelpCommand extends Command {
         });
     }
 
-    private async handleModuleSelect(
-        interaction: StringSelectMenuInteraction,
-        guildData: IGuild
-    ) {
+    private async handleModuleSelect(interaction: StringSelectMenuInteraction) {
         try {
             const selectedModule = interaction.values[0];
-            const commands = Array.from(this.container.stores.get('commands')
-                .filter(cmd => cmd.category?.toLowerCase() === selectedModule));
+            const commands = Array.from(container.stores.get('commands').values())
+                .filter(cmd => cmd.category?.toLowerCase() === selectedModule);
 
             if (!commands.length) {
                 await interaction.update({
@@ -136,11 +138,9 @@ export class HelpCommand extends Command {
             }
 
             const pages = this.generateCommandPages(commands);
-            let currentPage = 0;
+            const embed = this.generateCommandEmbed(pages[0], selectedModule, 1, pages.length);
 
-            const embed = this.generateCommandEmbed(pages[currentPage], selectedModule, currentPage + 1, pages.length);
-
-            const buttons = this.createPaginationButtons(currentPage, pages.length);
+            const buttons = this.createPaginationButtons(0, pages.length);
             const backButton = new ButtonBuilder()
                 .setCustomId('back-to-main')
                 .setLabel('Back to Modules')
@@ -149,7 +149,7 @@ export class HelpCommand extends Command {
             const components = [
                 new ActionRowBuilder<ButtonBuilder>().addComponents(...buttons),
                 new ActionRowBuilder<ButtonBuilder>().addComponents(backButton)
-            ] as ActionRowBuilder<ButtonBuilder>[];
+            ];
 
             await interaction.update({ embeds: [embed], components });
         } catch (error) {
@@ -161,17 +161,13 @@ export class HelpCommand extends Command {
         }
     }
 
-    private async handlePaginationButton(
-        interaction: ButtonInteraction,
-        guildData: IGuild
-    ) {
+    private async handlePaginationButton(interaction: ButtonInteraction) {
         if (interaction.customId === 'back-to-main') {
-            await this.handleHelp(interaction);
+            await this.handleHelp(interaction.message as Message);
             return;
         }
 
-        // Handle pagination logic here
-        const [currentPage, totalPages] = interaction.message.embeds[0].footer!.text
+        const [currentPage] = interaction.message.embeds[0].footer!.text
             .match(/Page (\d+)\/(\d+)/)!
             .slice(1)
             .map(Number);
@@ -180,9 +176,8 @@ export class HelpCommand extends Command {
         if (interaction.customId === 'previous') newPage--;
         if (interaction.customId === 'next') newPage++;
 
-        // Update embed and buttons
         const selectedModule = interaction.message.embeds[0].title!.split(' ')[0].toLowerCase();
-        const commands = this.container.stores.get('commands')
+        const commands = Array.from(container.stores.get('commands').values())
             .filter(cmd => cmd.category?.toLowerCase() === selectedModule);
 
         const pages = this.generateCommandPages(commands);
@@ -197,18 +192,15 @@ export class HelpCommand extends Command {
         const components = [
             new ActionRowBuilder<ButtonBuilder>().addComponents(...buttons),
             new ActionRowBuilder<ButtonBuilder>().addComponents(backButton)
-        ] as ActionRowBuilder<ButtonBuilder>[];
+        ];
 
         await interaction.update({ embeds: [embed], components });
     }
 
     private generateCommandPages(commands: Command[]) {
-        if (!commands.length) {
-            return [[]] as Command[][];
-        }
         const pages: Command[][] = [];
         for (let i = 0; i < commands.length; i += COMMANDS_PER_PAGE) {
-            pages.push(Array.from(commands).slice(i, i + COMMANDS_PER_PAGE));
+            pages.push(commands.slice(i, i + COMMANDS_PER_PAGE));
         }
         return pages;
     }
@@ -223,16 +215,14 @@ export class HelpCommand extends Command {
             .setColor(config.bot.embedColor.default as ColorResolvable)
             .setTitle(`${moduleName.charAt(0).toUpperCase() + moduleName.slice(1)} Commands`)
             .setFooter({ text: `Page ${currentPage}/${totalPages}` });
-
-        if (commands.length === 0) {
-            embed.setDescription('No commands available in this module.');
-            return embed;
-        }
-
         commands.forEach(cmd => {
+            const options = cmd.options && Array.isArray(cmd.options)
+                ? `\nOptions: ${cmd.options.map(opt => `\`${opt.name}\``).join(', ')}`
+                : '';
+            
             embed.addFields({
                 name: `/${cmd.name}`,
-                value: cmd.description || 'No description available',
+                value: (cmd.description || 'No description available') + options,
                 inline: false
             });
         });
