@@ -3,13 +3,13 @@ import type { Message } from 'discord.js';
 import { Args } from '@sapphire/framework';
 import { Guild } from '../../models/Guild';
 
-export class ModuleCommand extends Command {
+export class GuildCommand extends Command {
   constructor(context: Command.LoaderContext, options: Command.Options) {
     super(context, {
       ...options,
-      name: 'module',
-      description: 'Sets or gets the module status for the guild',
-      preconditions: ['GuildOnly'], // Ensures the command is only used in a guild
+      name: 'guild',
+      description: 'Manages guild settings and information',
+      preconditions: ['GuildOnly', 'ModeratorOnly'], // Only moderators in a guild can use this
     });
   }
 
@@ -17,40 +17,36 @@ export class ModuleCommand extends Command {
     const action = await args.pick('string').catch(() => null);
     const guildId = message.guild!.id;
 
-    if (action === 'set') {
-      const status = await args.pick('boolean').catch(() => null);
+    switch (action?.toLowerCase()) {
+      case 'info':
+        // Get guild information
+        const guildData = await Guild.findOne({ guildId });
+        if (!guildData) {
+          return message.reply({ 
+            content: 'No guild settings found.',
+            allowedMentions: { repliedUser: false }
+          });
+        }
 
-      if (status === null) {
-        return message.channel.isSendable() && message.channel.send('Please specify true or false.');
-      }
+        return message.reply({ 
+          content: `Guild Settings:\n` +
+                  `• ID: ${guildId}\n` +
+                  `• Modules: ${Object.entries(guildData.toObject())
+                    .filter(([key]) => key.startsWith('is') && key.endsWith('Module'))
+                    .map(([key, value]) => `${key.replace('is', '').replace('Module', '')}: ${value}`)
+                    .join('\n  ')}`,
+          allowedMentions: { repliedUser: false }
+        });
 
-      let guildData = await Guild.findOne({ guildId });
-
-      if (!guildData) {
-        guildData = new Guild({ guildId, isModule: status });
-      } else {
-        guildData.isModule = status;
-      }
-
-      await guildData.save();
-
-      return message.channel.isSendable() && message.channel.send(`Module status set to ${status}.`);
+      default:
+        return message.reply({ 
+          content: 'Available actions:\n`info` - Show guild settings and information',
+          allowedMentions: { repliedUser: false }
+        });
     }
-
-    if (action === 'get') {
-      const guildData = await Guild.findOne({ guildId });
-
-      if (!guildData) {
-        return message.channel.isSendable() && message.channel.send('Module status is not set.');
-      }
-
-      return message.channel.isSendable() && message.channel.send(`Module status is ${guildData.isModule}.`);
-    }
-
-    return message.channel.isSendable() && message.channel.send('Invalid action. Use "set" or "get".');
   }
 }
 
 module.exports = {
-  ModuleCommand
+  GuildCommand
 };

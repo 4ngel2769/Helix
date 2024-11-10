@@ -24,11 +24,11 @@ export class UserCommand extends ModuleCommand<GeneralModule> {
 	public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
 		super(context, {
 			...options,
-			module: 'GeneralModule',
+			// module: 'General',
 			description: 'ping command',
 			enabled: true,
 			nsfw: false,
-			preconditions: ['ModuleEnabled']
+			// preconditions: ['ModuleEnabled']
 		});
 	}
 

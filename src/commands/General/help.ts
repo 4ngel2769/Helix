@@ -1,5 +1,5 @@
 import { ApplyOptions } from '@sapphire/decorators';
-import { Command, container } from '@sapphire/framework';
+import { Args, Command, CommandOptions, container } from '@sapphire/framework';
 import { 
     ActionRowBuilder, 
     ButtonBuilder, 
@@ -16,6 +16,10 @@ import { Guild } from '../../models/Guild';
 import config from '../../config';
 
 const COMMANDS_PER_PAGE = 5;
+
+interface ExtendedCommand extends Command<Args, CommandOptions> {
+    category: string | null;
+}
 
 @ApplyOptions<Command.Options>({
     name: 'help',
@@ -82,7 +86,12 @@ export class HelpCommand extends Command {
             .addComponents(moduleSelect);
 
         const response = await (isSlash ? 
-            interaction.reply({ embeds: [mainEmbed], components: [row], fetchReply: true }) :
+            interaction.reply({ 
+                embeds: [mainEmbed], 
+                components: [row], 
+                ephemeral: true, 
+                fetchReply: true 
+            }) :
             (interaction.channel as TextChannel).send({ embeds: [mainEmbed], components: [row] }));
         const collector = response.createMessageComponentCollector({
             filter: (i) => 
@@ -108,7 +117,7 @@ export class HelpCommand extends Command {
     private async handleModuleSelect(interaction: StringSelectMenuInteraction) {
         try {
             const selectedModule = interaction.values[0];
-            const commands = Array.from(container.stores.get('commands').values())
+            const commands = Array.from(container.stores.get('commands').values() as IterableIterator<ExtendedCommand>)
                 .filter(cmd => cmd.category?.toLowerCase() === selectedModule);
 
             if (!commands.length) {
@@ -195,10 +204,10 @@ export class HelpCommand extends Command {
         let newPage = currentPage;
         if (interaction.customId === 'previous') newPage--;
         if (interaction.customId === 'next') newPage++;
-
         const selectedModule = interaction.message.embeds[0].title!.split(' ')[0].toLowerCase();
-        const commands = Array.from(container.stores.get('commands').values())
-            .filter(cmd => cmd.category?.toLowerCase() === selectedModule);
+        const commandStore = container.stores.get('commands');
+        const commands = Array.from(commandStore.values())
+            .filter(cmd => cmd.category?.toLowerCase() === selectedModule) as unknown as ExtendedCommand[];
 
         const pages = this.generateCommandPages(commands);
         const embed = this.generateCommandEmbed(pages[newPage - 1], selectedModule, newPage, pages.length);
@@ -217,8 +226,8 @@ export class HelpCommand extends Command {
         await interaction.update({ embeds: [embed], components });
     }
 
-    private generateCommandPages(commands: Command[]) {
-        const pages: Command[][] = [];
+    private generateCommandPages(commands: ExtendedCommand[]) {
+        const pages: ExtendedCommand[][] = [];
         for (let i = 0; i < commands.length; i += COMMANDS_PER_PAGE) {
             pages.push(commands.slice(i, i + COMMANDS_PER_PAGE));
         }
@@ -226,7 +235,7 @@ export class HelpCommand extends Command {
     }
 
     private generateCommandEmbed(
-        commands: Command[],
+        commands: ExtendedCommand[],
         moduleName: string,
         currentPage: number,
         totalPages: number
@@ -236,8 +245,8 @@ export class HelpCommand extends Command {
             .setTitle(`${moduleName.charAt(0).toUpperCase() + moduleName.slice(1)} Commands`)
             .setDescription(
                 commands.map(cmd => {
-                    const commandId = (cmd as any).applicationCommandRegistry?.globalCommandId;
-                    const commandMention = commandId ? `</$(cmd.name):${commandId}>` : `\`/${cmd.name}\``;
+                    const commandId = this.getCommandId(cmd);
+                    const commandMention = commandId ? `</${cmd.name}:${commandId}>` : `\`/${cmd.name}\``;
                     const options = cmd.options && Array.isArray(cmd.options)
                         ? `\nOptions: ${cmd.options.map(opt => `\`${opt.name}\``).join(', ')}`
                         : '';
@@ -289,4 +298,12 @@ export class HelpCommand extends Command {
                 }))
             );
     }
-} 
+
+    private getCommandId(command: ExtendedCommand): string | undefined {
+        const globalCommands = this.container.client.application?.commands.cache;
+        if (!globalCommands) return undefined;
+
+        const globalCommand = globalCommands.find(cmd => cmd.name === command.name);
+        return globalCommand?.id;
+    }
+}
