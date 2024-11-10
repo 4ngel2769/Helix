@@ -4,7 +4,7 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 // import { send } from '@sapphire/plugin-editable-commands';
 import { ActionRowBuilder, ApplicationCommandType, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js';
-import { bot } from '../../../config.json';
+import config from '../../config';
 import { emojis } from '../../emojimap.json'
 
 @ApplyOptions<Command.Options>({
@@ -101,7 +101,7 @@ export class UserinfoCommand extends Command<GeneralModule> {
 				});
 			}
 
-			if (memberToGet && bot.ownerIDs.includes(memberToGet.id)) {
+			if (memberToGet && config.bot.ownerIDs.includes(memberToGet.id)) {
 				embed.addFields({
 					name: 'Notables',
 					value: `${emojis.badgesBlurple.developer} \` This user is the Bot developer \``

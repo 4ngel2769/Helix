@@ -21,7 +21,6 @@ import { getDefReply } from '../../lib/utils';
 	flags: true
 })
 export class UserCommand extends ModuleCommand<GeneralModule> {
-
 	public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
 		super(context, {
 			...options,
@@ -29,10 +28,10 @@ export class UserCommand extends ModuleCommand<GeneralModule> {
 			description: 'ping command',
 			enabled: true,
 			nsfw: false,
-			preconditions: ['Enabled'],
-			// preconditions: ['ModuleEnabled']
-		})
+			preconditions: ['ModuleEnabled']
+		});
 	}
+
 	// Register slash and context menu command
 	public override registerApplicationCommands(registry: Command.Registry) {
 		// Register slash command

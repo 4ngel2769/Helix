@@ -18,6 +18,7 @@
     "@sapphire/plugin-hmr": "^3.0.1",
     "@sapphire/plugin-logger": "^4.0.2",
     "@sapphire/plugin-subcommands": "^7.0.0",
+    "@sapphire/result": "^2.6.4",
     "@sapphire/time-utilities": "^1.7.12",
     "@sapphire/type": "^2.5.1",
     "@sapphire/utilities": "^3.17.0",
@@ -53,6 +54,7 @@
     "start": "node dist/index.js",
     "dev": "run-s build start",
     "dev2": "run-p watch start",
+    "dev3": "run-s build && run-p watch start",
     "watch:start": "tsc-watch --onSuccess \"node ./dist/index.js\"",
     "format": "prettier --write \"src/**/*.ts\""
   },

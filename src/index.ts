@@ -3,18 +3,18 @@ import '@kbotdev/plugin-modules/register';
 import mongoose from 'mongoose';
 
 import { LogLevel, SapphireClient } from '@sapphire/framework';
-import { GatewayIntentBits, Partials } from 'discord.js';
+import { GatewayIntentBits, Partials, ActivityType } from 'discord.js';
 import { env } from 'process';
 import { OAuth2Scopes } from 'discord.js';
 
 // import Keyv from 'keyv';
 
 // import SoftUI  from 'dbd-soft-ui';
-import config from '../config.json';
+import config from './config';
 
 // let DBD = require('discord-dashboard');
 
-mongoose.connect(`${env.MONGO}`, {})
+mongoose.connect(`${config.bot.mongoUri}`, {})
 	.then(() => console.log('Connected to MongoDB'))
 	.catch(err => console.error('Failed to connect to MongoDB', err));
 
@@ -56,7 +56,14 @@ const client = new SapphireClient({
 		GatewayIntentBits.MessageContent
 	],
 	partials: [Partials.Channel],
-	loadMessageCommandListeners: true
+	loadMessageCommandListeners: true,
+	presence: {
+		status: 'online',
+		activities: [{
+			name: 'Eating pizza',
+			type: ActivityType.Custom
+		}]
+	}
 });
 
 const main = async () => {
