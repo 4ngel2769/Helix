@@ -5,7 +5,7 @@ import { container } from '@sapphire/framework';
 import type { SapphireClient } from '@sapphire/framework';
 import { OAuth2Scopes } from 'discord.js';
 import type { DiscordUser } from '../types';
-import type { Request, Response, RequestHandler } from 'express';
+import type { RequestHandler } from 'express';
 
 const router = Router();
 
@@ -127,8 +127,8 @@ const addBotToGuild: RequestHandler = (req, res) => {
 
 // Route definitions
 router.get('/guilds', isAuthenticated, getUserGuilds);
-router.get('/guilds/:guildId/settings', hasGuildPermissions, getGuildSettings);
-router.patch('/guilds/:guildId/settings', hasGuildPermissions, updateGuildSettings);
+router.get('/guilds/:guildId/settings', isAuthenticated, hasGuildPermissions, getGuildSettings);
+router.patch('/guilds/:guildId/settings', isAuthenticated, hasGuildPermissions, updateGuildSettings);
 router.post('/guilds/:guildId/add', isAuthenticated, addBotToGuild);
 
 export const apiRouter = router;

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Server } from '../types';
+import type { Server } from '../../types';
 
 interface Props {
     servers: Server[];
