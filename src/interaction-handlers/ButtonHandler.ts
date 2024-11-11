@@ -42,7 +42,7 @@ export class ButtonHandler extends InteractionHandler {
 
 		if (!guildData?.verificationRoleId || !guildData.isVerificationModule) {
 			return interaction.reply({
-				content: 'Verification system is currently disabled.',
+				content: guildData?.verificationDisabledMessage || "⚠️ Verification is currently disabled. Please try again later.",
 				ephemeral: true
 			});
 		}

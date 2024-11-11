@@ -13,6 +13,12 @@ interface IGuild extends Document {
   verificationMessageId: string | null;
   verificationMessage: string | null;
   verificationRoleId: string | null;
+  verificationLastModifiedBy: {
+    userId: string;
+    username: string;
+    timestamp: Date;
+  } | null;
+  verificationDisabledMessage: string | null;
 }
 
 const guildSchema = new Schema<IGuild>({
@@ -27,7 +33,13 @@ const guildSchema = new Schema<IGuild>({
   verificationChannelId: { type: String, default: null },
   verificationMessageId: { type: String, default: null },
   verificationMessage: { type: String, default: "Click the button below to verify yourself and gain access to the server!" },
-  verificationRoleId: { type: String, default: null }
+  verificationRoleId: { type: String, default: null },
+  verificationLastModifiedBy: {
+    userId: { type: String, default: null },
+    username: { type: String, default: null },
+    timestamp: { type: Date, default: null }
+  },
+  verificationDisabledMessage: { type: String, default: "⚠️ Verification is currently disabled. Please try again later." }
 });
 
 export const Guild = model<IGuild>('Guild', guildSchema);
