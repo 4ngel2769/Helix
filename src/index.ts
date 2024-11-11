@@ -2,6 +2,7 @@ import './lib/setup';
 import '@kbotdev/plugin-modules/register';
 import mongoose from 'mongoose';
 
+import { startDashboard } from './dashboard/server';
 import { LogLevel, SapphireClient } from '@sapphire/framework';
 import { GatewayIntentBits, Partials, ActivityType } from 'discord.js';
 import { env } from 'process';
@@ -76,6 +77,9 @@ const main = async () => {
 		client.logger.info('Logging in');
 		await client.login();
 		client.logger.info('logged in');
+		
+		// Start the dashboard after bot login
+		startDashboard();
 	} catch (error) {
 		client.logger.fatal(error);
 		await client.destroy();
@@ -84,3 +88,6 @@ const main = async () => {
 };
 
 void main();
+
+// After bot login
+client.login(config.bot.token);

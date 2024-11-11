@@ -36,6 +36,9 @@
     "mongoose": "^8.6.4",
     "passport": "^0.7.0",
     "passport-discord": "^0.1.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "vue-router": "^4.4.5",
     "yaml": "^2.5.1",
     "zod": "^3.23.8"
   },
@@ -68,7 +71,11 @@
     "dev2": "run-p watch start",
     "dev3": "run-s build && run-p watch start",
     "watch:start": "tsc-watch --onSuccess \"node ./dist/index.js\"",
-    "format": "prettier --write \"src/**/*.ts\""
+    "format": "prettier --write \"src/**/*.ts\"",
+    "dev:dashboard": "cd src/dashboard && vue-cli-service serve",
+    "build:both": "npm run build:bot && npm run build:dashboard",
+    "build:bot": "tsc",
+    "build:dashboard": "cd src/dashboard && vue-cli-service build"
   },
   "prettier": "@sapphire/prettier-config",
   "packageManager": "yarn@4.2.1"

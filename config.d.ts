@@ -30,6 +30,22 @@ declare const config: {
             lightLogo: string;
             preload: string;
         };
+        oauth: {
+            clientId: string;
+            clientSecret: string;
+            scopes: string[];
+            prompt: string;
+        };
+        session: {
+            secret: string;
+            name: string;
+            saveUninitialized: boolean;
+            resave: boolean;
+            cookie: {
+                maxAge: number;
+                secure: boolean;
+            };
+        };
     };
 };
 export default config;
