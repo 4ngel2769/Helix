@@ -38,7 +38,6 @@ export class BanCommand extends Command {
                         .setRequired(false)
                 )
         );
-        console.log('Ban command registered!');
     }
 
     public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
