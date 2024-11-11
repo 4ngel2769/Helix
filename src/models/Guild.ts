@@ -19,6 +19,8 @@ interface IGuild extends Document {
     timestamp: Date;
   } | null;
   verificationDisabledMessage: string | null;
+  adminRoleId: string | null;
+  modRoleId: string | null;
 }
 
 const guildSchema = new Schema<IGuild>({
@@ -39,7 +41,9 @@ const guildSchema = new Schema<IGuild>({
     username: { type: String, default: null },
     timestamp: { type: Date, default: null }
   },
-  verificationDisabledMessage: { type: String, default: "⚠️ Verification is currently disabled. Please try again later." }
+  verificationDisabledMessage: { type: String, default: "⚠️ Verification is currently disabled. Please try again later." },
+  adminRoleId: { type: String, default: null },
+  modRoleId: { type: String, default: null }
 });
 
 export const Guild = model<IGuild>('Guild', guildSchema);

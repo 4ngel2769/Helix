@@ -1,15 +1,24 @@
+import { ModuleCommand } from '@kbotdev/plugin-modules';
+import { ModerationModule } from '../../modules/Moderation';
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { EmbedBuilder, GuildMember, PermissionFlagsBits, ColorResolvable } from 'discord.js';
 import config from '../../config';
 
-@ApplyOptions<Command.Options>({
-    name: 'ban',
+@ApplyOptions<ModuleCommand.Options>({
+    module: 'Moderation',
     description: 'Ban a member from the server',
-    preconditions: ['GuildOnly', 'ModeratorOnly'],
     enabled: true
 })
-export class BanCommand extends Command {
+export class BanCommand extends ModuleCommand<ModerationModule> {
+    public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
+        super(context, {
+            ...options,
+            description: 'Ban a member from the server',
+            enabled: true
+        });
+    }
+
     public override registerApplicationCommands(registry: Command.Registry) {
         console.log('Registering ban command...');
         registry.registerChatInputCommand((builder) =>

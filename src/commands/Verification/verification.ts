@@ -237,7 +237,7 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
                         },
                         { 
                             name: '\`📝\` Last Modified', 
-                            value: guildData.verificationLastModifiedBy
+                            value: guildData.verificationLastModifiedBy?.timestamp
                                 ? `By: ${guildData.verificationLastModifiedBy.username}\nWhen: <t:${Math.floor(guildData.verificationLastModifiedBy.timestamp.getTime() / 1000)}:R>`
                                 : 'No modifications recorded',
                             inline: true
@@ -248,14 +248,14 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
                             inline: true 
                         },
                         { 
-                            name: '\`📋\` Channel', 
+                            name: '\`📋\` Channel:', 
                             value: guildData.verificationChannelId 
                                 ? `<#${guildData.verificationChannelId}>` 
                                 : 'Not set',
                             inline: true
                         },
                         { 
-                            name: '\`🎭\` Role', 
+                            name: '\`🎭\` Role:', 
                             value: guildData.verificationRoleId 
                                 ? `<@&${guildData.verificationRoleId}>` 
                                 : 'Not set',
@@ -267,12 +267,12 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
                             inline: true 
                         },
                         {
-                            name: '\`⚠️\` Disabled Message',
+                            name: '\`🔴\` Disabled Message:',
                             value: guildData.verificationDisabledMessage || 'Verification is currently disabled.'
                         }
                     )
                     .addFields({
-                        name: '\`💬\` Verification Message',
+                        name: '\`✅\` Verification Message:',
                         value: guildData.verificationMessage || 'Click the button below to verify yourself and gain access to the server!'
                     });
 

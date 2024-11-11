@@ -25,6 +25,6 @@ export class ModerationModule extends Module {
 
 declare module '@kbotdev/plugin-modules' {
     interface Modules {
-        ModerationModule: true;
+        Moderation: true;
     }
 } 

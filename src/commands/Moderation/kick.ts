@@ -1,15 +1,19 @@
-import { ApplyOptions } from '@sapphire/decorators';
+import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { Command } from '@sapphire/framework';
+import { ModerationModule } from '../../modules/Moderation';
 import { EmbedBuilder, GuildMember, PermissionFlagsBits, ColorResolvable } from 'discord.js';
 import config from '../../config';
 
-@ApplyOptions<Command.Options>({
-    name: 'kick',
-    description: 'Kick a member from the server',
-    preconditions: ['GuildOnly', 'ModeratorOnly'],
-    enabled: true
-})
-export class KickCommand extends Command {
+export class KickCommand extends ModuleCommand<ModerationModule> {
+    public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
+        super(context, {
+            ...options,
+            module: 'Moderation',
+            description: 'Kick a member from the server',
+            enabled: true
+        });
+    }
+
     public override registerApplicationCommands(registry: Command.Registry) {
         registry.registerChatInputCommand((builder) =>
             builder

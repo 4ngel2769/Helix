@@ -10,10 +10,17 @@ import {
     ButtonInteraction,
     ColorResolvable,
     Message,
-    TextChannel
+    TextChannel,
+    PermissionFlagsBits,
+    PermissionsBitField
 } from 'discord.js';
-import { Guild } from '../../models/Guild';
+import { Guild as DiscordGuild } from 'discord.js';
+import { Guild as GuildModel } from '../../models/Guild';
 import config from '../../config';
+import { Module, Modules, type IsEnabledContext, type ModuleError } from '@kbotdev/plugin-modules';
+import { Result } from '@sapphire/result';
+import { ModuleCommand, ModuleCommandUnion } from '@kbotdev/plugin-modules';
+import { GeneralModule } from '../../modules/General';
 
 const COMMANDS_PER_PAGE = 5;
 
@@ -21,12 +28,46 @@ interface ExtendedCommand extends Command<Args, CommandOptions> {
     category: string | null;
 }
 
+interface CommandPermissions {
+    [key: string]: bigint[];
+}
+
+interface ExtendedModule extends Module {
+    name: string;
+    IsEnabled: (context: IsEnabledContext) => Promise<Result<boolean, ModuleError>>;
+    requiredPermissions?: bigint[];
+}
+
 @ApplyOptions<Command.Options>({
     name: 'help',
     description: 'Shows all available commands',
     enabled: true
 })
-export class HelpCommand extends Command {
+export class HelpCommand extends ModuleCommand<GeneralModule> {
+    public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
+        super(context, {
+            ...options,
+            module: 'GeneralModule',
+            description: 'Shows all available commands',
+            enabled: true
+        });
+    }
+
+    // Define required permissions for each module
+    private modulePermissions: CommandPermissions = {
+        Administration: [
+            PermissionFlagsBits.Administrator,
+            PermissionFlagsBits.ManageGuild
+        ],
+        Moderation: [
+            PermissionFlagsBits.ManageChannels,
+            PermissionFlagsBits.ManageRoles,
+            PermissionFlagsBits.BanMembers,
+            PermissionFlagsBits.KickMembers,
+            PermissionFlagsBits.ModerateMembers
+        ]
+    };
+
     public override async registerApplicationCommands(registry: Command.Registry): Promise<void> {
         await registry.registerChatInputCommand((builder) =>
             builder
@@ -54,9 +95,10 @@ export class HelpCommand extends Command {
     private async handleHelp(interaction: Command.ChatInputCommandInteraction | Message) {
         const isSlash = 'options' in interaction;
         const guildId = isSlash ? interaction.guildId! : interaction.guild!.id;
+        const member = isSlash ? interaction.member : (interaction as Message).member;
         
         // Get guild settings
-        const guildData = await Guild.findOne({ guildId });
+        const guildData = await GuildModel.findOne({ guildId });
         if (!guildData) return;
 
         // Get all categories (modules)
@@ -65,13 +107,59 @@ export class HelpCommand extends Command {
             if (command.category) categories.add(command.category);
         }
 
-        // Filter enabled modules
-        const enabledModules = Array.from(categories).filter(category => {
-            const moduleStatus = guildData[`is${category}Module` as keyof typeof guildData];
-            return moduleStatus === undefined || moduleStatus === true;
-        });
+        // Filter modules based on user permissions and enabled status
+        const enabledModules = await Promise.all(
+            Array.from(categories).map(async (category: string) => {
+                // Check if module is enabled in guild
+                const moduleStatus = guildData[`is${category}Module` as keyof typeof guildData];
+                if (moduleStatus === false) return null;
 
-        const moduleSelect = this.createModuleSelect(enabledModules);
+                // Check module's IsEnabled status
+                const moduleStore = container.stores.get('modules');
+                const module = moduleStore.get(category.toLowerCase() as keyof Modules) as ExtendedModule | undefined;
+                
+                if (module && typeof module.IsEnabled === 'function') {
+                    const moduleCommand = module.container.stores.get('commands').get(module.name);
+                    
+                    // Check for required module permissions
+                    if (module.requiredPermissions) {
+                        const hasPermission = module.requiredPermissions.some(perm => {
+                            if (!member?.permissions) return false;
+                            return typeof member.permissions === 'bigint'
+                                ? member.permissions === perm
+                                : (member.permissions as Readonly<PermissionsBitField>).has(perm);
+                        });
+                        if (!hasPermission) return null;
+                    }
+
+                    const isEnabled = await module.IsEnabled({
+                        guild: interaction.guild! as DiscordGuild,
+                        interaction: interaction as any,
+                        command: moduleCommand as ModuleCommandUnion
+                    });
+                    if (isEnabled.isErr() || !isEnabled.unwrap()) return null;
+                }
+
+                // Check if user has required permissions for restricted modules
+                if (this.modulePermissions[category]) {
+                    // Allow if user has any of the required permissions
+                    const hasPermission = this.modulePermissions[category].some(perm => {
+                        if (!member?.permissions) return false;
+                        return typeof member.permissions === 'bigint' 
+                            ? member.permissions === perm
+                            : (member.permissions as Readonly<PermissionsBitField>).has(perm);
+                    });
+                    if (!hasPermission) return null;
+                }
+
+                return category;
+            })
+        );
+
+        // Filter out null values and create final array
+        const filteredModules = enabledModules.filter((module): module is string => module !== null);
+
+        const moduleSelect = this.createModuleSelect(filteredModules);
 
         const mainEmbed = new EmbedBuilder()
             .setColor(config.bot.embedColor.default as ColorResolvable)
@@ -79,7 +167,7 @@ export class HelpCommand extends Command {
             .setDescription(
                 'Select a module from the dropdown menu below to view its commands.\n\n' +
                 '**Available Modules:**\n' +
-                enabledModules.map(module => `↳ • \`${module}\``).join('\n')
+                filteredModules.map(module => `↳ • \`${module}\``).join('\n')
             );
 
         const row = new ActionRowBuilder<StringSelectMenuBuilder>()
@@ -117,8 +205,21 @@ export class HelpCommand extends Command {
     private async handleModuleSelect(interaction: StringSelectMenuInteraction) {
         try {
             const selectedModule = interaction.values[0];
+            
+            // Get commands for the selected module
             const commands = Array.from(container.stores.get('commands').values() as IterableIterator<ExtendedCommand>)
-                .filter(cmd => cmd.category?.toLowerCase() === selectedModule);
+                .filter(cmd => {
+                    // Filter commands by module
+                    if (cmd.category?.toLowerCase() !== selectedModule) return false;
+                    // Check if user has required permissions for the command
+                    const requiredPerms = cmd.options?.requiredUserPermissions;
+                    if (requiredPerms) {
+                        return interaction.member?.permissions instanceof PermissionsBitField && 
+                               interaction.member.permissions.has(requiredPerms);
+                    }
+
+                    return true;
+                });
 
             if (!commands.length) {
                 await interaction.update({
@@ -163,7 +264,7 @@ export class HelpCommand extends Command {
         if (interaction.customId === 'back-to-main') {
             // Get guild settings
             const guildId = interaction.guildId!;
-            const guildData = await Guild.findOne({ guildId });
+            const guildData = await GuildModel.findOne({ guildId });
             if (!guildData) return;
 
             // Get all categories (modules)
@@ -172,13 +273,47 @@ export class HelpCommand extends Command {
                 if (command.category) categories.add(command.category);
             }
 
-            // Filter enabled modules
-            const enabledModules = Array.from(categories).filter(category => {
-                const moduleStatus = guildData[`is${category}Module` as keyof typeof guildData];
-                return moduleStatus === undefined || moduleStatus === true;
-            });
+            // Filter modules based on user permissions and enabled status - same as in handleHelp
+            const enabledModules = await Promise.all(
+                Array.from(categories).map(async (category: string) => {
+                    // Check if module is enabled in guild
+                    const moduleStatus = guildData[`is${category}Module` as keyof typeof guildData];
+                    if (moduleStatus === false) return null;
 
-            const moduleSelect = this.createModuleSelect(enabledModules);
+                    // Check module's IsEnabled status
+                    const moduleStore = container.stores.get('modules');
+                    const module = moduleStore.get(category.toLowerCase() as keyof Modules) as ExtendedModule | undefined;
+                    
+                    if (module && typeof module.IsEnabled === 'function') {
+                        const moduleCommand = module.container.stores.get('commands').get(module.name);
+                        const isEnabled = await module.IsEnabled({
+                            guild: interaction.guild! as DiscordGuild,
+                            interaction: interaction as any,
+                            command: moduleCommand as ModuleCommandUnion
+                        });
+                        if (isEnabled.isErr() || !isEnabled.unwrap()) return null;
+                    }
+
+                    // Check if user has required permissions for restricted modules
+                    if (this.modulePermissions[category]) {
+                        // Allow if user has any of the required permissions
+                        const hasPermission = this.modulePermissions[category].some(perm => {
+                            if (!interaction.member?.permissions) return false;
+                            return typeof interaction.member.permissions === 'bigint' 
+                                ? interaction.member.permissions === perm
+                                : (interaction.member.permissions as Readonly<PermissionsBitField>).has(perm);
+                        });
+                        if (!hasPermission) return null;
+                    }
+
+                    return category;
+                })
+            );
+
+            // Filter out null values
+            const filteredModules = enabledModules.filter((module): module is string => module !== null);
+
+            const moduleSelect = this.createModuleSelect(filteredModules);
 
             const mainEmbed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.default as ColorResolvable)
@@ -186,7 +321,7 @@ export class HelpCommand extends Command {
                 .setDescription(
                     'Select a module from the dropdown menu below to view its commands.\n\n' +
                     '**Available Modules:**\n' +
-                    enabledModules.map(module => `↳ • \`${module}\``).join('\n')
+                    filteredModules.map(module => `↳ • \`${module}\``).join('\n')
                 );
 
             const row = new ActionRowBuilder<StringSelectMenuBuilder>()
@@ -245,13 +380,24 @@ export class HelpCommand extends Command {
             .setTitle(`${moduleName.charAt(0).toUpperCase() + moduleName.slice(1)} Commands`)
             .setDescription(
                 commands.map(cmd => {
-                    const commandId = this.getCommandId(cmd);
-                    const commandMention = commandId ? `</${cmd.name}:${commandId}>` : `\`/${cmd.name}\``;
-                    const options = cmd.options && Array.isArray(cmd.options)
-                        ? `\nOptions: ${cmd.options.map(opt => `\`${opt.name}\``).join(', ')}`
-                        : '';
-                    
-                    return `${commandMention}\n↳ ${cmd.description || 'No description available'}${options}\n`;
+                    // Get command ID from application commands
+                    const commandId = this.container.client.application?.commands.cache
+                        .find(c => c.name === cmd.name)?.id;
+
+                    // Create clickable command mention
+                    const commandMention = commandId 
+                        ? `</${cmd.name}:${commandId}>`
+                        : `\`/${cmd.name}\``;
+
+                    // Get command options if any
+                    const options = cmd.options?.options && Array.isArray(cmd.options.options)
+                        ? cmd.options.options.map((opt: { name: string }) => `\`${opt.name}\``)
+                        .join(', ')
+                        : undefined;
+
+                    return `${commandMention}\n↳ ${cmd.description || 'No description available'}${
+                        options ? `\nOptions: ${options}` : ''
+                    }\n`;
                 }).join('\n')
             )
             .setFooter({ text: `Page ${currentPage}/${totalPages}` });
@@ -297,13 +443,5 @@ export class HelpCommand extends Command {
                     emoji: emojiMap[module.toLowerCase()] || '📁'
                 }))
             );
-    }
-
-    private getCommandId(command: ExtendedCommand): string | undefined {
-        const globalCommands = this.container.client.application?.commands.cache;
-        if (!globalCommands) return undefined;
-
-        const globalCommand = globalCommands.find(cmd => cmd.name === command.name);
-        return globalCommand?.id;
     }
 }

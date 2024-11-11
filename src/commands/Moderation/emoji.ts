@@ -15,7 +15,7 @@ export class EmojiCommand extends ModuleCommand<ModerationModule> {
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
         super(context, {
             ...options,
-            module: 'Administration',
+            module: 'Moderation',
             description: 'Add an emoji to the server',
             enabled: true
         });
