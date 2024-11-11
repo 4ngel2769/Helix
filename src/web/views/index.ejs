@@ -1,0 +1,11 @@
+<%- include('layout', { title: 'Home' }) %>
+
+<div class="hero">
+    <h1>Welcome to Helix Bot</h1>
+    <p>A powerful Discord bot for your server</p>
+    <% if (!user) { %>
+        <a href="/auth/login" class="button">Login with Discord</a>
+    <% } else { %>
+        <a href="/dashboard" class="button">Go to Dashboard</a>
+    <% } %>
+</div> 

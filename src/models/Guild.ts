@@ -1,4 +1,4 @@
-import { Schema, model, Document } from 'mongoose';
+import mongoose, { Document } from 'mongoose';
 
 interface IGuild extends Document {
   guildId: string;
@@ -21,9 +21,11 @@ interface IGuild extends Document {
   verificationDisabledMessage: string | null;
   adminRoleId: string | null;
   modRoleId: string | null;
+  welcomeChannel?: string;
+  welcomeMessage?: string;
 }
 
-const guildSchema = new Schema<IGuild>({
+const guildSchema = new mongoose.Schema<IGuild>({
   guildId: { type: String, required: true, unique: true },
   isModeration: { type: Boolean, default: false },
   isAdministration: { type: Boolean, default: false },
@@ -43,7 +45,9 @@ const guildSchema = new Schema<IGuild>({
   },
   verificationDisabledMessage: { type: String, default: "⚠️ Verification is currently disabled. Please try again later." },
   adminRoleId: { type: String, default: null },
-  modRoleId: { type: String, default: null }
+  modRoleId: { type: String, default: null },
+  welcomeChannel: String,
+  welcomeMessage: String
 });
 
-export const Guild = model<IGuild>('Guild', guildSchema);
+export const Guild = mongoose.model<IGuild>('Guild', guildSchema);

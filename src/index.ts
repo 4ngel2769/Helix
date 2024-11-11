@@ -6,6 +6,8 @@ import { LogLevel, SapphireClient } from '@sapphire/framework';
 import { GatewayIntentBits, Partials, ActivityType } from 'discord.js';
 import { env } from 'process';
 import { OAuth2Scopes } from 'discord.js';
+import { WebPlugin } from './lib/structures/WebPlugin';
+import '@sapphire/plugin-logger/register';
 
 // import Keyv from 'keyv';
 
@@ -65,6 +67,9 @@ const client = new SapphireClient({
 		}]
 	}
 });
+
+// Initialize the web plugin
+WebPlugin.init(client);
 
 const main = async () => {
 	try {

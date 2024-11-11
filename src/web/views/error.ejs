@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Error - Helix Dashboard</title>
+</head>
+<body>
+    <h1>Error</h1>
+    <p><%= error.message %></p>
+    <% if (process.env.NODE_ENV !== 'production') { %>
+        <pre><%= error.stack %></pre>
+    <% } %>
+    <a href="/">Return to Home</a>
+</body>
+</html> 
