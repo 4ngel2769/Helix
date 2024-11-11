@@ -75,6 +75,17 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
                         .setName('status')
                         .setDescription('Check current verification settings')
                 )
+                .addSubcommand((subcommand) =>
+                    subcommand
+                        .setName('toggle')
+                        .setDescription('Enable or disable verification')
+                        .addBooleanOption((option) =>
+                            option
+                                .setName('enabled')
+                                .setDescription('Enable or disable verification')
+                                .setRequired(true)
+                        )
+                )
         );
     }
 
@@ -93,13 +104,44 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
                 guildData.verificationChannelId = channel.id;
                 await guildData.save();
 
-                // If we have all required settings, send the verification message
-                if (guildData.verificationRoleId && guildData.verificationMessage) {
-                    await this.sendVerificationMessage(channel.id, guildData.verificationMessage);
-                }
+                // Check if all requirements are met to send verification message
+                await this.checkAndSendVerificationMessage(guildData);
 
                 return interaction.reply({
                     content: `Verification channel set to ${channel}`,
+                    ephemeral: true
+                });
+            }
+
+            case 'role': {
+                const role = interaction.options.getRole('role', true);
+                guildData.verificationRoleId = role.id;
+                await guildData.save();
+
+                // Check if all requirements are met to send verification message
+                await this.checkAndSendVerificationMessage(guildData);
+
+                return interaction.reply({
+                    content: `Verification role set to ${role}`,
+                    ephemeral: true
+                });
+            }
+
+            case 'toggle': {
+                const enabled = interaction.options.getBoolean('enabled', true);
+                guildData.isVerificationModule = enabled;
+                await guildData.save();
+
+                if (enabled) {
+                    // If enabling and we have all requirements, send the message
+                    await this.checkAndSendVerificationMessage(guildData);
+                } else {
+                    // If disabling, update the message to show disabled state
+                    await this.updateVerificationMessageState(guildData, false);
+                }
+
+                return interaction.reply({
+                    content: `Verification system has been ${enabled ? 'enabled' : 'disabled'}.`,
                     ephemeral: true
                 });
             }
@@ -120,17 +162,6 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
 
                 return interaction.reply({
                     content: 'Verification message updated',
-                    ephemeral: true
-                });
-            }
-
-            case 'role': {
-                const role = interaction.options.getRole('role', true);
-                guildData.verificationRoleId = role.id;
-                await guildData.save();
-
-                return interaction.reply({
-                    content: `Verification role set to ${role}`,
                     ephemeral: true
                 });
             }
@@ -172,6 +203,36 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
         }
     }
 
+    private async checkAndSendVerificationMessage(guildData: any) {
+        // Check if we have all required settings
+        if (guildData.verificationChannelId && 
+            guildData.verificationRoleId && 
+            guildData.isVerificationModule !== false) {
+            
+            // If we already have a message, update it instead of sending a new one
+            if (guildData.verificationMessageId) {
+                try {
+                    const channel = await this.container.client.channels.fetch(guildData.verificationChannelId);
+                    if (channel?.isTextBased()) {
+                        const message = await (channel as TextChannel).messages.fetch(guildData.verificationMessageId);
+                        if (message) {
+                            await this.updateVerificationMessageState(guildData, true);
+                            return;
+                        }
+                    }
+                } catch (error) {
+                    // Message not found, send a new one
+                }
+            }
+
+            // Send new verification message
+            await this.sendVerificationMessage(
+                guildData.verificationChannelId,
+                guildData.verificationMessage || "Click the button below to verify yourself and gain access to the server!"
+            );
+        }
+    }
+
     private async sendVerificationMessage(channelId: string, message: string) {
         const channel = await this.container.client.channels.fetch(channelId);
         if (!channel?.isTextBased()) return;
@@ -199,6 +260,41 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
             { verificationChannelId: channelId },
             { verificationMessageId: sentMessage.id }
         );
+    }
+
+    private async updateVerificationMessageState(guildData: any, enabled: boolean) {
+        if (!guildData.verificationChannelId || !guildData.verificationMessageId) return;
+
+        try {
+            const channel = await this.container.client.channels.fetch(guildData.verificationChannelId);
+            if (!channel?.isTextBased()) return;
+
+            const message = await (channel as TextChannel).messages.fetch(guildData.verificationMessageId);
+            if (!message) return;
+
+            const embed = new EmbedBuilder()
+                .setColor(enabled ? config.bot.embedColor.default as ColorResolvable : 'Red')
+                .setTitle('Server Verification')
+                .setDescription(enabled 
+                    ? (guildData.verificationMessage || "Click the button below to verify yourself and gain access to the server!")
+                    : "⚠️ Verification is currently disabled");
+
+            const button = new ButtonBuilder()
+                .setCustomId('verify-button')
+                .setLabel('Verify')
+                .setStyle(ButtonStyle.Primary)
+                .setDisabled(!enabled);
+
+            const row = new ActionRowBuilder<ButtonBuilder>()
+                .addComponents(button);
+
+            await message.edit({
+                embeds: [embed],
+                components: [row]
+            });
+        } catch (error) {
+            console.error('Failed to update verification message:', error);
+        }
     }
 
     private async updateVerificationMessage(channelId: string, messageId: string, newMessage: string) {
