@@ -5,6 +5,9 @@
   "author": "4ngel2769",
   "license": "GNU",
   "type": "commonjs",
+  "engines": {
+    "node": "21.7.3"
+  },
   "dependencies": {
     "@kaname-png/plugin-subcommands-advanced": "^2.4.4",
     "@kbotdev/plugin-modules": "^3.0.0",
