@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { isAuthenticated, hasGuildPermissions } from '../middleware/auth';
+import { isAuthenticated } from '../middleware/auth';
 import { Guild } from '../../models/Guild';
 import { container } from '@sapphire/framework';
 import type { SapphireClient } from '@sapphire/framework';
-import { OAuth2Scopes } from 'discord.js';
+import { OAuth2Scopes, PermissionsBitField } from 'discord.js';
 import type { DiscordUser } from '../types';
 import type { RequestHandler } from 'express';
 
@@ -19,10 +19,9 @@ const getUserGuilds: RequestHandler = (req, res) => {
             res.status(400).json({ error: 'No guilds found' });
             return;
         }
-
         const guilds = user.guilds.filter((guild) => {
-            const permissions = BigInt(guild.permissions ?? '0');
-            return (permissions & BigInt(0x8) || permissions & BigInt(0x20));
+            const permissions = new PermissionsBitField((guild.permissions ?? '0'));
+            return permissions.has(PermissionsBitField.Flags.Administrator) || permissions.has(PermissionsBitField.Flags.ManageGuild);
         });
 
         const enrichedGuilds = guilds.map((guild) => ({
@@ -122,6 +121,27 @@ const addBotToGuild: RequestHandler = (req, res) => {
     } catch (error) {
         container.logger.error(error);
         res.status(500).json({ error: 'Failed to generate invite link' });
+    }
+};
+
+const hasGuildPermissions: RequestHandler = async (req, res, next) => {
+    const guild = container.client.guilds.cache.get(req.params.guildId);
+    const user = req.user as DiscordUser;
+    // const member = container.client.guilds.cache.get(req.params.guildId)?.members.fetch(user.id);
+    let member;
+    try {
+        member = await container.client.guilds.cache.get(req.params.guildId)?.members.fetch(user.id);
+    } catch (error) {
+        res.status(404).json({ error: 'Member not found in the guild' });
+    }
+    if (!guild) {
+        res.status(404).json({ error: 'Guild not found' });
+        return;
+    }
+    if (member?.permissions.has(PermissionsBitField.Flags.Administrator) || member?.permissions.has(PermissionsBitField.Flags.ManageGuild)) {
+        next();
+    } else {
+        res.status(403).json({ error: 'You do not have the required permissions to manage this guild' });
     }
 };
 

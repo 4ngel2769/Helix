@@ -1,30 +1,17 @@
-import { Route } from '../lib/structures/Route';
-import { ApplyOptions } from '@sapphire/decorators';
+import { Route } from '@sapphire/plugin-api';
 import type { ApiRequest, ApiResponse } from '@sapphire/plugin-api';
-import { HttpCodes } from '@sapphire/plugin-api';
-import type { RouteOptions } from '@sapphire/plugin-api';
+import type { OAuth2Guild } from 'discord.js';
 
-@ApplyOptions<RouteOptions>({
-    name: 'guilds',
-    route: 'guilds'
-})
-export class UserGuildsRoute extends Route {
+export class GuildsRoute extends Route {
     public override async run(request: ApiRequest, response: ApiResponse) {
         if (!request.auth?.token) {
-            return response.status(HttpCodes.Unauthorized).json({
-                error: 'Unauthorized'
-            });
+            return response.status(401).json({ error: 'Unauthorized' });
         }
 
         try {
-            const guilds = request.auth.token.guilds;
-            if (!guilds) {
-                return response.status(HttpCodes.BadRequest).json({
-                    error: 'No guilds found'
-                });
-            }
-
-            const enrichedGuilds = guilds.map((guild) => ({
+            const userGuilds = await this.fetchUserGuilds(request.auth.token);
+            
+            const enrichedGuilds = userGuilds.map((guild: OAuth2Guild) => ({
                 ...guild,
                 hasBot: this.container.client.guilds.cache.has(guild.id),
                 icon: guild.icon 
@@ -32,15 +19,17 @@ export class UserGuildsRoute extends Route {
                     : 'https://cdn.discordapp.com/embed/avatars/0.png'
             }));
 
-            return response.json({
-                success: true,
-                data: { guilds: enrichedGuilds }
-            });
+            return response.json({ guilds: enrichedGuilds });
         } catch (error) {
-            this.container.logger.error(error);
-            return response.status(HttpCodes.InternalServerError).json({
-                error: 'Failed to fetch guilds'
-            });
+            return response.status(500).json({ error: 'Failed to fetch guilds' });
         }
+    }
+
+    private async fetchUserGuilds(token: string): Promise<OAuth2Guild[]> {
+        const response = await fetch('https://discord.com/api/users/@me/guilds', {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await response.json();
+        return data as OAuth2Guild[];
     }
 } 

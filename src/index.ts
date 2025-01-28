@@ -13,8 +13,7 @@ const client = new SapphireClient({
     ],
     partials: [Partials.Channel],
     modules: {
-        directory: './src/modules',
-        defaultEnabled: true
+        enabled: true,
     },
     api: {
         auth: {
@@ -23,16 +22,10 @@ const client = new SapphireClient({
             cookie: 'SAPPHIRE_AUTH',
             redirect: config.dashboard.redirectUri,
             scopes: [OAuth2Scopes.Identify, OAuth2Scopes.Guilds],
-            domainOverwrite: config.dashboard.domain,
-            transformers: [{
-                parse: (data) => ({
-                    ...data,
-                    guilds: data.guilds
-                })
-            }]
+            domainOverwrite: config.dashboard.domain
+            
         },
         prefix: '/api',
-        mode: 'production',
         origin: config.dashboard.domain,
         listenOptions: {
             port: config.dashboard.port

@@ -1,15 +1,11 @@
-import { ApplyOptions } from '@sapphire/decorators';
-import { methods, Route, type ApiRequest, type ApiResponse } from '@sapphire/plugin-api';
+import { Route } from '@sapphire/plugin-api';
+import type { ApiRequest, ApiResponse } from '@sapphire/plugin-api';
 
-@ApplyOptions<Route.Options>({
-	route: 'hello-world'
-})
-export class UserRoute extends Route {
-	public [methods.GET](_request: ApiRequest, response: ApiResponse) {
-		response.json({ message: 'Hello World' });
-	}
-
-	public [methods.POST](_request: ApiRequest, response: ApiResponse) {
-		response.json({ message: 'Hello World' });
+export class ServerCountRoute extends Route {
+	public override run(_request: ApiRequest, response: ApiResponse) {
+		return response.json({
+			guilds: this.container.client.guilds.cache.size,
+			users: this.container.client.users.cache.size
+		});
 	}
 }

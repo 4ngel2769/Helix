@@ -1,8 +1,7 @@
 import type { 
     OAuth2Guild, 
     APIUser, 
-    APIGuild,
-    PermissionFlagsBits 
+    APIGuild
 } from 'discord.js';
 import type { AuthData } from '@sapphire/plugin-api';
 
@@ -20,6 +19,6 @@ export interface Server extends Omit<APIGuild, 'permissions'> {
 
 declare module '@sapphire/plugin-api' {
     interface ApiRequest {
-        auth?: AuthData;
+        auth?: AuthData | null;
     }
 } 

@@ -3,6 +3,7 @@ import { Listener } from '@sapphire/framework';
 import type { StoreRegistryValue } from '@sapphire/pieces';
 import { blue, gray, green, magenta, magentaBright, white, yellow } from 'colorette';
 import { ActivityType } from 'discord.js';
+import { TPSMonitor } from '../lib/structures/TPSMonitor';
 
 const dev = process.env.NODE_ENV !== 'production';
 
@@ -12,9 +13,11 @@ export class UserEvent extends Listener {
 
 	public override run() {
 		// this.botStartup();
+
 		this.printBanner();
 		this.printStoreDebugInformation();
 		this.botStartupFinish();
+		TPSMonitor.getInstance();
 	}
 
 	// Experimental
