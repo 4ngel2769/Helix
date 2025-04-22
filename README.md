@@ -55,7 +55,7 @@ Helix is a multipurpose Discord bot designed to help you manage, moderate, and e
 - **Music**: High-quality music playback (coming soon)
 - **Moderation**: Powerful moderation tools (coming soon)
 - **Auto-moderation**: Automated server protection (coming soon)
-- **AI Integration**: ChatGPT-powered conversations (coming soon)
+- **AI Integration**: Ollama-powered conversations (coming soon)
 - **Image Manipulation**: Fun and useful image tools (coming soon)
 
 ---
@@ -67,7 +67,7 @@ Helix is a multipurpose Discord bot designed to help you manage, moderate, and e
 
   - 🎵 **Music**: coming soon
   - ⚒️ **Moderation**: coming soon
-  - 🦾 **AI (ChatGPT)**: coming soon
+  - 🦾 **AI (Ollama)**: coming soon
   - 🖼️ **Image Manipulation**: coming soon
 
 </details>
