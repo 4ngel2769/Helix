@@ -3,7 +3,13 @@ import { GeneralModule } from '../../modules/General';
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { send } from '@sapphire/plugin-editable-commands';
-import { ApplicationCommandType, type Message, MessageFlags, EmbedBuilder, ColorResolvable } from 'discord.js';
+import {
+	ApplicationCommandType,
+	type Message,
+	// MessageFlags,
+	EmbedBuilder,
+	ColorResolvable
+} from 'discord.js';
 import { env } from 'process';
 import { getDefReply } from '../../lib/utils';
 import mongoose from 'mongoose';
@@ -76,7 +82,9 @@ export class UserCommand extends ModuleCommand<GeneralModule> {
 
 	// slash command
 	public override async chatInputRun(interaction: ModuleCommand.ChatInputCommandInteraction) {
-		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+		await interaction.deferReply({
+			// flags: MessageFlags.Ephemeral
+		});
 		
 		// Get selected shard or current shard
 		const selectedShardId = interaction.options.getInteger('shard');
@@ -130,9 +138,9 @@ export class UserCommand extends ModuleCommand<GeneralModule> {
 			.setTitle('🏓 Pong!')
 			.setDescription(`Latency information${selectedShardId !== null ? ` for Shard #${shardId}` : ''}`)
 			.addFields(
-				{ name: '⚡ Event Latency', value: `${apiLatency}ms`, inline: true },
-				{ name: '🌐 Discord API Latency', value: `${Math.round(wsLatency)}ms`, inline: true },
-				{ name: '💾 Database Latency', value: `${dbLatency}ms`, inline: true }
+				{ name: '⚡ Event Latency', value: `\`[${apiLatency}ms]\``, inline: true },
+				{ name: '🌐 Discord API Latency', value: `\`[${Math.round(wsLatency)}ms]\``, inline: true },
+				{ name: '💾 Database Latency', value: `\`[${dbLatency}ms]\``, inline: true }
 			)
 			.setFooter({ text: `Shard: ${shardId}${this.container.client.shard ? ` / ${this.container.client.shard.count}` : ''}` })
 			.setTimestamp();
@@ -181,9 +189,9 @@ export class UserCommand extends ModuleCommand<GeneralModule> {
 			.setTitle('🏓 Pong!')
 			.setDescription('Latency information')
 			.addFields(
-				{ name: '⚡ Event Latency', value: `${apiLatency}ms`, inline: true },
-				{ name: '🌐 Discord API Latency', value: `${Math.round(this.container.client.ws.ping)}ms`, inline: true },
-				{ name: '💾 Database Latency', value: `${dbLatency}ms`, inline: true }
+				{ name: '⚡ Event Latency', value: `\`[${apiLatency}ms]\``, inline: true },
+				{ name: '🌐 Discord API Latency', value: `\`[${Math.round(this.container.client.ws.ping)}ms]\``, inline: true },
+				{ name: '💾 Database Latency', value: `\`[${dbLatency}ms]\``, inline: true }
 			)
 			.setFooter({ text: `Shard: ${currentShardId}${this.container.client.shard ? ` / ${this.container.client.shard.count}` : ''}` })
 			.setTimestamp();
