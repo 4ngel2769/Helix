@@ -72,10 +72,10 @@ export class UserCommand extends ModuleCommand<GeneralModule> {
 
 	// slash command
 	public override async chatInputRun(interaction: ModuleCommand.ChatInputCommandInteraction) {
-		const msg = await interaction.reply({ content: 'Ping?', flags: MessageFlags.Ephemeral, fetchReply: true });
+		await interaction.reply({ content: 'Ping?', flags: MessageFlags.Ephemeral, withResponse: true });
 
 		const content = `Pong! Bot Latency ${Math.round(this.container.client.ws.ping)}ms. API Latency ${
-			msg.createdTimestamp - interaction.createdTimestamp
+			Date.now() - interaction.createdTimestamp
 		}ms.
 		`;
 
@@ -84,10 +84,10 @@ export class UserCommand extends ModuleCommand<GeneralModule> {
 
 	// context menu command
 	public override async contextMenuRun(interaction: ModuleCommand.ContextMenuCommandInteraction) {
-		const msg = await interaction.reply({ content: 'Ping?', fetchReply: true });
+		await interaction.reply({ content: 'Ping?', withResponse: true });
 
 		const content = `Pong! Bot Latency ${Math.round(this.container.client.ws.ping)}ms. API Latency ${
-			msg.createdTimestamp - interaction.createdTimestamp
+			Date.now() - interaction.createdTimestamp
 		}ms.`;
 
 		return interaction.editReply({ content });

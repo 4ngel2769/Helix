@@ -1,6 +1,10 @@
 import { ApplyOptions } from '@sapphire/decorators';
-import { InteractionHandler, InteractionHandlerTypes } from '@sapphire/framework';
+import {
+	InteractionHandler,
+	InteractionHandlerTypes
+} from '@sapphire/framework';
 import type { ButtonInteraction } from 'discord.js';
+import { MessageFlags } from 'discord-api-types/v10';
 import { Guild } from '../models/Guild';
 
 @ApplyOptions<InteractionHandler.Options>({
@@ -16,14 +20,14 @@ export class ButtonHandler extends InteractionHandler {
 			case 'my-awesome-button':
 				await interaction.reply({
 					content: 'Hello from a button interaction handler!',
-					ephemeral: true
+					flags: MessageFlags.Ephemeral
 				});
 				break;
 
 			default:
 				await interaction.reply({
 					content: 'Unknown button interaction.',
-					ephemeral: true
+					flags: MessageFlags.Ephemeral
 				});
 		}
 	}
@@ -43,7 +47,7 @@ export class ButtonHandler extends InteractionHandler {
 		if (!guildData?.verificationRoleId || !guildData.isVerificationModule) {
 			return interaction.reply({
 				content: guildData?.verificationDisabledMessage || "⚠️ Verification is currently disabled. Please try again later.",
-				ephemeral: true
+				flags: MessageFlags.Ephemeral
 			});
 		}
 
@@ -55,7 +59,7 @@ export class ButtonHandler extends InteractionHandler {
 			if (member.roles.includes(guildData.verificationRoleId)) {
 				return interaction.reply({
 					content: 'You are already verified!',
-					ephemeral: true
+					flags: MessageFlags.Ephemeral
 				});
 			}
 		} else {
@@ -63,7 +67,7 @@ export class ButtonHandler extends InteractionHandler {
 			if (member.roles.cache.has(guildData.verificationRoleId)) {
 				return interaction.reply({
 					content: 'You are already verified!', 
-					ephemeral: true
+					flags: MessageFlags.Ephemeral
 				});
 			}
 		}
@@ -71,20 +75,20 @@ export class ButtonHandler extends InteractionHandler {
 			if (Array.isArray(member.roles)) {
 				return interaction.reply({
 					content: 'Unable to verify you. Please contact a server administrator.',
-					ephemeral: true
+					flags: MessageFlags.Ephemeral
 				});
 			}
 			// Handle GuildMemberRoleManager case
 			await member.roles.add(guildData.verificationRoleId);
 			return interaction.reply({
 				content: 'You have been successfully verified!',
-				ephemeral: true
+				flags: MessageFlags.Ephemeral
 			});
 		} catch (error) {
 			console.error('Failed to verify member:', error);
 			return interaction.reply({
 				content: 'Failed to verify you. Please contact a server administrator.',
-				ephemeral: true
+				flags: MessageFlags.Ephemeral
 			});
 		}
 	}

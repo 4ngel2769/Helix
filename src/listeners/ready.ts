@@ -4,6 +4,7 @@ import type { StoreRegistryValue } from '@sapphire/pieces';
 import { blue, gray, green, magenta, magentaBright, white, yellow } from 'colorette';
 import { ActivityType } from 'discord.js';
 import { TPSMonitor } from '../lib/structures/TPSMonitor';
+import { Guild } from '../models/Guild';
 
 const dev = process.env.NODE_ENV !== 'production';
 
@@ -16,6 +17,8 @@ export class UserEvent extends Listener {
 
 		this.printBanner();
 		this.printStoreDebugInformation();
+		this.checkDatabaseStatus();
+		this.syncGuildDatabase();
 		this.botStartupFinish();
 		TPSMonitor.getInstance();
 	}
@@ -77,5 +80,62 @@ export class UserEvent extends Listener {
 			status: 'idle',
 			activities: [{ name: 'Eating pizza', type: ActivityType.Custom}]
 		})
+	}
+	
+	private checkDatabaseStatus() {
+		const { database, logger } = this.container;
+		
+		if (database?.isConnected) {
+			logger.info(`Connected to MongoDB with ${database.collections.length} collections`);
+		} else {
+			logger.warn('Not connected to MongoDB. Some features may not work properly.');
+		}
+	}
+
+	private async syncGuildDatabase() {
+		const { client, logger, database } = this.container;
+		
+		// Skip if database is not connected
+		if (!database?.isConnected) {
+			logger.warn('Skipping guild database sync due to no database connection');
+			return;
+		}
+		
+		try {
+			// Get all guilds the bot is in
+			const guilds = client.guilds.cache;
+			logger.info(`Starting guild database sync for ${guilds.size} guilds...`);
+			
+			let created = 0;
+			let existing = 0;
+			
+			// Check each guild and create database entry if it doesn't exist
+			for (const [guildId] of guilds) {
+				const guildData = await Guild.findOne({ guildId });
+				
+				if (!guildData) {
+					// Create default guild data
+					const newGuild = new Guild({
+						guildId,
+						// Default module settings
+						isGeneralModule: true,
+						isModerationModule: true,
+						isAdministrationModule: true,
+						isFunModule: true,
+						isWelcomingModule: false,
+						isVerificationModule: false
+					});
+					
+					await newGuild.save();
+					created++;
+				} else {
+					existing++;
+				}
+			}
+			
+			logger.info(`Guild database sync complete: ${created} created, ${existing} existing`);
+		} catch (error) {
+			logger.error(`Error syncing guild database: ${error}`);
+		}
 	}
 }

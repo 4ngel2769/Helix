@@ -69,6 +69,20 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
         ]
     };
 
+    // Add the missing method
+    private createDefaultGuildData(guildId: string) {
+        return { 
+            guildId,
+            // Set default module settings
+            isGeneralModule: true,
+            isModerationModule: true,
+            isAdministrationModule: true,
+            isFunModule: true,
+            isWelcomingModule: false,
+            isVerificationModule: false
+        };
+    }
+
     public override async registerApplicationCommands(registry: Command.Registry): Promise<void> {
         await registry.registerChatInputCommand((builder) =>
             builder
@@ -86,11 +100,29 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
     }
 
     public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-        await this.handleHelp(interaction);
-    }
-
-    public override async messageRun(message: Message) {
-        await this.handleHelp(message);
+        try {
+            // Defer reply immediately to prevent interaction timeout
+            await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+            await this.handleHelp(interaction);
+        } catch (error) {
+            console.error('Error in help command:', error);
+            // If we've already deferred, use editReply
+            try {
+                await interaction.editReply({
+                    content: 'An error occurred while loading the help menu. Please try again later.'
+                });
+            } catch (e) {
+                // If editReply fails (e.g., if deferReply failed), try to reply directly
+                try {
+                    await interaction.reply({
+                        content: 'An error occurred while loading the help menu. Please try again later.',
+                        flags: MessageFlags.Ephemeral
+                    });
+                } catch (finalError) {
+                    console.error('Failed to respond to interaction:', finalError);
+                }
+            }
+        }
     }
 
     private async handleHelp(interaction: Command.ChatInputCommandInteraction | Message) {
@@ -98,10 +130,37 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
         const guildId = isSlash ? interaction.guildId! : interaction.guild!.id;
         const member = isSlash ? interaction.member : (interaction as Message).member;
         
-        // Get guild settings
-        const guildData = await GuildModel.findOne({ guildId });
-        if (!guildData) return;
-
+        // Get guild settings with improved error handling
+        let guildData;
+        try {
+            // Try to get guild data with a timeout
+            guildData = await Promise.race([
+                GuildModel.findOne({ guildId }),
+                new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Database timeout')), 10000)
+                )
+            ]);
+        } catch (error) {
+            console.error('Database error in help command:', error);
+            // Create default guild data as fallback for errors
+            guildData = this.createDefaultGuildData(guildId);
+        }
+        
+        // If no guild data exists, create default data instead of showing error
+        if (!guildData) {
+            guildData = this.createDefaultGuildData(guildId);
+            
+            // Optionally save the default data to database
+            try {
+                const newGuildData = new GuildModel(guildData);
+                await newGuildData.save();
+                console.log(`Created default guild data for guild ${guildId}`);
+            } catch (saveError) {
+                console.error(`Failed to save default guild data for guild ${guildId}:`, saveError);
+                // Continue with the temporary data even if save fails
+            }
+        }
+        
         // Get all categories (modules)
         const categories = new Set<string>();
         for (const command of container.stores.get('commands').values()) {
@@ -127,7 +186,7 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
                         const hasPermission = module.requiredPermissions.some(perm => {
                             if (!member?.permissions) return false;
                             return typeof member.permissions === 'bigint'
-                                ? member.permissions === perm
+                                ? (member.permissions & perm) === perm
                                 : (member.permissions as Readonly<PermissionsBitField>).has(perm);
                         });
                         if (!hasPermission) return null;
@@ -175,13 +234,12 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
             .addComponents(moduleSelect);
 
         const response = await (isSlash ? 
-            interaction.reply({ 
+            (interaction as Command.ChatInputCommandInteraction).editReply({ 
                 embeds: [mainEmbed], 
-                components: [row], 
-                flags: MessageFlags.Ephemeral, 
-                fetchReply: true 
+                components: [row]
             }) :
             (interaction.channel as TextChannel).send({ embeds: [mainEmbed], components: [row] }));
+            
         const collector = response.createMessageComponentCollector({
             filter: (i) => 
                 i.user.id === (isSlash ? interaction.user.id : (interaction as Message).author.id),
@@ -406,6 +464,33 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
         return embed;
     }
 
+    private createModuleSelect(modules: string[]) {
+        const emojiMap: { [key: string]: string } = {
+            general: '⚙️',
+            moderation: '🛡️',
+            fun: '🎮',
+            utility: '🔧',
+            music: '🎵',
+            economy: '💰',
+            leveling: '📈',
+            administration: '🔑',
+            welcoming: '👋',
+            verification: '✅'
+        };
+
+        return new StringSelectMenuBuilder()
+            .setCustomId('module-select')
+            .setPlaceholder('Select a module')
+            .addOptions(
+                modules.map(module => ({
+                    label: module,
+                    description: `View ${module} commands`,
+                    value: module.toLowerCase(),
+                    emoji: emojiMap[module.toLowerCase()] || '📁'
+                }))
+            );
+    }
+
     private createPaginationButtons(currentPage: number, totalPages: number) {
         const previousButton = new ButtonBuilder()
             .setCustomId('previous')
@@ -420,29 +505,5 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
             .setDisabled(currentPage === totalPages - 1);
 
         return [previousButton, nextButton];
-    }
-
-    private createModuleSelect(enabledModules: string[]) {
-        const emojiMap: { [key: string]: string } = {
-            general: '⚙️',
-            moderation: '🛡️',
-            fun: '🎮',
-            utility: '🔧',
-            music: '🎵',
-            economy: '💰',
-            leveling: '📈'
-        };
-
-        return new StringSelectMenuBuilder()
-            .setCustomId('module-select')
-            .setPlaceholder('Select a module')
-            .addOptions(
-                enabledModules.map(module => ({
-                    label: module,
-                    description: `View ${module} commands`,
-                    value: module.toLowerCase(),
-                    emoji: emojiMap[module.toLowerCase()] || '📁'
-                }))
-            );
     }
 }
