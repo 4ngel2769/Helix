@@ -84,16 +84,29 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
     }
 
     public override async registerApplicationCommands(registry: Command.Registry): Promise<void> {
+        // Get all categories (modules)
+        const categories = new Set<string>();
+        for (const command of container.stores.get('commands').values()) {
+            if (command.category) categories.add(command.category);
+        }
+
         await registry.registerChatInputCommand((builder) =>
             builder
                 .setName('help')
                 .setDescription('Shows all available commands')
-                .addStringOption((option) =>
+                .addStringOption((option) => {
                     option
                         .setName('module')
                         .setDescription('Specific module to show commands for')
-                        .setRequired(false)
-                )
+                        .setRequired(false);
+                    
+                    // Add choices for each module category
+                    Array.from(categories).forEach(category => {
+                        option.addChoices({ name: category, value: category.toLowerCase() });
+                    });
+                    
+                    return option;
+                })
         );
         // No need to store command ID or return anything
         return;

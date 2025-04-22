@@ -19,10 +19,23 @@ interface IGuild extends Document {
     timestamp: Date;
   } | null;
   verificationDisabledMessage: string | null;
+  verificationTitle: string | null;
+  verificationFooter: string | null;
+  verificationThumb: string | null;
   adminRoleId: string | null;
   modRoleId: string | null;
   welcomeChannel?: string;
   welcomeMessage?: string;
+  lockedChannels?: Array<{
+    channelId: string;
+    lockTimestamp: number;
+    duration: number;
+    unlockTimestamp: number;
+    moderator: {
+      id: string;
+      tag: string;
+    };
+  }>;
 }
 
 const guildSchema = new mongoose.Schema<IGuild>({
@@ -44,10 +57,23 @@ const guildSchema = new mongoose.Schema<IGuild>({
     timestamp: { type: Date, default: null }
   },
   verificationDisabledMessage: { type: String, default: "⚠️ Verification is currently disabled. Please try again later." },
+  verificationTitle: { type: String, default: "Server Verification" },
+  verificationFooter: { type: String, default: null },
+  verificationThumb: { type: String, default: null },
   adminRoleId: { type: String, default: null },
   modRoleId: { type: String, default: null },
   welcomeChannel: String,
-  welcomeMessage: String
+  welcomeMessage: String,
+  lockedChannels: [{
+    channelId: String,
+    lockTimestamp: Number,
+    duration: Number,
+    unlockTimestamp: Number,
+    moderator: {
+      id: String,
+      tag: String
+    }
+  }]
 });
 
 export const Guild = mongoose.model<IGuild>('Guild', guildSchema);

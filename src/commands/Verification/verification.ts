@@ -73,6 +73,39 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
                 )
                 .addSubcommand((subcommand) =>
                     subcommand
+                        .setName('title')
+                        .setDescription('Set the verification embed title')
+                        .addStringOption((option) =>
+                            option
+                                .setName('title')
+                                .setDescription('The title to display in the verification embed')
+                                .setRequired(true)
+                        )
+                )
+                .addSubcommand((subcommand) =>
+                    subcommand
+                        .setName('footer')
+                        .setDescription('Set the verification embed footer')
+                        .addStringOption((option) =>
+                            option
+                                .setName('footer')
+                                .setDescription('The footer text to display in the verification embed')
+                                .setRequired(false)
+                        )
+                )
+                .addSubcommand((subcommand) =>
+                    subcommand
+                        .setName('thumbnail')
+                        .setDescription('Set the verification embed thumbnail')
+                        .addStringOption((option) =>
+                            option
+                                .setName('url')
+                                .setDescription('The URL of the image to use as thumbnail')
+                                .setRequired(false)
+                        )
+                )
+                .addSubcommand((subcommand) =>
+                    subcommand
                         .setName('role')
                         .setDescription('Set the verification role')
                         .addRoleOption((option) =>
@@ -224,6 +257,73 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
                 });
             }
 
+            case 'title': {
+                const title = interaction.options.getString('title', true);
+                guildData.verificationTitle = title;
+                await guildData.save();
+
+                // Update verification message if it exists
+                if (guildData.verificationChannelId && guildData.verificationMessageId) {
+                    await this.updateVerificationMessageState(
+                        guildData,
+                        guildData.isVerificationModule
+                    );
+                }
+
+                return interaction.reply({
+                    content: `Verification title updated to "${title}"`,
+                    flags: MessageFlags.Ephemeral
+                });
+            }
+
+            case 'footer': {
+                const footer = interaction.options.getString('footer', true);
+                guildData.verificationFooter = footer;
+                await guildData.save();
+
+                // Update verification message if it exists
+                if (guildData.verificationChannelId && guildData.verificationMessageId) {
+                    await this.updateVerificationMessageState(
+                        guildData,
+                        guildData.isVerificationModule
+                    );
+                }
+
+                return interaction.reply({
+                    content: `Verification footer updated`,
+                    flags: MessageFlags.Ephemeral
+                });
+            }
+
+            case 'thumbnail': {
+                const url = interaction.options.getString('url', true);
+                
+                // Validate URL format
+                const urlRegex = /^https?:\/\/.+\.(png|jpg|jpeg|gif|webp)$/i;
+                if (!urlRegex.test(url)) {
+                    return interaction.reply({
+                        content: 'Invalid image URL. Please provide a valid URL ending with .png, .jpg, .jpeg, .gif, or .webp',
+                        flags: MessageFlags.Ephemeral
+                    });
+                }
+
+                guildData.verificationThumb = url;
+                await guildData.save();
+
+                // Update verification message if it exists
+                if (guildData.verificationChannelId && guildData.verificationMessageId) {
+                    await this.updateVerificationMessageState(
+                        guildData,
+                        guildData.isVerificationModule
+                    );
+                }
+
+                return interaction.reply({
+                    content: `Verification thumbnail updated`,
+                    flags: MessageFlags.Ephemeral
+                });
+            }
+
             case 'status': {
                 const embed = new EmbedBuilder()
                     .setColor(config.bot.embedColor.default as ColorResolvable)
@@ -270,12 +370,32 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
                         {
                             name: '\`🔴\` Disabled Message:',
                             value: guildData.verificationDisabledMessage || 'Verification is currently disabled.'
+                        },
+                        {
+                            name: '\`✅\` Verification Message:',
+                            value: guildData.verificationMessage || 'Click the button below to verify yourself and gain access to the server!'
+                        },
+                        {
+                            name: '\`🔤\` Title:',
+                            value: guildData.verificationTitle || 'Server Verification'
                         }
-                    )
-                    .addFields({
-                        name: '\`✅\` Verification Message:',
-                        value: guildData.verificationMessage || 'Click the button below to verify yourself and gain access to the server!'
+                    );
+
+                // Add footer and thumbnail info if they exist
+                if (guildData.verificationFooter) {
+                    embed.addFields({
+                        name: '\`🏷️\` Footer:',
+                        value: guildData.verificationFooter
                     });
+                }
+
+                if (guildData.verificationThumb) {
+                    embed.addFields({
+                        name: '\`🖼️\` Thumbnail:',
+                        value: guildData.verificationThumb
+                    });
+                    embed.setThumbnail(guildData.verificationThumb);
+                }
 
                 if (!guildData.isVerificationModule) {
                     embed.setFooter({ 
@@ -322,13 +442,15 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
             // Send new verification message
             await this.sendVerificationMessage(
                 guildData.verificationChannelId,
-                guildData.verificationMessage || "Click the button below to verify yourself and gain access to the server!"
+                guildData.verificationMessage || "Click the button below to verify yourself and gain access to the server!",
+                guildData.guildId
             );
         }
     }
 
-    private async sendVerificationMessage(channelId: string, message: string) {
+    private async sendVerificationMessage(channelId: string, message: string, guildId: string) {
         const channel = await this.container.client.channels.fetch(channelId);
+        const guildData = await Guild.findOne({ guildId });
         if (!channel?.isTextBased()) {
             throw new Error('Invalid channel type. Expected text channel.');
         }
@@ -336,8 +458,18 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
         try {
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.default as ColorResolvable)
-                .setTitle('Server Verification')
+                .setTitle(guildData?.verificationTitle || 'Server Verification')
                 .setDescription(message);
+
+            // Add thumbnail if set
+            if (guildData?.verificationThumb) {
+                embed.setThumbnail(guildData.verificationThumb);
+            }
+
+            // Add footer if set
+            if (guildData?.verificationFooter) {
+                embed.setFooter({ text: guildData.verificationFooter });
+            }
 
             const button = new ButtonBuilder()
                 .setCustomId('verify-button')
@@ -374,10 +506,20 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
 
             const embed = new EmbedBuilder()
                 .setColor(enabled ? config.bot.embedColor.default as ColorResolvable : 'Red')
-                .setTitle('Server Verification')
+                .setTitle(guildData.verificationTitle || 'Server Verification')
                 .setDescription(enabled 
                     ? (guildData.verificationMessage || "Click the button below to verify yourself and gain access to the server!")
                     : (guildData.verificationDisabledMessage || "⚠️ Verification is currently disabled. Please try again later."));
+
+            // Add thumbnail if set
+            if (guildData.verificationThumb) {
+                embed.setThumbnail(guildData.verificationThumb);
+            }
+
+            // Add footer if set
+            if (guildData.verificationFooter) {
+                embed.setFooter({ text: guildData.verificationFooter });
+            }
 
             const button = new ButtonBuilder()
                 .setCustomId('verify-button')
@@ -396,4 +538,4 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
             console.error('Failed to update verification message:', error);
         }
     }
-} 
+}
