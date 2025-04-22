@@ -116,7 +116,16 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
         try {
             // Defer reply immediately to prevent interaction timeout
             await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-            await this.handleHelp(interaction);
+            
+            // Check if a specific module was requested
+            const requestedModule = interaction.options.getString('module');
+            if (requestedModule) {
+                // If a module was specified, directly show commands for that module
+                await this.showModuleCommands(interaction, requestedModule);
+            } else {
+                // Otherwise show the main help menu
+                await this.handleHelp(interaction);
+            }
         } catch (error) {
             console.error('Error in help command:', error);
             // If we've already deferred, use editReply
@@ -136,6 +145,121 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
                 }
             }
         }
+    }
+
+    // Add a new method to show commands for a specific module
+    private async showModuleCommands(interaction: Command.ChatInputCommandInteraction, moduleName: string) {
+        const guildId = interaction.guildId!;
+        const member = interaction.member;
+        
+        // Get guild settings
+        let guildData;
+        try {
+            guildData = await Promise.race([
+                GuildModel.findOne({ guildId }),
+                new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Database timeout')), 10000)
+                )
+            ]);
+        } catch (error) {
+            console.error('Database error in help command:', error);
+            guildData = this.createDefaultGuildData(guildId);
+        }
+        
+        if (!guildData) {
+            guildData = this.createDefaultGuildData(guildId);
+        }
+        
+        // Check if module is enabled
+        const moduleStatus = guildData[`is${moduleName.charAt(0).toUpperCase() + moduleName.slice(1)}Module` as keyof typeof guildData];
+        if (moduleStatus === false) {
+            return interaction.editReply({
+                content: `The ${moduleName} module is disabled in this server.`
+            });
+        }
+        
+        // Check module's IsEnabled status
+        const moduleStore = container.stores.get('modules');
+        const module = moduleStore.get(moduleName.toLowerCase() as keyof Modules) as ExtendedModule | undefined;
+        
+        if (module && typeof module.IsEnabled === 'function') {
+            const moduleCommand = module.container.stores.get('commands').get(module.name);
+            
+            // Check for required module permissions
+            if (module.requiredPermissions) {
+                const hasPermission = module.requiredPermissions.some(perm => {
+                    if (!member?.permissions) return false;
+                    return typeof member.permissions === 'bigint'
+                        ? (member.permissions & perm) === perm
+                        : (member.permissions as Readonly<PermissionsBitField>).has(perm);
+                });
+                if (!hasPermission) {
+                    return interaction.editReply({
+                        content: `You don't have the required permissions to view the ${moduleName} module.`
+                    });
+                }
+            }
+            
+            const isEnabled = await module.IsEnabled({
+                guild: interaction.guild! as DiscordGuild,
+                interaction: interaction as any,
+                command: moduleCommand as ModuleCommandUnion
+            });
+            if (isEnabled.isErr() || !isEnabled.unwrap()) {
+                return interaction.editReply({
+                    content: `The ${moduleName} module is currently unavailable.`
+                });
+            }
+        }
+        
+        // Check if user has required permissions for restricted modules
+        if (this.modulePermissions[moduleName.charAt(0).toUpperCase() + moduleName.slice(1)]) {
+            const hasPermission = this.modulePermissions[moduleName.charAt(0).toUpperCase() + moduleName.slice(1)].some(perm => {
+                if (!member?.permissions) return false;
+                return typeof member.permissions === 'bigint' 
+                    ? member.permissions === perm
+                    : (member.permissions as Readonly<PermissionsBitField>).has(perm);
+            });
+            if (!hasPermission) {
+                return interaction.editReply({
+                    content: `You don't have the required permissions to view the ${moduleName} module.`
+                });
+            }
+        }
+        
+        // Get commands for the selected module
+        const commands = Array.from(container.stores.get('commands').values() as IterableIterator<ExtendedCommand>)
+            .filter(cmd => {
+                // Filter commands by module
+                if (cmd.category?.toLowerCase() !== moduleName.toLowerCase()) return false;
+                // Check if user has required permissions for the command
+                const requiredPerms = cmd.options?.requiredUserPermissions;
+                if (requiredPerms) {
+                    return member?.permissions instanceof PermissionsBitField && 
+                           (member.permissions as Readonly<PermissionsBitField>).has(requiredPerms);
+                }
+                return true;
+            });
+        
+        if (!commands.length) {
+            return interaction.editReply({
+                embeds: [new EmbedBuilder()
+                    .setColor(config.bot.embedColor.default as ColorResolvable)
+                    .setTitle(`${moduleName.charAt(0).toUpperCase() + moduleName.slice(1)} Commands`)
+                    .setDescription('No commands available in this module.')]
+            });
+        }
+        
+        const pages = this.generateCommandPages(commands);
+        const embed = this.generateCommandEmbed(pages[0], moduleName, 1, pages.length);
+        
+        const buttons = this.createPaginationButtons(0, pages.length);
+        
+        const components = pages.length > 1 
+            ? [new ActionRowBuilder<ButtonBuilder>().addComponents(...buttons)]
+            : [];
+        
+        return interaction.editReply({ embeds: [embed], components });
     }
 
     private async handleHelp(interaction: Command.ChatInputCommandInteraction | Message) {
