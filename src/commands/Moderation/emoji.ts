@@ -2,7 +2,12 @@ import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { ModerationModule } from '../../modules/Moderation';
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
-import { PermissionFlagsBits, EmbedBuilder, ColorResolvable } from 'discord.js';
+import {
+    PermissionFlagsBits,
+    EmbedBuilder,
+    ColorResolvable,
+    MessageFlags
+} from 'discord.js';
 import { ErrorHandler } from '../../lib/structures/ErrorHandler';
 import config from '../../config';
 
@@ -74,7 +79,7 @@ export class EmojiCommand extends ModuleCommand<ModerationModule> {
                 }
 
                 // Defer reply as emoji creation might take a moment
-                await interaction.deferReply({ ephemeral: true });
+                await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
                 // Create the emoji
                 const emoji = await interaction.guild.emojis.create({

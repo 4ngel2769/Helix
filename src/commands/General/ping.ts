@@ -3,7 +3,7 @@ import { GeneralModule } from '../../modules/General';
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { send } from '@sapphire/plugin-editable-commands';
-import { ApplicationCommandType, type Message } from 'discord.js';
+import { ApplicationCommandType, type Message, MessageFlags} from 'discord.js';
 import { env } from 'process';
 import { getDefReply } from '../../lib/utils';
 
@@ -72,7 +72,7 @@ export class UserCommand extends ModuleCommand<GeneralModule> {
 
 	// slash command
 	public override async chatInputRun(interaction: ModuleCommand.ChatInputCommandInteraction) {
-		const msg = await interaction.reply({ content: 'Ping?', ephemeral: true, fetchReply: true });
+		const msg = await interaction.reply({ content: 'Ping?', flags: MessageFlags.Ephemeral, fetchReply: true });
 
 		const content = `Pong! Bot Latency ${Math.round(this.container.client.ws.ping)}ms. API Latency ${
 			msg.createdTimestamp - interaction.createdTimestamp

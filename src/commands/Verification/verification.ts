@@ -10,7 +10,8 @@ import {
     ButtonBuilder,
     ButtonStyle,
     ColorResolvable,
-    TextChannel
+    TextChannel,
+    MessageFlags
 } from 'discord.js';
 import { Guild } from '../../models/Guild';
 import config from '../../config';
@@ -144,7 +145,7 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
                 await this.checkAndSendVerificationMessage(guildData);
                 return interaction.reply({
                     content: `Verification channel set to ${channel}`,
-                    ephemeral: true
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -168,7 +169,7 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
                 await this.checkAndSendVerificationMessage(guildData);
                 return interaction.reply({
                     content: `Verification role set to ${role}`,
-                    ephemeral: true
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -193,7 +194,7 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
 
                 return interaction.reply({
                     content: `Verification system has been ${enabled ? 'enabled' : 'disabled'}.`,
-                    ephemeral: true
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -219,7 +220,7 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
 
                 return interaction.reply({
                     content: `${messageType === 'enabled' ? 'Verification' : 'Disabled'} message updated`,
-                    ephemeral: true
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -284,14 +285,14 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
 
                 return interaction.reply({
                     embeds: [embed],
-                    ephemeral: true
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
             default:
                 return interaction.reply({
                     content: 'Invalid subcommand.',
-                    ephemeral: true
+                    flags: MessageFlags.Ephemeral
                 });
         }
     }

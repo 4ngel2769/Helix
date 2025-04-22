@@ -12,7 +12,8 @@ import {
     Message,
     TextChannel,
     PermissionFlagsBits,
-    PermissionsBitField
+    PermissionsBitField,
+    MessageFlags
 } from 'discord.js';
 import { Guild as DiscordGuild } from 'discord.js';
 import { Guild as GuildModel } from '../../models/Guild';
@@ -177,7 +178,7 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
             interaction.reply({ 
                 embeds: [mainEmbed], 
                 components: [row], 
-                ephemeral: true, 
+                flags: MessageFlags.Ephemeral, 
                 fetchReply: true 
             }) :
             (interaction.channel as TextChannel).send({ embeds: [mainEmbed], components: [row] }));

@@ -8,7 +8,8 @@ import {
     EmbedBuilder, 
     GuildMember, 
     PermissionFlagsBits,
-    TextChannel
+    TextChannel,
+    MessageFlags
 } from 'discord.js';
 import { Guild } from '../../models/Guild';
 import { ErrorHandler } from '../../lib/structures/ErrorHandler';
@@ -81,7 +82,7 @@ export class LockCommand extends ModuleCommand<ModerationModule> {
 
             return interaction.reply({
                 content: `Successfully locked ${channel}`,
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         } catch (error) {
             return ErrorHandler.sendCommandError(

@@ -1,7 +1,13 @@
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { Command } from '@sapphire/framework';
 import { ModerationModule } from '../../modules/Moderation';
-import { EmbedBuilder, GuildMember, PermissionFlagsBits, ColorResolvable } from 'discord.js';
+import {
+    EmbedBuilder,
+    GuildMember,
+    PermissionFlagsBits,
+    ColorResolvable,
+    MessageFlags
+} from 'discord.js';
 import config from '../../config';
 
 export class TimeoutCommand extends ModuleCommand<ModerationModule> {
@@ -49,11 +55,11 @@ export class TimeoutCommand extends ModuleCommand<ModerationModule> {
         const reason = interaction.options.getString('reason') || 'No reason provided';
 
         if (!target) {
-            return interaction.reply({ content: 'Unable to find that member.', ephemeral: true });
+            return interaction.reply({ content: 'Unable to find that member.', flags: MessageFlags.Ephemeral });
         }
 
         if (!target.moderatable) {
-            return interaction.reply({ content: 'I cannot timeout that member.', ephemeral: true });
+            return interaction.reply({ content: 'I cannot timeout that member.', flags: MessageFlags.Ephemeral });
         }
 
         try {
@@ -74,7 +80,7 @@ export class TimeoutCommand extends ModuleCommand<ModerationModule> {
         } catch (error) {
             return interaction.reply({ 
                 content: 'There was an error while timing out the member.',
-                ephemeral: true 
+                flags: MessageFlags.Ephemeral 
             });
         }
     }

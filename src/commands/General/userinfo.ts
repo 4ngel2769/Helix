@@ -3,7 +3,14 @@ import type { GeneralModule } from '../../modules/General';
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 // import { send } from '@sapphire/plugin-editable-commands';
-import { ActionRowBuilder, ApplicationCommandType, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js';
+import {
+	ActionRowBuilder,
+	ApplicationCommandType,
+	ButtonBuilder,
+	ButtonStyle,
+	EmbedBuilder,
+	MessageFlags
+} from 'discord.js';
 import config from '../../config';
 import { emojis } from '../../emojimap.json'
 
@@ -116,7 +123,7 @@ export class UserinfoCommand extends Command<GeneralModule> {
 
 	// context menu command
 	public override async contextMenuRun(interaction: Command.ContextMenuCommandInteraction) {
-		const msg = await interaction.reply({ content: 'Ping?', ephemeral: true, fetchReply: true });
+		const msg = await interaction.reply({ content: 'Ping?', flags: MessageFlags.Ephemeral, fetchReply: true });
 
 		const content = `Pong! Bot Latency ${Math.round(this.container.client.ws.ping)}ms. API Latency ${
 			msg.createdTimestamp - interaction.createdTimestamp

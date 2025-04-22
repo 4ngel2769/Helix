@@ -1,6 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
-import { EmbedBuilder } from 'discord.js';
+import { EmbedBuilder, MessageFlags } from 'discord.js';
 import config from '../../config';
 
 @ApplyOptions<Command.Options>({
@@ -75,7 +75,7 @@ export class EmbedCommand extends Command {
         } catch (error) {
             await interaction.reply({
                 content: 'Failed to create embed. Please check your inputs, especially URLs for images.',
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
     }

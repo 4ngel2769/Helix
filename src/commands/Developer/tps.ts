@@ -1,6 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
-import { EmbedBuilder, Message, ColorResolvable } from 'discord.js';
+import { EmbedBuilder, Message, ColorResolvable, MessageFlags } from 'discord.js';
 import config from '../../config';
 
 class TPSMonitor {
@@ -106,7 +106,7 @@ export class TPSCommand extends Command {
         if (interaction instanceof Message) {
             return interaction.reply({ embeds: [embed] });
         } else {
-            return interaction.reply({ embeds: [embed], ephemeral: true });
+            return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
         }
     }
 }

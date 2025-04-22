@@ -2,7 +2,13 @@ import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { ModerationModule } from '../../modules/Moderation';
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
-import { EmbedBuilder, GuildMember, PermissionFlagsBits, ColorResolvable } from 'discord.js';
+import {
+    EmbedBuilder,
+    GuildMember,
+    PermissionFlagsBits,
+    ColorResolvable,
+    MessageFlags
+} from 'discord.js';
 import config from '../../config';
 
 @ApplyOptions<ModuleCommand.Options>({
@@ -55,11 +61,11 @@ export class BanCommand extends ModuleCommand<ModerationModule> {
         const days = interaction.options.getNumber('days') || 0;
 
         if (!target) {
-            return interaction.reply({ content: 'Unable to find that member.', ephemeral: true });
+            return interaction.reply({ content: 'Unable to find that member.', flags: MessageFlags.Ephemeral });
         }
 
         if (!target.bannable) {
-            return interaction.reply({ content: 'I cannot ban that member.', ephemeral: true });
+            return interaction.reply({ content: 'I cannot ban that member.', flags: MessageFlags.Ephemeral });
         }
 
         try {
@@ -79,7 +85,7 @@ export class BanCommand extends ModuleCommand<ModerationModule> {
         } catch (error) {
             return interaction.reply({ 
                 content: 'There was an error while banning the member.',
-                ephemeral: true 
+                flags: MessageFlags.Ephemeral 
             });
         }
     }
