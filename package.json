@@ -34,6 +34,7 @@
     "express-session": "^1.18.1",
     "helmet": "^8.1.0",
     "mongoose": "^8.13.2",
+    "node-fetch": "^3.3.2",
     "passport": "^0.7.0",
     "passport-discord": "^0.1.4",
     "react": "^19.1.0",

@@ -26,7 +26,6 @@ export class BanCommand extends ModuleCommand<ModerationModule> {
     }
 
     public override registerApplicationCommands(registry: Command.Registry) {
-        console.log('Registering ban command...');
         registry.registerChatInputCommand((builder) =>
             builder
                 .setName('ban')

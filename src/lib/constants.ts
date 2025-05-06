@@ -16,6 +16,9 @@ export const Constants = {
     COOLDOWNS: {
         DEFAULT: 5000,
         EXTENDED: 10000
+    },
+    EMOJIS: {
+        HYPESQUAD_HOUSE3: '<:housebalance:888537001152876555>',
     }
     // ... other constants
 };

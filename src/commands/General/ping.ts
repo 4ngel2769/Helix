@@ -26,7 +26,7 @@ import config from '../../config';
 	cooldownDelay: 5000,
 	cooldownLimit: 3,
 	cooldownFilteredUsers: [env.OWNERS],
-	flags: true
+	flags: true,
 })
 export class UserCommand extends ModuleCommand<GeneralModule> {
 	public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
@@ -47,6 +47,8 @@ export class UserCommand extends ModuleCommand<GeneralModule> {
 			builder
 				.setName(this.name)
 				.setDescription(this.description)
+				.setIntegrationTypes(0,1)
+				.setContexts(0,1,2)
 				.addIntegerOption((option) =>
 					option
 						.setName('shard')

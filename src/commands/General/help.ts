@@ -115,7 +115,9 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
     public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
         try {
             // Defer reply immediately to prevent interaction timeout
-            await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+            await interaction.deferReply({
+                // flags: MessageFlags.Ephemeral
+            });
             
             // Check if a specific module was requested
             const requestedModule = interaction.options.getString('module');
@@ -410,8 +412,9 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
                     // Check if user has required permissions for the command
                     const requiredPerms = cmd.options?.requiredUserPermissions;
                     if (requiredPerms) {
-                        return interaction.member?.permissions instanceof PermissionsBitField && 
-                               interaction.member.permissions.has(requiredPerms);
+                        return interaction.member?.permissions instanceof PermissionsBitField;
+                        // && 
+                        // interaction.member.permissions.has(requiredPerms);
                     }
 
                     return true;
