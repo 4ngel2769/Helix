@@ -78,8 +78,8 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
             isModerationModule: true,
             isAdministrationModule: true,
             isFunModule: true,
-            isWelcomingModule: false,
-            isVerificationModule: false
+            isWelcomingModule: true,
+            isVerificationModule: true
         };
     }
 

@@ -28,7 +28,7 @@ export class EmbedCommand extends Command {
                 .addStringOption((option) =>
                     option
                         .setName('color')
-                        .setDescription('The color of the embed (hex code or basic color name)')
+                        .setDescription('The color of the embed (hex code format: #RRGGBB)')
                         .setRequired(false)
                 )
                 .addStringOption((option) =>
@@ -55,10 +55,26 @@ export class EmbedCommand extends Command {
     public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
         const title = interaction.options.getString('title', true);
         const description = interaction.options.getString('description', true);
-        const color = interaction.options.getString('color') || config.bot.embedColor.default;
+        const colorInput = interaction.options.getString('color');
         const footer = interaction.options.getString('footer');
         const image = interaction.options.getString('image');
         const thumbnail = interaction.options.getString('thumbnail');
+
+        // Validate hex color format if provided
+        let color = config.bot.embedColor.default;
+        if (colorInput) {
+            // Check if it's a valid hex color (with or without #)
+            const hexColorRegex = /^#?([0-9A-Fa-f]{6})$/;
+            if (!hexColorRegex.test(colorInput)) {
+                return interaction.reply({
+                    content: 'Invalid color format. Please use a valid hex color code (e.g., #FF5733).',
+                    flags: MessageFlags.Ephemeral
+                });
+            }
+            
+            // Ensure the color has a # prefix
+            color = colorInput.startsWith('#') ? colorInput : `#${colorInput}`;
+        }
 
         const embed = new EmbedBuilder()
             .setTitle(title)
@@ -71,9 +87,9 @@ export class EmbedCommand extends Command {
         if (thumbnail) embed.setThumbnail(thumbnail);
 
         try {
-            await interaction.reply({ embeds: [embed] });
+            return await interaction.reply({ embeds: [embed] });
         } catch (error) {
-            await interaction.reply({
+            return await interaction.reply({
                 content: 'Failed to create embed. Please check your inputs, especially URLs for images.',
                 flags: MessageFlags.Ephemeral
             });
