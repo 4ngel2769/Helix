@@ -95,7 +95,7 @@ export class MemeCommand extends ModuleCommand<FunModule> {
             // Create embed for the meme
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.default as ColorResolvable)
-                .setTitle(`🤣 ${meme.title}`)
+                .setTitle(`${meme.title}`)
                 .setURL(meme.postLink)
                 .setImage(meme.url)
                 .setFooter({ text: `👍 ${meme.ups} • Posted by u/${meme.author} in r/${meme.subreddit}` })

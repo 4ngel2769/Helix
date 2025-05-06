@@ -19,7 +19,7 @@ const getDashboard: RequestHandler = (req, res) => {
         }
 
         const guilds = user.guilds.filter((guild) => {
-            const permissions = BigInt(guild.permissions ?? '0');
+            const permissions = BigInt(guild.permissions?.toString() ?? '0');
             return (permissions & BigInt(0x20)) === BigInt(0x20); // MANAGE_GUILD permission
         });
 

@@ -1,6 +1,4 @@
 import { Request, Response, NextFunction } from 'express';
-import type { ApiRequest, ApiResponse } from '@sapphire/plugin-api';
-import { PermissionsBitField } from 'discord.js';
 
 export function isAuthenticated(req: Request, res: Response, next: NextFunction): void {
     if (req.isAuthenticated()) {
@@ -9,24 +7,31 @@ export function isAuthenticated(req: Request, res: Response, next: NextFunction)
     res.redirect('/auth/login');
 }
 
-export function hasGuildPermissions(req: ApiRequest, res: ApiResponse, next: () => void): void {
-    if (!req.auth?.token) {
-        return res.status(401).json({ error: 'Unauthorized' });
+export function hasGuildPermissions(req: Request, res: Response, next: NextFunction): void {
+    const user = req.user as any;
+    if (!user) {
+        res.status(401).json({ error: 'Unauthorized' });
+        return;
     }
+    
     const guildId = req.params.guildId;
-    const guilds = (req.auth.token as unknown as { guilds: { id: string; permissions: string }[] }).guilds;
-    const guild = guilds?.find((g) => g.id === guildId);
+    const guilds = user.guilds || [];
+    const guild = guilds.find((g: any) => g.id === guildId);
 
     if (!guild) {
-        return res.status(403).json({ error: 'No access to this guild' });
+        res.status(403).json({ error: 'No access to this guild' });
+        return;
     }
 
-    const permissions = new PermissionsBitField(BigInt(guild.permissions ?? '0'));
-    const hasPermission = permissions.has('Administrator') || permissions.has('ManageGuild');
+    // Check if user has ADMINISTRATOR (0x8) or MANAGE_GUILD (0x20) permission
+    const permissions = BigInt(guild.permissions || '0');
+    const hasPermission = (permissions & BigInt(0x8)) === BigInt(0x8) || 
+                          (permissions & BigInt(0x20)) === BigInt(0x20);
 
     if (!hasPermission) {
-        return res.status(403).json({ error: 'Insufficient permissions' });
+        res.status(403).json({ error: 'Insufficient permissions' });
+        return;
     }
 
     next();
-} 
+}

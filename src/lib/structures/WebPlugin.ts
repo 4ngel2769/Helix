@@ -39,23 +39,22 @@ export class WebPlugin {
         app.use('/api', apiRouter);
         app.use('/auth', authRouter);
 
-        // Serve static frontend files in production
-        if (process.env.NODE_ENV === 'production') {
-            app.use(express.static(path.join(__dirname, '../../../dashboard/dist')));
-            
-            // Handle SPA routing
-            app.get('*', (req, res, next) => {
-                if (req.path.startsWith('/api') || req.path.startsWith('/auth')) {
-                    return next();
-                }
-                res.sendFile(path.join(__dirname, '../../../dashboard/dist/index.html'));
-            });
-        }
+        // Serve static frontend files
+        const staticPath = path.join(__dirname, '../../../dashboard/client/dist');
+        app.use(express.static(staticPath));
+        
+        // Simple fallback for SPA routing
+        app.get('*', (req, res, next) => {
+            if (req.path.startsWith('/api') || req.path.startsWith('/auth')) {
+                return next();
+            }
+            res.sendFile(path.join(staticPath, 'index.html'));
+        });
 
         // Start server
-        const port = config.dashboard.port;
+        const port = config.dashboard.port || 8080;
         app.listen(port, () => {
-            container.logger.info(`Dashboard running on port ${port}`);
+            container.logger.info(`Dashboard running on http://localhost:${port}`);
         });
     }
-} 
+}
