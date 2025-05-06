@@ -38,7 +38,7 @@ export class UserinfoCommand extends Command<GeneralModule> {
 
 		// Register context menu command available from any message
 		registry.registerContextMenuCommand({
-			name: this.name,
+			name: 'User Information', // Custom display name for context menu
 			type: ApplicationCommandType.Message
 		},{
 			idHints: ['1235654649911054388']
@@ -46,7 +46,7 @@ export class UserinfoCommand extends Command<GeneralModule> {
 
 		// Register context menu command available from any user
 		registry.registerContextMenuCommand({
-			name: this.name,
+			name: 'User Information', // Custom display name for context menu
 			type: ApplicationCommandType.User
 		},{
 			idHints: ['1239874327713939507']

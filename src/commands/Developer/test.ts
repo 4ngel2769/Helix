@@ -3,7 +3,9 @@ import { Command } from '@sapphire/framework';
 import {
     ApplicationCommandType,
     type Message,
-    MessageFlags
+    MessageFlags,
+    TextDisplayBuilder,
+    SeparatorBuilder
 } from 'discord.js';
 
 @ApplyOptions<Command.Options>({
@@ -42,7 +44,16 @@ export class TestCommand extends Command {
 
     // Slash command
     public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-        return interaction.reply({ content: 'tested', flags: MessageFlags.Ephemeral });
+        const textComponent = new TextDisplayBuilder().setContent(
+            'This is a text display component'
+          );
+      
+          const separatorComponent = new SeparatorBuilder();
+      
+        return interaction.reply({
+            flags: MessageFlags.IsComponentsV2,
+            components: [textComponent, separatorComponent, textComponent],
+          });
     }
 
     // Context menu command
