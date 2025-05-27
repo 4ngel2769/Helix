@@ -7,6 +7,7 @@ import {
     StringSelectMenuBuilder,
     ButtonStyle,
     StringSelectMenuInteraction,
+    StringSelectMenuOptionBuilder,
     ButtonInteraction,
     ColorResolvable,
     Message,
@@ -22,6 +23,7 @@ import { Module, Modules, type IsEnabledContext, type ModuleError } from '@kbotd
 import { Result } from '@sapphire/result';
 import { ModuleCommand, ModuleCommandUnion } from '@kbotdev/plugin-modules';
 import { GeneralModule } from '../../modules/General';
+import { getAllModuleKeys, getModuleConfig } from '../../config/modules';
 
 const COMMANDS_PER_PAGE = 5;
 
@@ -71,46 +73,38 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
 
     // Add the missing method
     private createDefaultGuildData(guildId: string) {
+        const modules: Record<string, boolean> = {};
+        
+        // Use our module configs to set default values
+        getAllModuleKeys().forEach(moduleKey => {
+            const config = getModuleConfig(moduleKey);
+            if (config) {
+                modules[moduleKey] = config.defaultEnabled;
+            }
+        });
+        
         return { 
             guildId,
-            // Set default module settings
-            isGeneralModule: true,
-            isModerationModule: true,
-            isAdministrationModule: true,
-            isFunModule: true,
-            isWelcomingModule: true,
-            isVerificationModule: true
+            modules
         };
     }
 
     public override async registerApplicationCommands(registry: Command.Registry): Promise<void> {
-        // Get all categories (modules)
-        const categories = new Set<string>();
-        for (const command of container.stores.get('commands').values()) {
-            if (command.category) categories.add(command.category);
-        }
-
         await registry.registerChatInputCommand((builder) =>
             builder
                 .setName('help')
                 .setDescription('Shows all available commands')
                 .setContexts(0, 1, 2)  // All contexts (0=GUILD, 1=BOT_DM, 2=PRIVATE_CHANNEL)
                 .setIntegrationTypes(0, 1)  // Both integration types (0=GUILD_INSTALL, 1=USER_INSTALL)
-                .addStringOption((option) => {
+                .addStringOption(option =>
                     option
-                        .setName('module')
-                        .setDescription('Specific module to show commands for')
-                        .setRequired(false);
-
-                    // Add choices for each module category
-                    Array.from(categories).forEach(category => {
-                        option.addChoices({ name: category, value: category.toLowerCase() });
-                    });
-                    
-                    return option;
-                })
+                        .setName('command')
+                        .setDescription('Get help for a specific command')
+                        .setRequired(false)
+                        .setAutocomplete(true)
+                )
         );
-        // No need to store command ID or return anything
+        
         return;
     }
 
@@ -121,24 +115,25 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
                 // flags: MessageFlags.Ephemeral
             });
             
-            // Check if a specific module was requested
-            const requestedModule = interaction.options.getString('module');
-            if (requestedModule) {
-                // If a module was specified, directly show commands for that module
-                await this.showModuleCommands(interaction, requestedModule);
+            // Check if a specific command was requested
+            const commandName = interaction.options.getString('command');
+            
+            if (commandName) {
+                // Show help for the specific command
+                await this.showCommandHelp(interaction, commandName);
             } else {
-                // Otherwise show the main help menu
+                // Show main help menu with all modules
                 await this.handleHelp(interaction);
             }
         } catch (error) {
             console.error('Error in help command:', error);
-            // If we've already deferred, use editReply
+            // Error handling...
             try {
                 await interaction.editReply({
                     content: 'An error occurred while loading the help menu. Please try again later.'
                 });
             } catch (e) {
-                // If editReply fails (e.g., if deferReply failed), try to reply directly
+                // Fallback error handling...
                 try {
                     await interaction.reply({
                         content: 'An error occurred while loading the help menu. Please try again later.',
@@ -152,129 +147,129 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
     }
 
     // Add a new method to show commands for a specific module
-    private async showModuleCommands(interaction: Command.ChatInputCommandInteraction, moduleName: string) {
-        const guildId = interaction.guildId;
-        const member = interaction.member;
+    // private async showModuleCommands(interaction: Command.ChatInputCommandInteraction, moduleName: string) {
+    //     const guildId = interaction.guildId;
+    //     const member = interaction.member;
         
-        // Handle DM case
-        if (!guildId) {
-            return interaction.editReply({
-                embeds: [new EmbedBuilder()
-                    .setColor('Blurple')
-                    .setTitle(`${moduleName.charAt(0).toUpperCase() + moduleName.slice(1)} Commands`)
-                    .setDescription('Module-specific command lists are not available in Direct Messages.')]
-            });
-        }
+    //     // Handle DM case
+    //     if (!guildId) {
+    //         return interaction.editReply({
+    //             embeds: [new EmbedBuilder()
+    //                 .setColor('Blurple')
+    //                 .setTitle(`${moduleName.charAt(0).toUpperCase() + moduleName.slice(1)} Commands`)
+    //                 .setDescription('Module-specific command lists are not available in Direct Messages.')]
+    //         });
+    //     }
         
-        // Get guild settings
-        let guildData;
-        try {
-            guildData = await Promise.race([
-                GuildModel.findOne({ guildId }),
-                new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error('Database timeout')), 10000)
-                )
-            ]);
-        } catch (error) {
-            console.error('Database error in help command:', error);
-            guildData = this.createDefaultGuildData(guildId);
-        }
+    //     // Get guild settings
+    //     let guildData;
+    //     try {
+    //         guildData = await Promise.race([
+    //             GuildModel.findOne({ guildId }),
+    //             new Promise((_, reject) => 
+    //                 setTimeout(() => reject(new Error('Database timeout')), 10000)
+    //             )
+    //         ]);
+    //     } catch (error) {
+    //         console.error('Database error in help command:', error);
+    //         guildData = this.createDefaultGuildData(guildId);
+    //     }
         
-        if (!guildData) {
-            guildData = this.createDefaultGuildData(guildId);
-        }
+    //     if (!guildData) {
+    //         guildData = this.createDefaultGuildData(guildId);
+    //     }
         
-        // Check if module is enabled
-        const moduleStatus = guildData[`is${moduleName.charAt(0).toUpperCase() + moduleName.slice(1)}Module` as keyof typeof guildData];
-        if (moduleStatus === false) {
-            return interaction.editReply({
-                content: `The ${moduleName} module is disabled in this server.`
-            });
-        }
+    //     // Check if module is enabled
+    //     const moduleStatus = guildData[`is${moduleName.charAt(0).toUpperCase() + moduleName.slice(1)}Module` as keyof typeof guildData];
+    //     if (moduleStatus === false) {
+    //         return interaction.editReply({
+    //             content: `The ${moduleName} module is disabled in this server.`
+    //         });
+    //     }
         
-        // Check module's IsEnabled status
-        const moduleStore = container.stores.get('modules');
-        const module = moduleStore.get(moduleName.toLowerCase() as keyof Modules) as ExtendedModule | undefined;
+    //     // Check module's IsEnabled status
+    //     const moduleStore = container.stores.get('modules');
+    //     const module = moduleStore.get(moduleName.toLowerCase() as keyof Modules) as ExtendedModule | undefined;
         
-        if (module && typeof module.IsEnabled === 'function') {
-            const moduleCommand = module.container.stores.get('commands').get(module.name);
+    //     if (module && typeof module.IsEnabled === 'function') {
+    //         const moduleCommand = module.container.stores.get('commands').get(module.name);
             
-            // Check for required module permissions
-            if (module.requiredPermissions) {
-                const hasPermission = module.requiredPermissions.some(perm => {
-                    if (!member?.permissions) return false;
-                    return typeof member.permissions === 'bigint'
-                        ? (member.permissions & perm) === perm
-                        : (member.permissions as Readonly<PermissionsBitField>).has(perm);
-                });
-                if (!hasPermission) {
-                    return interaction.editReply({
-                        content: `You don't have the required permissions to view the ${moduleName} module.`
-                    });
-                }
-            }
+    //         // Check for required module permissions
+    //         if (module.requiredPermissions) {
+    //             const hasPermission = module.requiredPermissions.some(perm => {
+    //                 if (!member?.permissions) return false;
+    //                 return typeof member.permissions === 'bigint'
+    //                     ? (member.permissions & perm) === perm
+    //                     : (member.permissions as Readonly<PermissionsBitField>).has(perm);
+    //             });
+    //             if (!hasPermission) {
+    //                 return interaction.editReply({
+    //                     content: `You don't have the required permissions to view the ${moduleName} module.`
+    //                 });
+    //             }
+    //         }
             
-            const isEnabled = await module.IsEnabled({
-                guild: interaction.guild! as DiscordGuild,
-                interaction: interaction as any,
-                command: moduleCommand as ModuleCommandUnion
-            });
-            if (isEnabled.isErr() || !isEnabled.unwrap()) {
-                return interaction.editReply({
-                    content: `The ${moduleName} module is currently unavailable.`
-                });
-            }
-        }
+    //         const isEnabled = await module.IsEnabled({
+    //             guild: interaction.guild! as DiscordGuild,
+    //             interaction: interaction as any,
+    //             command: moduleCommand as ModuleCommandUnion
+    //         });
+    //         if (isEnabled.isErr() || !isEnabled.unwrap()) {
+    //             return interaction.editReply({
+    //                 content: `The ${moduleName} module is currently unavailable.`
+    //             });
+    //         }
+    //     }
         
-        // Check if user has required permissions for restricted modules
-        if (this.modulePermissions[moduleName.charAt(0).toUpperCase() + moduleName.slice(1)]) {
-            const hasPermission = this.modulePermissions[moduleName.charAt(0).toUpperCase() + moduleName.slice(1)].some(perm => {
-                if (!member?.permissions) return false;
-                return typeof member.permissions === 'bigint' 
-                    ? member.permissions === perm
-                    : (member.permissions as Readonly<PermissionsBitField>).has(perm);
-            });
-            if (!hasPermission) {
-                return interaction.editReply({
-                    content: `You don't have the required permissions to view the ${moduleName} module.`
-                });
-            }
-        }
+    //     // Check if user has required permissions for restricted modules
+    //     if (this.modulePermissions[moduleName.charAt(0).toUpperCase() + moduleName.slice(1)]) {
+    //         const hasPermission = this.modulePermissions[moduleName.charAt(0).toUpperCase() + moduleName.slice(1)].some(perm => {
+    //             if (!member?.permissions) return false;
+    //             return typeof member.permissions === 'bigint' 
+    //                 ? member.permissions === perm
+    //                 : (member.permissions as Readonly<PermissionsBitField>).has(perm);
+    //         });
+    //         if (!hasPermission) {
+    //             return interaction.editReply({
+    //                 content: `You don't have the required permissions to view the ${moduleName} module.`
+    //             });
+    //         }
+    //     }
         
-        // Get commands for the selected module
-        const commands = Array.from(container.stores.get('commands').values() as IterableIterator<ExtendedCommand>)
-            .filter(cmd => {
-                // Filter commands by module
-                if (cmd.category?.toLowerCase() !== moduleName.toLowerCase()) return false;
-                // Check if user has required permissions for the command
-                const requiredPerms = cmd.options?.requiredUserPermissions;
-                if (requiredPerms) {
-                    return member?.permissions instanceof PermissionsBitField && 
-                           (member.permissions as Readonly<PermissionsBitField>).has(requiredPerms);
-                }
-                return true;
-            });
+    //     // Get commands for the selected module
+    //     const commands = Array.from(container.stores.get('commands').values() as IterableIterator<ExtendedCommand>)
+    //         .filter(cmd => {
+    //             // Filter commands by module
+    //             if (cmd.category?.toLowerCase() !== moduleName.toLowerCase()) return false;
+    //             // Check if user has required permissions for the command
+    //             const requiredPerms = cmd.options?.requiredUserPermissions;
+    //             if (requiredPerms) {
+    //                 return member?.permissions instanceof PermissionsBitField && 
+    //                        (member.permissions as Readonly<PermissionsBitField>).has(requiredPerms);
+    //             }
+    //             return true;
+    //         });
         
-        if (!commands.length) {
-            return interaction.editReply({
-                embeds: [new EmbedBuilder()
-                    .setColor(config.bot.embedColor.default as ColorResolvable)
-                    .setTitle(`${moduleName.charAt(0).toUpperCase() + moduleName.slice(1)} Commands`)
-                    .setDescription('No commands available in this module.')]
-            });
-        }
+    //     if (!commands.length) {
+    //         return interaction.editReply({
+    //             embeds: [new EmbedBuilder()
+    //                 .setColor(config.bot.embedColor.default as ColorResolvable)
+    //                 .setTitle(`${moduleName.charAt(0).toUpperCase() + moduleName.slice(1)} Commands`)
+    //                 .setDescription('No commands available in this module.')]
+    //         });
+    //     }
         
-        const pages = this.generateCommandPages(commands);
-        const embed = this.generateCommandEmbed(pages[0], moduleName, 1, pages.length);
+    //     const pages = this.generateCommandPages(commands);
+    //     const embed = this.generateCommandEmbed(pages[0], moduleName, 1, pages.length);
         
-        const buttons = this.createPaginationButtons(0, pages.length);
+    //     const buttons = this.createPaginationButtons(0, pages.length);
         
-        const components = pages.length > 1 
-            ? [new ActionRowBuilder<ButtonBuilder>().addComponents(...buttons)]
-            : [];
+    //     const components = pages.length > 1 
+    //         ? [new ActionRowBuilder<ButtonBuilder>().addComponents(...buttons)]
+    //         : [];
         
-        return interaction.editReply({ embeds: [embed], components });
-    }
+    //     return interaction.editReply({ embeds: [embed], components });
+    // }
 
     private async handleHelp(interaction: Command.ChatInputCommandInteraction | Message) {
         const isSlash = 'options' in interaction;
@@ -383,7 +378,7 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
             .setDescription(
                 'Select a module from the dropdown menu below to view its commands.\n\n' +
                 '**Available Modules:**\n' +
-                filteredModules.map(module => `↳ • \`${module}\``).join('\n')
+                filteredModules.map(module => `> - \`${module}\``).join('\n')
             );
 
         const row = new ActionRowBuilder<StringSelectMenuBuilder>()
@@ -542,6 +537,147 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
         });
         
         return response;
+    }
+
+    private async showCommandHelp(interaction: Command.ChatInputCommandInteraction, commandName: string) {
+        // Find the command in the command store
+        const commandStore = this.container.client.stores.get('commands');
+        const command = Array.from(commandStore.values()).find(
+            cmd => cmd.name.toLowerCase() === commandName.toLowerCase()
+        ) as ExtendedCommand | undefined;
+        
+        if (!command) {
+            return interaction.editReply({
+                content: `Command \`/${commandName}\` was not found.`
+            });
+        }
+        
+        // Check if the user has required permissions for this command
+        const requiredPerms = command.options?.requiredUserPermissions;
+        if (requiredPerms && interaction.member?.permissions instanceof PermissionsBitField && 
+            !(interaction.member.permissions as Readonly<PermissionsBitField>).has(requiredPerms)) {
+            return interaction.editReply({
+                content: `You don't have the required permissions to view this command.`
+            });
+        }
+        
+        // Get command ID from application commands for clickable mention
+        const commandId = this.container.client.application?.commands.cache
+            .find(c => c.name === command.name)?.id;
+        
+        // Create an embed for this command
+        const embed = new EmbedBuilder()
+            .setColor(config.bot.embedColor.default as ColorResolvable)
+            .setTitle(`Command: /${command.name}`);
+        
+        // Base description with command info
+        let description = `${command.description || 'No description available'}\n`;
+        
+        // Check if command is part of a module
+        if (command.category) {
+            description += `> **Module:** \` ${command.category} \` \n`;
+        }
+        
+        // Check for required permissions
+        if (command.options?.requiredUserPermissions) {
+            const perms = Array.isArray(command.options.requiredUserPermissions)
+                ? command.options.requiredUserPermissions
+                : [command.options.requiredUserPermissions];
+                
+            const permNames = perms.map(perm => {
+                if (typeof perm === 'string') return perm;
+                // Convert permission flag bits to readable names
+                return Object.keys(PermissionFlagsBits).find(
+                    key => PermissionFlagsBits[key as keyof typeof PermissionFlagsBits] === perm
+                ) || String(perm);
+            });
+            
+            description += `\n**Required Permissions:** ${permNames.join(', ')}\n`;
+        }
+        
+        // Check if command has subcommands
+        const hasSubcommandOptions = command.options?.options && 
+            Array.isArray(command.options.options) && 
+            command.options.options.some((opt: any) => opt.type === 1);
+            
+        if (hasSubcommandOptions) {
+            description += '\n**Subcommands:**\n';
+            
+            // Try to get application command data for clickable mentions
+            const appCommand = this.container.client.application?.commands.cache
+                .find(c => c.name === command.name);
+                
+            if (appCommand && commandId) {
+                // Get subcommands from application command options
+                const subcommands = appCommand.options
+                    .filter(opt => opt.type === 1) // Type 1 is subcommand
+                    .map(opt => {
+                        // Create clickable subcommand mention
+                        return `</${command.name} ${opt.name}:${commandId}> - ${opt.description}`;
+                    });
+                
+                if (subcommands.length > 0) {
+                    description += subcommands.join('\n');
+                } else {
+                    description += '*No subcommands found in application command data*';
+                }
+            } else {
+                // Fallback if we can't get application command data
+                const cmdOptions = command.options?.options;
+                const subcommandOptions = Array.isArray(cmdOptions) 
+                    ? cmdOptions.filter((opt: any) => opt.type === 1)
+                    : [];
+                    
+                if (subcommandOptions && subcommandOptions.length > 0) {
+                    description += subcommandOptions
+                        .map((opt: any) => `\`/${command.name} ${opt.name}\` - ${opt.description || 'No description'}`)
+                        .join('\n');
+                } else {
+                    description += '*Use the command to see available subcommands*';
+                }
+            }
+        } else {
+            // Check for regular options
+            const cmdOptions = command.options?.options;
+            if (cmdOptions && Array.isArray(cmdOptions) && cmdOptions.length > 0) {
+                description += '\n**Options:**\n';
+                
+                description += cmdOptions
+                    .map((opt: any) => {
+                        const required = opt.required ? ' *(required)*' : '';
+                        return `\`${opt.name}\` - ${opt.description || 'No description'}${required}`;
+                    })
+                    .join('\n');
+            }
+        }
+        
+        // Add usage examples section
+        description += '> **Usage:** ';
+        
+        // Basic usage
+        if (commandId) {
+            description += `</${command.name}:${commandId}>`;
+        } else {
+            description += `\`/${command.name}\``;
+        }
+        
+        // If has subcommands, add example with first subcommand
+        if (hasSubcommandOptions) {
+            const cmdOptions = command.options?.options;
+            const firstSubcommand = Array.isArray(cmdOptions) 
+                ? cmdOptions.find((opt: any) => opt.type === 1)
+                : undefined;
+                
+            if (firstSubcommand) {
+                description += `\n${commandId 
+                    ? `</${command.name} ${firstSubcommand.name}:${commandId}>`
+                    : `\`/${command.name} ${firstSubcommand.name}\``}`;
+            }
+        }
+        
+        embed.setDescription(description);
+        
+        return interaction.editReply({ embeds: [embed] });
     }
 
     private async handleModuleSelect(interaction: StringSelectMenuInteraction) {
@@ -744,15 +880,68 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
                         ? `</${cmd.name}:${commandId}>`
                         : `\`/${cmd.name}\``;
 
-                    // Get command options if any
-                    const options = cmd.options?.options && Array.isArray(cmd.options.options)
-                        ? cmd.options.options.map((opt: { name: string }) => `\`${opt.name}\``)
-                        .join(', ')
-                        : undefined;
+                    // Check if the command has subcommands
+                    const hasSubcommandOptions = cmd.options?.options && 
+                        Array.isArray(cmd.options.options) && 
+                        cmd.options.options.some((opt: any) => opt.type === 1); // Type 1 is subcommand
 
-                    return `${commandMention}\n↳ ${cmd.description || 'No description available'}${
-                        options ? `\nOptions: ${options}` : ''
-                    }\n`;
+                    const hasSubcommands = !!hasSubcommandOptions;
+
+                    if (hasSubcommands) {
+                        // Get the application command from the cache to retrieve subcommands
+                        const appCommand = this.container.client.application?.commands.cache
+                            .find(c => c.name === cmd.name);
+
+                        // Start with the main command description
+                        let description = `${cmd.description || 'No description available'}\n`;
+                        description += '\n**Subcommands:**\n';
+
+                        // If we have access to the application command data (preferred method)
+                        if (appCommand && commandId) {
+                            // Get subcommands from application command options
+                            const subcommands = appCommand.options
+                                .filter(opt => opt.type === 1) // Type 1 is subcommand
+                                .map(opt => {
+                                    // Create clickable subcommand mention format
+                                    return `</${cmd.name} ${opt.name}:${commandId}> - ${opt.description}`;
+                            });
+                        
+                        if (subcommands.length > 0) {
+                            description += subcommands.join('\n');
+                        } else {
+                            description += '*No subcommands found in application command data*';
+                        }
+                        } else {
+                            // Fallback if we can't get application command data
+                            const cmdOptions = cmd.options?.options;
+                            const subcommandOptions = Array.isArray(cmdOptions) 
+                                ? cmdOptions.filter((opt: any) => opt.type === 1)
+                                : [];
+                                
+                            if (subcommandOptions && subcommandOptions.length > 0) {
+                                description += subcommandOptions
+                                    .map((opt: any) => `\`/${cmd.name} ${opt.name}\` - ${opt.description || 'No description'}`)
+                                    .join('\n');
+                            } else {
+                                description += '*Use the command to see available subcommands*';
+                            }
+                        }
+
+                        return `${commandMention}\n↳ ${description}\n`;
+                    } else {
+                        // Handle regular commands (no subcommands) like before
+                        const cmdOptions = cmd.options?.options;
+                        const options = Array.isArray(cmdOptions)
+                            ? cmdOptions
+                                .filter((opt: any) => opt.type !== 1) // Filter out subcommands
+                                .map((opt: any) => `\`${opt.name}\``)
+                                .join(', ')
+                            : undefined;
+
+                        return `${commandMention}\n↳ ${cmd.description || 'No description available'}${
+                            options ? `\nOptions: ${options}` : ''
+                        }\n`;
+                    }
                 }).join('\n')
             )
             .setFooter({ text: `Page ${currentPage}/${totalPages}` });
@@ -761,29 +950,26 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
     }
 
     private createModuleSelect(modules: string[]) {
-        const emojiMap: { [key: string]: string } = {
-            general: '⚙️',
-            moderation: '🛡️',
-            fun: '🎮',
-            utility: '🔧',
-            music: '🎵',
-            economy: '💰',
-            leveling: '📈',
-            administration: '🔑',
-            welcoming: '👋',
-            verification: '✅'
-        };
-
         return new StringSelectMenuBuilder()
             .setCustomId('module-select')
             .setPlaceholder('Select a module')
             .addOptions(
-                modules.map(module => ({
-                    label: module,
-                    description: `View ${module} commands`,
-                    value: module.toLowerCase(),
-                    emoji: emojiMap[module.toLowerCase()] || '📁'
-                }))
+                modules.map(moduleName => {
+                    // Get module config from our modules config file
+                    const moduleConfig = getModuleConfig(moduleName);
+                    
+                    return new StringSelectMenuOptionBuilder()
+                        .setLabel(moduleConfig?.name || moduleName)
+                        .setDescription(moduleConfig?.description || `View ${moduleName} commands`)
+                        .setValue(moduleName.toLowerCase())
+                        .setEmoji(
+                            typeof moduleConfig?.emoji === 'object'
+                                ? (moduleConfig.emoji.id
+                                    ? `${moduleConfig.emoji.animated ? '<a:' : '<:'}${moduleConfig.emoji.name}:${moduleConfig.emoji.id}>`
+                                    : moduleConfig.emoji.name || '📦')
+                                : moduleConfig?.emoji || '📦'
+                        );
+                })
             );
     }
 
@@ -801,5 +987,35 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
             .setDisabled(currentPage === totalPages - 1);
 
         return [previousButton, nextButton];
+    }
+
+    public override async autocompleteRun(interaction: Command.AutocompleteInteraction) {
+        const focusedValue = interaction.options.getFocused().toLowerCase();
+        const commandStore = this.container.client.stores.get('commands');
+        const commands = Array.from(commandStore.values()) as ExtendedCommand[];
+        
+        // Filter commands based on user's input
+        let filtered = commands;
+        
+        if (focusedValue) {
+            filtered = commands.filter(cmd => 
+                cmd.name.toLowerCase().includes(focusedValue) ||
+                (cmd.description && cmd.description.toLowerCase().includes(focusedValue)) ||
+                (cmd.category && cmd.category.toLowerCase().includes(focusedValue))
+            );
+        }
+        
+        // Limit to 25 choices (Discord maximum)
+        filtered = filtered.slice(0, 25);
+        
+        // Format the responses
+        const choices = filtered.map(cmd => ({
+            name: cmd.category 
+                ? `${cmd.name} (${cmd.category})` 
+                : cmd.name,
+            value: cmd.name
+        }));
+        
+        return interaction.respond(choices);
     }
 }

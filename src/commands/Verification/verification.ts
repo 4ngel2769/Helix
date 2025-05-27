@@ -211,9 +211,10 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
                 guildData.isVerificationModule = enabled;
                 
                 // Update last modified info
+                // Fix the userId property issue
                 guildData.verificationLastModifiedBy = {
-                    userId: interaction.user.id,
-                    username: interaction.user.tag,
+                    username: interaction.user.username,
+                    id: interaction.user.id, // Use 'id' instead of 'userId'
                     timestamp: new Date()
                 };
                 
@@ -247,7 +248,7 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
                 if (guildData.verificationChannelId && guildData.verificationMessageId) {
                     await this.updateVerificationMessageState(
                         guildData,
-                        guildData.isVerificationModule
+                        guildData.isVerificationModule || false
                     );
                 }
 
@@ -266,7 +267,7 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
                 if (guildData.verificationChannelId && guildData.verificationMessageId) {
                     await this.updateVerificationMessageState(
                         guildData,
-                        guildData.isVerificationModule
+                        guildData.isVerificationModule || false
                     );
                 }
 
@@ -285,7 +286,7 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
                 if (guildData.verificationChannelId && guildData.verificationMessageId) {
                     await this.updateVerificationMessageState(
                         guildData,
-                        guildData.isVerificationModule
+                        guildData.isVerificationModule || false
                     );
                 }
 
@@ -314,7 +315,7 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
                 if (guildData.verificationChannelId && guildData.verificationMessageId) {
                     await this.updateVerificationMessageState(
                         guildData,
-                        guildData.isVerificationModule
+                        guildData.isVerificationModule || false
                     );
                 }
 
@@ -356,7 +357,7 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
                             inline: true
                         },
                         { 
-                            name: '\`🎭\` Role:', 
+                            name: '\`🎭\` Verification Role:', 
                             value: guildData.verificationRoleId 
                                 ? `<@&${guildData.verificationRoleId}>` 
                                 : 'Not set',
@@ -368,7 +369,7 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
                             inline: true 
                         },
                         {
-                            name: '\`🔴\` Disabled Message:',
+                            name: '\`🔴\` "Verification Disabled" Message:',
                             value: guildData.verificationDisabledMessage || 'Verification is currently disabled.'
                         },
                         {
@@ -379,7 +380,9 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
                             name: '\`🔤\` Title:',
                             value: guildData.verificationTitle || 'Server Verification'
                         }
-                    );
+                    )
+                    .setFooter({
+                        text: 'Hint: you can edit any of these settings using the /verification command.'});
 
                 // Add footer and thumbnail info if they exist
                 if (guildData.verificationFooter) {

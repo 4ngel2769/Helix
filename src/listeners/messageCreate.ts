@@ -14,7 +14,7 @@ export class UserEvent extends Listener<typeof Events.MessageCreate> {
         
         // Ignore messages from bots
         if (message.author.bot) {
-            console.log('[DEBUG] Ignoring bot message');
+            // console.log('[DEBUG] Ignoring bot message');
             return;
         }
         
@@ -25,16 +25,17 @@ export class UserEvent extends Listener<typeof Events.MessageCreate> {
         if (!botMentioned) return;
         
         // Alternative mention check: both direct pings and message content check
-        console.log(`[DEBUG] Bot ID: ${this.container.client.user!.id}`);
-        console.log(`[DEBUG] Message content: "${message.content}"`);
+        // console.log(`[DEBUG] Bot ID: ${this.container.client.user!.id}`);
+        // console.log(`[DEBUG] Message content: "${message.content}"`);
         
         // Simplified mention checking - Discord.js handles different mention formats internally
         if (message.content.includes(`<@${this.container.client.user!.id}>`)) {
             console.log('[DEBUG] Bot mention found in content');
-        } else {
-            console.log('[DEBUG] No bot mention found in content (string check)');
-            // Continue anyway since we already confirmed via mentions.users
-        }
+        } 
+        // else {
+        //     console.log('[DEBUG] No bot mention found in content (string check)');
+        //     // Continue anyway since we already confirmed via mentions.users
+        // }
 
         try {
             const prefix = this.container.client.options.defaultPrefix;

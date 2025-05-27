@@ -221,15 +221,19 @@ export class LockCommand extends ModuleCommand<ModerationModule> {
             
             const lockInfo = {
                 channelId,
+                originalPermissions: [], // This should be populated from actual channel data when locking
+                lockedBy: moderator.id,
+                lockedAt: new Date(),
+                reason: '',
                 lockTimestamp,
                 duration: durationMs,
-                unlockTimestamp: lockTimestamp + durationMs,
+                unlockTimestamp: durationMs ? lockTimestamp + durationMs : 0,
                 moderator: {
                     id: moderator.id,
                     tag: moderator.tag
                 }
             };
-            
+
             if (existingLockIndex >= 0) {
                 guildData.lockedChannels[existingLockIndex] = lockInfo;
             } else {
@@ -239,7 +243,9 @@ export class LockCommand extends ModuleCommand<ModerationModule> {
             await guildData.save();
             
             // Schedule unlock
-            this.scheduleUnlock(guildId, channelId, durationMs);
+            if (durationMs > 0) {
+                this.scheduleUnlock(guildId, channelId, durationMs);
+            }
             
         } catch (error) {
             console.error('Error saving lock to database:', error);

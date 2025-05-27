@@ -1,79 +1,171 @@
-import mongoose, { Document } from 'mongoose';
+import { Schema, model, Document } from 'mongoose';
+import { getAllModuleKeys, getModuleConfig } from '../config/modules';
 
-interface IGuild extends Document {
-  guildId: string;
-  isModeration: boolean;
-  isAdministration: boolean;
-  isFunModule: boolean;
-  isWelcomingModule: boolean;
-  isVerificationModule: boolean;
-  isModule: boolean;
-  // Verification settings
-  verificationChannelId: string | null;
-  verificationMessageId: string | null;
-  verificationMessage: string | null;
-  verificationRoleId: string | null;
-  verificationLastModifiedBy: {
-    userId: string;
+// Interface for verification settings
+interface VerificationSettings {
+  verificationChannelId?: string;
+  verificationRoleId?: string;
+  verificationMessageId?: string;
+  verificationMessage?: string;
+  verificationDisabledMessage?: string;
+  verificationTitle?: string;
+  verificationFooter?: string;
+  verificationThumb?: string;
+  verificationLastModifiedBy?: {
     username: string;
+    id: string;
     timestamp: Date;
-  } | null;
-  verificationDisabledMessage: string | null;
-  verificationTitle: string | null;
-  verificationFooter: string | null;
-  verificationThumb: string | null;
-  adminRoleId: string | null;
-  modRoleId: string | null;
-  welcomeChannel?: string;
-  welcomeMessage?: string;
-  lockedChannels?: Array<{
-    channelId: string;
-    lockTimestamp: number;
-    duration: number;
-    unlockTimestamp: number;
-    moderator: {
-      id: string;
-      tag: string;
-    };
-  }>;
+  };
 }
 
-const guildSchema = new mongoose.Schema<IGuild>({
+// Update the LockedChannel interface
+interface LockedChannel {
+  channelId: string;
+  originalPermissions: Array<{
+    id: string;
+    allow: string;
+    deny: string;
+    type: number;
+  }>;
+  lockedBy: string;
+  lockedAt: Date;
+  reason?: string;
+  // Add these additional properties
+  lockTimestamp?: number;
+  duration?: number;
+  unlockTimestamp?: number;
+  moderator?: {
+    id: string;
+    tag: string;
+  };
+}
+
+// Module settings interface
+interface ModuleSettings {
+  [key: string]: boolean;
+}
+
+// Legacy module flags for backward compatibility
+interface LegacyModuleFlags {
+  isAdministration?: boolean;
+  isModeration?: boolean;
+  isFunModule?: boolean;
+  isVerificationModule?: boolean;
+  isWelcomingModule?: boolean;
+}
+
+export interface IGuild extends Document, LegacyModuleFlags, VerificationSettings {
+  guildId: string;
+  prefix?: string;
+  adminRoleId?: string; 
+  modRoleId?: string;
+  lockedChannels?: LockedChannel[];
+  modules: ModuleSettings;
+}
+
+const guildSchema = new Schema<IGuild>({
   guildId: { type: String, required: true, unique: true },
-  isModeration: { type: Boolean, default: false },
-  isAdministration: { type: Boolean, default: false },
-  isFunModule: { type: Boolean, default: false },
-  isWelcomingModule: { type: Boolean, default: false },
-  isVerificationModule: { type: Boolean, default: false },
-  isModule: { type: Boolean, default: false },
-  // Verification settings
-  verificationChannelId: { type: String, default: null },
-  verificationMessageId: { type: String, default: null },
-  verificationMessage: { type: String, default: "Click the button below to verify yourself and gain access to the server!" },
-  verificationRoleId: { type: String, default: null },
-  verificationLastModifiedBy: {
-    userId: { type: String, default: null },
-    username: { type: String, default: null },
-    timestamp: { type: Date, default: null }
-  },
-  verificationDisabledMessage: { type: String, default: "⚠️ Verification is currently disabled. Please try again later." },
-  verificationTitle: { type: String, default: "Server Verification" },
-  verificationFooter: { type: String, default: null },
-  verificationThumb: { type: String, default: null },
+  prefix: { type: String, default: null },
   adminRoleId: { type: String, default: null },
   modRoleId: { type: String, default: null },
-  welcomeChannel: String,
-  welcomeMessage: String,
+  
+  // Legacy module flags (for backward compatibility)
+  isAdministration: { type: Boolean, default: true },
+  isModeration: { type: Boolean, default: true },
+  isFunModule: { type: Boolean, default: true },
+  isVerificationModule: { type: Boolean, default: false },
+  isWelcomingModule: { type: Boolean, default: false },
+  
+  // Verification settings
+  verificationChannelId: { type: String, default: null },
+  verificationRoleId: { type: String, default: null },
+  verificationMessageId: { type: String, default: null },
+  verificationMessage: { type: String, default: 'Click the button below to verify yourself and gain access to the server!' },
+  verificationDisabledMessage: { type: String, default: 'Verification is currently disabled.' },
+  verificationTitle: { type: String, default: 'Server Verification' },
+  verificationFooter: { type: String, default: null },
+  verificationThumb: { type: String, default: null },
+  verificationLastModifiedBy: {
+    username: { type: String, default: null },
+    id: { type: String, default: null },
+    timestamp: { type: Date, default: Date.now }
+  },
+  
+  // Locked channels
   lockedChannels: [{
-    channelId: String,
-    lockTimestamp: Number,
-    duration: Number,
-    unlockTimestamp: Number,
+    channelId: { type: String, required: true },
+    originalPermissions: [{
+      id: { type: String, required: true },
+      allow: { type: String, default: '0' },
+      deny: { type: String, default: '0' },
+      type: { type: Number, default: 0 }
+    }],
+    lockedBy: { type: String, default: null },
+    lockedAt: { type: Date, default: Date.now },
+    reason: { type: String, default: null },
+    // Additional properties
+    lockTimestamp: { type: Number, default: null },
+    duration: { type: Number, default: null },
+    unlockTimestamp: { type: Number, default: null },
     moderator: {
-      id: String,
-      tag: String
+      id: { type: String, default: null },
+      tag: { type: String, default: null }
     }
-  }]
+  }],
+  
+  // New module configuration system
+  modules: { 
+    type: Schema.Types.Mixed, 
+    default: () => {
+      const defaults: ModuleSettings = {};
+      getAllModuleKeys().forEach(moduleKey => {
+        const config = getModuleConfig(moduleKey);
+        if (config) {
+          defaults[moduleKey] = config.defaultEnabled;
+        }
+      });
+      return defaults;
+    }
+  }
 });
 
-export const Guild = mongoose.model<IGuild>('Guild', guildSchema);
+// Add a pre-save middleware to sync legacy module flags with new module system
+guildSchema.pre('save', function(next) {
+  // Sync from legacy to new system
+  if (this.isModified('isAdministration')) {
+    this.modules.administration = this.isAdministration ?? true;
+  }
+  if (this.isModified('isModeration')) {
+    this.modules.moderation = this.isModeration ?? true;
+  }
+  if (this.isModified('isFunModule')) {
+    this.modules.fun = this.isFunModule ?? true;
+  }
+  if (this.isModified('isVerificationModule')) {
+    this.modules.verification = this.isVerificationModule ?? false;
+  }
+  if (this.isModified('isWelcomingModule')) {
+    this.modules.welcoming = this.isWelcomingModule ?? false;
+  }
+  
+  // Sync from new system to legacy
+  if (this.isModified('modules.administration')) {
+    this.isAdministration = this.modules.administration;
+  }
+  if (this.isModified('modules.moderation')) {
+    this.isModeration = this.modules.moderation;
+  }
+  if (this.isModified('modules.fun')) {
+    this.isFunModule = this.modules.fun;
+  }
+  if (this.isModified('modules.verification')) {
+    this.isVerificationModule = this.modules.verification;
+  }
+  if (this.isModified('modules.welcoming')) {
+    this.isWelcomingModule = this.modules.welcoming;
+  }
+  
+  next();
+});
+
+export const Guild = model<IGuild>('Guild', guildSchema);
