@@ -13,6 +13,14 @@ import {
 } from 'discord.js';
 import { ErrorHandler } from '../../lib/structures/ErrorHandler';
 import config from '../../config';
+import { Guild } from '../../models/Guild';
+import { 
+    loadAutomodFilters,
+    getKeywordsForGuild,
+    addCustomKeywords,
+    removeCustomKeywords,
+    clearCustomKeywords
+} from '../../lib/utils/automodUtils';
 
 @ApplyOptions<Command.Options>({
     name: 'automod',
@@ -123,6 +131,97 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
                                 .setAutocomplete(true)
                         )
                 )
+                .addSubcommandGroup((group) =>
+                    group
+                        .setName('keywords')
+                        .setDescription('Manage AutoMod keyword filters')
+                        .addSubcommand((subcommand) =>
+                            subcommand
+                                .setName('list')
+                                .setDescription('List custom keywords for a category')
+                                .addStringOption((option) =>
+                                    option
+                                        .setName('category')
+                                        .setDescription('Keyword category to list')
+                                        .setRequired(true)
+                                        .addChoices(
+                                            { name: 'Profanity', value: 'profanity' },
+                                            { name: 'Scams', value: 'scams' },
+                                            { name: 'Phishing', value: 'phishing' },
+                                            { name: 'Custom', value: 'custom' }
+                                        )
+                                )
+                        )
+                        .addSubcommand((subcommand) =>
+                            subcommand
+                                .setName('add')
+                                .setDescription('Add custom keywords to a category')
+                                .addStringOption((option) =>
+                                    option
+                                        .setName('category')
+                                        .setDescription('Keyword category')
+                                        .setRequired(true)
+                                        .addChoices(
+                                            { name: 'Profanity', value: 'profanity' },
+                                            { name: 'Scams', value: 'scams' },
+                                            { name: 'Phishing', value: 'phishing' },
+                                            { name: 'Custom', value: 'custom' }
+                                        )
+                                )
+                                .addStringOption((option) =>
+                                    option
+                                        .setName('keywords')
+                                        .setDescription('Keywords to add (comma separated)')
+                                        .setRequired(true)
+                                )
+                        )
+                        .addSubcommand((subcommand) =>
+                            subcommand
+                                .setName('remove')
+                                .setDescription('Remove custom keywords from a category')
+                                .addStringOption((option) =>
+                                    option
+                                        .setName('category')
+                                        .setDescription('Keyword category')
+                                        .setRequired(true)
+                                        .addChoices(
+                                            { name: 'Profanity', value: 'profanity' },
+                                            { name: 'Scams', value: 'scams' },
+                                            { name: 'Phishing', value: 'phishing' },
+                                            { name: 'Custom', value: 'custom' }
+                                        )
+                                )
+                                .addStringOption((option) =>
+                                    option
+                                        .setName('keywords')
+                                        .setDescription('Keywords to remove (comma separated)')
+                                        .setRequired(true)
+                                )
+                        )
+                        .addSubcommand((subcommand) =>
+                            subcommand
+                                .setName('clear')
+                                .setDescription('Clear all custom keywords from a category')
+                                .addStringOption((option) =>
+                                    option
+                                        .setName('category')
+                                        .setDescription('Keyword category to clear')
+                                        .setRequired(true)
+                                        .addChoices(
+                                            { name: 'Profanity', value: 'profanity' },
+                                            { name: 'Scams', value: 'scams' },
+                                            { name: 'Phishing', value: 'phishing' },
+                                            { name: 'Custom', value: 'custom' }
+                                        )
+                                )
+                                .addBooleanOption((option) =>
+                                    option
+                                        .setName('confirm')
+                                        .setDescription('Confirm that you want to clear all keywords')
+                                        .setRequired(true)
+                                )
+                        )
+                )
         );
     }
 
@@ -132,8 +231,24 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
             return ErrorHandler.sendPermissionError(interaction, 'ManageGuild');
         }
 
+        const subcommandGroup = interaction.options.getSubcommandGroup(false);
         const subcommand = interaction.options.getSubcommand();
 
+        // Handle keyword management subcommands
+        if (subcommandGroup === 'keywords') {
+            switch (subcommand) {
+                case 'list':
+                    return this.handleListKeywords(interaction);
+                case 'add':
+                    return this.handleAddKeywords(interaction);
+                case 'remove':
+                    return this.handleRemoveKeywords(interaction);
+                case 'clear':
+                    return this.handleClearKeywords(interaction);
+            }
+        }
+
+        // Handle main subcommands
         switch (subcommand) {
             case 'list':
                 return this.handleListRules(interaction);
@@ -346,13 +461,35 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
 
         const preset = interaction.options.getString('preset', true);
         const logChannel = interaction.options.getChannel('log_channel');
+        const guildId = interaction.guildId!;
         
         try {
+            // First, fetch existing rules to check what we can add
+            const existingRules = await interaction.guild!.autoModerationRules.fetch();
+            const existingTriggerTypes = new Map<number, boolean>();
+            
+            // Track which trigger types are already used
+            existingRules.forEach(rule => {
+                existingTriggerTypes.set(rule.triggerType, true);
+            });
+            
             const createdRules = [];
-            const presetRules = this.getPresetRules(preset);
+            const failedRules = [];
+            // Pass guildId to get both default and custom keywords
+            const presetRules = await this.getPresetRules(preset, guildId);
             
             // Create each rule in the preset
             for (const ruleConfig of presetRules) {
+                // Skip if we already have a rule of this type and it's a limited type
+                if (this.isLimitedTriggerType(ruleConfig.triggerType) && 
+                    existingTriggerTypes.has(ruleConfig.triggerType)) {
+                    failedRules.push({
+                        name: ruleConfig.name, 
+                        reason: `Server already has a rule of type ${this.getTriggerTypeName(ruleConfig.triggerType)} (limited to 1 per server)`
+                    });
+                    continue;
+                }
+
                 // Set up actions
                 const actions: any[] = [];
                 
@@ -378,28 +515,51 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
                     });
                 }
 
-                // Create the rule
-                const rule = await interaction.guild!.autoModerationRules.create({
-                    name: ruleConfig.name,
-                    eventType: AutoModerationRuleEventType.MessageSend,
-                    triggerType: ruleConfig.triggerType,
-                    triggerMetadata: ruleConfig.triggerMetadata,
-                    actions,
-                    enabled: true,
-                    reason: `Created by ${interaction.user.tag} via bot command (preset: ${preset})`
-                });
-                
-                createdRules.push(rule);
+                try {
+                    // Create the rule
+                    const rule = await interaction.guild!.autoModerationRules.create({
+                        name: ruleConfig.name,
+                        eventType: AutoModerationRuleEventType.MessageSend,
+                        triggerType: ruleConfig.triggerType,
+                        triggerMetadata: ruleConfig.triggerMetadata,
+                        actions,
+                        enabled: true,
+                        reason: `Created by ${interaction.user.tag} via bot command (preset: ${preset})`
+                    });
+                    
+                    createdRules.push(rule);
+                    existingTriggerTypes.set(ruleConfig.triggerType, true);
+                } catch (error) {
+                    console.error(`Failed to create rule ${ruleConfig.name}:`, error);
+                    failedRules.push({
+                        name: ruleConfig.name, 
+                        reason: 'API Error'
+                    });
+                }
             }
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.success as ColorResolvable)
-                .setTitle('✅ AutoMod Preset Installed')
-                .setDescription(`Successfully installed the **${this.getPresetName(preset)}** preset with ${createdRules.length} rules.`)
-                .addFields(
-                    { name: 'Rules Created', value: createdRules.map(rule => `• ${rule.name}`).join('\n'), inline: false }
-                )
-                .setFooter({ text: `Created by ${interaction.user.tag}` })
+                .setTitle('✅ AutoMod Preset Installation')
+                .setDescription(`Installed the **${this.getPresetName(preset)}** preset with ${createdRules.length} rules.`);
+            
+            if (createdRules.length > 0) {
+                embed.addFields({
+                    name: 'Rules Created', 
+                    value: createdRules.map(rule => `• ${rule.name}`).join('\n'), 
+                    inline: false
+                });
+            }
+                
+            if (failedRules.length > 0) {
+                embed.addFields({
+                    name: '❌ Failed Rules', 
+                    value: failedRules.map(rule => `• ${rule.name}: ${rule.reason}`).join('\n'), 
+                    inline: false
+                });
+            }
+                
+            embed.setFooter({ text: `Created by ${interaction.user.tag}` })
                 .setTimestamp();
 
             return interaction.editReply({ embeds: [embed] });
@@ -424,13 +584,14 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
         }
     }
 
-    private getPresetRules(preset: string): Array<{
+    // Fix this method to use the imported utility functions
+    private async getPresetRules(preset: string, guildId: string): Promise<Array<{
         name: string;
         triggerType: AutoModerationRuleTriggerType;
         triggerMetadata: any;
         timeout: boolean;
         timeoutDuration?: number;
-    }> {
+    }>> {
         const rules = [];
 
         // Common rules for all presets
@@ -441,68 +602,128 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
             timeout: preset !== 'low'
         });
 
-        // Add preset-specific rules
-        switch (preset) {
-            case 'low':
-                // Basic protection
-                rules.push({
-                    name: 'Mention Spam Protection',
-                    triggerType: AutoModerationRuleTriggerType.MentionSpam,
-                    triggerMetadata: { mentionTotalLimit: 10 },
-                    timeout: false
-                });
-                break;
+        try {
+            // Load keyword filters
+            const profanityKeywords = await getKeywordsForGuild(guildId, 'profanity', preset);
+            const scamKeywords = await getKeywordsForGuild(guildId, 'scams', preset);
+            const phishingKeywords = await getKeywordsForGuild(guildId, 'phishing', preset);
+            const customKeywords = await getKeywordsForGuild(guildId, 'custom', preset);
 
-            case 'medium':
-                // Standard protection
-                rules.push({
-                    name: 'Mention Spam Protection',
-                    triggerType: AutoModerationRuleTriggerType.MentionSpam,
-                    triggerMetadata: { mentionTotalLimit: 6 },
-                    timeout: true,
-                    timeoutDuration: 600 // 10 minutes
-                });
-                
-                rules.push({
-                    name: 'Common Profanity Filter',
-                    triggerType: AutoModerationRuleTriggerType.Keyword,
-                    triggerMetadata: { 
-                        keywordFilter: ['fuck', 'shit', 'bitch', 'dick', 'asshole', 'cunt'] 
-                    },
-                    timeout: false
-                });
-                break;
+            // Add preset-specific rules
+            switch (preset) {
+                case 'low':
+                    // Basic protection
+                    rules.push({
+                        name: 'Mention Spam Protection',
+                        triggerType: AutoModerationRuleTriggerType.MentionSpam,
+                        triggerMetadata: { mentionTotalLimit: 10 },
+                        timeout: false
+                    });
+                    
+                    // Add profanity filter if there are keywords
+                    if (profanityKeywords.length > 0) {
+                        rules.push({
+                            name: 'Basic Profanity Filter',
+                            triggerType: AutoModerationRuleTriggerType.Keyword,
+                            triggerMetadata: { keywordFilter: profanityKeywords },
+                            timeout: false
+                        });
+                    }
+                    break;
 
-            case 'high':
-                // Strict protection
+                case 'medium':
+                    // Standard protection
+                    rules.push({
+                        name: 'Mention Spam Protection',
+                        triggerType: AutoModerationRuleTriggerType.MentionSpam,
+                        triggerMetadata: { mentionTotalLimit: 6 },
+                        timeout: true,
+                        timeoutDuration: 600 // 10 minutes
+                    });
+                    
+                    // Add profanity filter if there are keywords
+                    if (profanityKeywords.length > 0) {
+                        rules.push({
+                            name: 'Profanity Filter',
+                            triggerType: AutoModerationRuleTriggerType.Keyword,
+                            triggerMetadata: { keywordFilter: profanityKeywords },
+                            timeout: false
+                        });
+                    }
+                    
+                    // Add scam filter if there are keywords
+                    if (scamKeywords.length > 0) {
+                        rules.push({
+                            name: 'Scam Filter',
+                            triggerType: AutoModerationRuleTriggerType.Keyword,
+                            triggerMetadata: { keywordFilter: scamKeywords },
+                            timeout: true,
+                            timeoutDuration: 1800 // 30 minutes
+                        });
+                    }
+                    break;
+
+                case 'high':
+                    // Strict protection
+                    rules.push({
+                        name: 'Strict Mention Spam Protection',
+                        triggerType: AutoModerationRuleTriggerType.MentionSpam,
+                        triggerMetadata: { mentionTotalLimit: 4 },
+                        timeout: true,
+                        timeoutDuration: 1800 // 30 minutes
+                    });
+                    
+                    // Add profanity filter if there are keywords
+                    if (profanityKeywords.length > 0) {
+                        rules.push({
+                            name: 'Strict Profanity Filter',
+                            triggerType: AutoModerationRuleTriggerType.Keyword,
+                            triggerMetadata: { keywordFilter: profanityKeywords },
+                            timeout: true,
+                            timeoutDuration: 600 // 10 minutes
+                        });
+                    }
+                    
+                    // Add scam filter if there are keywords
+                    if (scamKeywords.length > 0) {
+                        rules.push({
+                            name: 'Strict Scam Filter',
+                            triggerType: AutoModerationRuleTriggerType.Keyword,
+                            triggerMetadata: { keywordFilter: scamKeywords },
+                            timeout: true,
+                            timeoutDuration: 3600 // 1 hour
+                        });
+                    }
+                    
+                    // Add phishing filter if there are keywords
+                    if (phishingKeywords.length > 0) {
+                        rules.push({
+                            name: 'Phishing Link Filter',
+                            triggerType: AutoModerationRuleTriggerType.Keyword,
+                            triggerMetadata: { keywordFilter: phishingKeywords },
+                            timeout: true,
+                            timeoutDuration: 3600 // 1 hour
+                        });
+                    }
+                    break;
+            }
+
+            // Add custom keywords filter for all presets if available
+            if (customKeywords.length > 0) {
                 rules.push({
-                    name: 'Strict Mention Spam Protection',
-                    triggerType: AutoModerationRuleTriggerType.MentionSpam,
-                    triggerMetadata: { mentionTotalLimit: 4 },
-                    timeout: true,
-                    timeoutDuration: 1800 // 30 minutes
-                });
-                
-                rules.push({
-                    name: 'Profanity Filter',
+                    name: 'Custom Keyword Filter',
                     triggerType: AutoModerationRuleTriggerType.Keyword,
-                    triggerMetadata: { 
-                        keywordFilter: ['fuck', 'shit', 'bitch', 'dick', 'asshole', 'cunt', 'whore', 'slut', 'bastard', 'damn'] 
-                    },
-                    timeout: true,
-                    timeoutDuration: 600 // 10 minutes
+                    triggerMetadata: { keywordFilter: customKeywords },
+                    timeout: preset === 'high', // Only timeout for high preset
+                    timeoutDuration: preset === 'high' ? 600 : undefined // 10 minutes for high preset
                 });
-                
-                rules.push({
-                    name: 'Link Filter',
-                    triggerType: AutoModerationRuleTriggerType.Keyword,
-                    triggerMetadata: { keywordFilter: ['http://', 'https://'] },
-                    timeout: false
-                });
-                break;
+            }
+
+            return rules;
+        } catch (error) {
+            console.error('Error loading keyword filters:', error);
+            return rules;
         }
-
-        return rules;
     }
 
     // Helper method to get human-readable trigger type name
@@ -537,5 +758,192 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
                 return interaction.respond([]);
             }
         }
+    }
+
+    // Helper method to check if a trigger type is limited to one per guild
+    private isLimitedTriggerType(triggerType: AutoModerationRuleTriggerType): boolean {
+        // Both SPAM and MENTION_SPAM are limited to 1 per guild
+        return (
+            triggerType === AutoModerationRuleTriggerType.Spam || 
+            triggerType === AutoModerationRuleTriggerType.MentionSpam
+        );
+    }
+
+    private async handleListKeywords(interaction: Command.ChatInputCommandInteraction) {
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        
+        const category = interaction.options.getString('category', true);
+        const guildId = interaction.guildId!;
+        
+        try {
+            // Load default keywords from config file
+            const automodFilters = await loadAutomodFilters();
+            const defaultKeywords = Object.entries(automodFilters.presets).map(([presetName, presetData]) => ({
+                preset: presetName,
+                keywords: presetData[category] || []
+            }));
+            
+            // Get guild-specific custom keywords
+            const guildData = await Guild.findOne({ guildId });
+            const customKeywords = guildData?.automodKeywords?.[category as keyof typeof guildData.automodKeywords] || [];
+            
+            const embed = new EmbedBuilder()
+                .setColor(config.bot.embedColor.default as ColorResolvable)
+                .setTitle(`🔍 AutoMod Keywords: ${this.capitalizeFirstLetter(category)}`)
+                .setDescription(`Keywords configured for the ${category} filter`)
+                .setFooter({ text: `Requested by ${interaction.user.tag}` })
+                .setTimestamp();
+            
+            // Add custom keywords field if any exist
+            if (customKeywords.length > 0) {
+                embed.addFields({
+                    name: '📝 Custom Keywords',
+                    value: customKeywords.join(', ') || 'None',
+                    inline: false
+                });
+            } else {
+                embed.addFields({
+                    name: '📝 Custom Keywords',
+                    value: 'No custom keywords configured',
+                    inline: false
+                });
+            }
+            
+            // Add default keywords by preset
+            defaultKeywords.forEach(({ preset, keywords }) => {
+                if (keywords.length > 0) {
+                    embed.addFields({
+                        name: `🔧 Default ${this.capitalizeFirstLetter(preset)} Preset`,
+                        value: keywords.join(', '),
+                        inline: false
+                    });
+                }
+            });
+            
+            return interaction.editReply({ embeds: [embed] });
+        } catch (error) {
+            console.error('Error listing keywords:', error);
+            return interaction.editReply({
+                content: 'An error occurred while retrieving keywords.'
+            });
+        }
+    }
+
+    private async handleAddKeywords(interaction: Command.ChatInputCommandInteraction) {
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        
+        const category = interaction.options.getString('category', true);
+        const keywordsInput = interaction.options.getString('keywords', true);
+        const guildId = interaction.guildId!;
+        
+        try {
+            // Parse keywords from comma-separated input
+            const keywords = keywordsInput
+                .split(',')
+                .map(kw => kw.trim())
+                .filter(kw => kw); // Remove empty strings
+            
+            if (keywords.length === 0) {
+                return interaction.editReply({
+                    content: 'No valid keywords provided.'
+                });
+            }
+            
+            // Add the keywords
+            const success = await addCustomKeywords(guildId, category, keywords);
+            
+            if (success) {
+                return interaction.editReply({
+                    content: `✅ Successfully added ${keywords.length} keywords to the ${category} filter.`
+                });
+            } else {
+                return interaction.editReply({
+                    content: '❌ Failed to add keywords. Please try again later.'
+                });
+            }
+        } catch (error) {
+            console.error('Error adding keywords:', error);
+            return interaction.editReply({
+                content: 'An error occurred while adding keywords.'
+            });
+        }
+    }
+
+    private async handleRemoveKeywords(interaction: Command.ChatInputCommandInteraction) {
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        
+        const category = interaction.options.getString('category', true);
+        const keywordsInput = interaction.options.getString('keywords', true);
+        const guildId = interaction.guildId!;
+        
+        try {
+            // Parse keywords from comma-separated input
+            const keywords = keywordsInput
+                .split(',')
+                .map(kw => kw.trim())
+                .filter(kw => kw); // Remove empty strings
+            
+            if (keywords.length === 0) {
+                return interaction.editReply({
+                    content: 'No valid keywords provided.'
+                });
+            }
+            
+            // Remove the keywords
+            const success = await removeCustomKeywords(guildId, category, keywords);
+            
+            if (success) {
+                return interaction.editReply({
+                    content: `✅ Successfully removed ${keywords.length} keywords from the ${category} filter.`
+                });
+            } else {
+                return interaction.editReply({
+                    content: '❌ Failed to remove keywords. Please try again later.'
+                });
+            }
+        } catch (error) {
+            console.error('Error removing keywords:', error);
+            return interaction.editReply({
+                content: 'An error occurred while removing keywords.'
+            });
+        }
+    }
+
+    private async handleClearKeywords(interaction: Command.ChatInputCommandInteraction) {
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        
+        const category = interaction.options.getString('category', true);
+        const confirmed = interaction.options.getBoolean('confirm', true);
+        const guildId = interaction.guildId!;
+        
+        if (!confirmed) {
+            return interaction.editReply({
+                content: 'Operation cancelled. Set confirm to true if you want to clear all keywords.'
+            });
+        }
+        
+        try {
+            // Clear the keywords
+            const success = await clearCustomKeywords(guildId, category);
+            
+            if (success) {
+                return interaction.editReply({
+                    content: `✅ Successfully cleared all custom keywords from the ${category} filter.`
+                });
+            } else {
+                return interaction.editReply({
+                    content: '❌ Failed to clear keywords. Please try again later.'
+                });
+            }
+        } catch (error) {
+            console.error('Error clearing keywords:', error);
+            return interaction.editReply({
+                content: 'An error occurred while clearing keywords.'
+            });
+        }
+    }
+
+    private capitalizeFirstLetter(string: string): string {
+        return string.charAt(0).toUpperCase() + string.slice(1);
     }
 }

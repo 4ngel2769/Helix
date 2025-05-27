@@ -1,0 +1,19 @@
+{
+  "presets": {
+    "low": {
+      "profanity": ["fuck", "shit", "bitch", "dick", "asshole", "cunt"],
+      "scams": ["free nitro", "free discord nitro", "steam gift", "free robux"],
+      "phishing": ["discord-gift", "discoril", "discordnltro", "dlscordapp"]
+    },
+    "medium": {
+      "profanity": ["fuck", "shit", "bitch", "dick", "asshole", "cunt", "whore", "slut", "bastard", "damn"],
+      "scams": ["free nitro", "free discord nitro", "steam gift", "free robux", "nitro giveaway", "airdrop", "free crypto"],
+      "phishing": ["discord-gift", "discoril", "discordnltro", "dlscordapp", "discorde", "discorcl", "steamcomminuty"]
+    },
+    "high": {
+      "profanity": ["fuck", "shit", "bitch", "dick", "asshole", "cunt", "whore", "slut", "bastard", "damn", "hell", "ass", "piss", "cock", "pussy"],
+      "scams": ["free nitro", "free discord nitro", "steam gift", "free robux", "nitro giveaway", "airdrop", "free crypto", "giveaway", "drop your wallet", "claim your"],
+      "phishing": ["discord-gift", "discoril", "discordnltro", "dlscordapp", "discorde", "discorcl", "steamcomminuty", "steamcommünity", "dlscordnitro", "stėamcommunity"]
+    }
+  }
+}

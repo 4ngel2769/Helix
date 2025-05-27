@@ -40,6 +40,14 @@ interface LockedChannel {
   };
 }
 
+// AutoMod keywords interface
+interface AutoModKeywords {
+  profanity: string[];
+  scams: string[];
+  phishing: string[];
+  custom: string[];
+}
+
 // Module settings interface
 interface ModuleSettings {
   [key: string]: boolean;
@@ -61,6 +69,7 @@ export interface IGuild extends Document, LegacyModuleFlags, VerificationSetting
   modRoleId?: string;
   lockedChannels?: LockedChannel[];
   modules: ModuleSettings;
+  automodKeywords?: AutoModKeywords;
 }
 
 const guildSchema = new Schema<IGuild>({
@@ -126,6 +135,14 @@ const guildSchema = new Schema<IGuild>({
       });
       return defaults;
     }
+  },
+  
+  // AutoMod keywords
+  automodKeywords: {
+    profanity: { type: [String], default: [] },
+    scams: { type: [String], default: [] },
+    phishing: { type: [String], default: [] },
+    custom: { type: [String], default: [] }
   }
 });
 
