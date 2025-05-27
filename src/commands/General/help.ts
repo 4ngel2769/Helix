@@ -94,12 +94,14 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
             builder
                 .setName('help')
                 .setDescription('Shows all available commands')
+                .setContexts(0, 1, 2)  // All contexts (0=GUILD, 1=BOT_DM, 2=PRIVATE_CHANNEL)
+                .setIntegrationTypes(0, 1)  // Both integration types (0=GUILD_INSTALL, 1=USER_INSTALL)
                 .addStringOption((option) => {
                     option
                         .setName('module')
                         .setDescription('Specific module to show commands for')
                         .setRequired(false);
-                    
+
                     // Add choices for each module category
                     Array.from(categories).forEach(category => {
                         option.addChoices({ name: category, value: category.toLowerCase() });
@@ -151,8 +153,18 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
 
     // Add a new method to show commands for a specific module
     private async showModuleCommands(interaction: Command.ChatInputCommandInteraction, moduleName: string) {
-        const guildId = interaction.guildId!;
+        const guildId = interaction.guildId;
         const member = interaction.member;
+        
+        // Handle DM case
+        if (!guildId) {
+            return interaction.editReply({
+                embeds: [new EmbedBuilder()
+                    .setColor('Blurple')
+                    .setTitle(`${moduleName.charAt(0).toUpperCase() + moduleName.slice(1)} Commands`)
+                    .setDescription('Module-specific command lists are not available in Direct Messages.')]
+            });
+        }
         
         // Get guild settings
         let guildData;
@@ -266,8 +278,13 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
 
     private async handleHelp(interaction: Command.ChatInputCommandInteraction | Message) {
         const isSlash = 'options' in interaction;
-        const guildId = isSlash ? interaction.guildId! : interaction.guild!.id;
+        const guildId = isSlash ? interaction.guildId : interaction.guild?.id;
         const member = isSlash ? interaction.member : (interaction as Message).member;
+        
+        // Handle DM case - create simpler embed with available commands
+        if (!guildId) {
+            return this.handleDMHelp(interaction);
+        }
         
         // Get guild settings with improved error handling
         let guildData;
@@ -393,11 +410,138 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
             }
         });
 
+        // Update the handleHelp method's collector.on('end') event
         collector.on('end', () => {
             if (response instanceof Message) {
+                // Remove all components completely
                 response.edit({ components: [] }).catch(() => null);
+            } else if (isSlash) {
+                // For slash command responses
+                (interaction as Command.ChatInputCommandInteraction)
+                    .editReply({ components: [] })
+                    .catch(() => null);
             }
         });
+    }
+
+    // Add this new method to handle DM help requests
+    private async handleDMHelp(interaction: Command.ChatInputCommandInteraction | Message) {
+        const isSlash = 'options' in interaction;
+        const userId = isSlash ? interaction.user.id : (interaction as Message).author.id;
+        
+        // Get all commands that can be used in DMs
+        const commands = Array.from(container.stores.get('commands').values() as IterableIterator<ExtendedCommand>)
+            .filter(cmd => !cmd.options?.preconditions?.includes('GuildOnly'));
+        
+        // Use pagination if we have more than 7 commands
+        const COMMANDS_PER_DM_PAGE = 7;
+        const needsPagination = commands.length > COMMANDS_PER_DM_PAGE;
+        
+        // Generate command pages
+        const pages: ExtendedCommand[][] = [];
+        for (let i = 0; i < commands.length; i += COMMANDS_PER_DM_PAGE) {
+            pages.push(commands.slice(i, i + COMMANDS_PER_DM_PAGE));
+        }
+        
+        // Create the initial embed with first page
+        const generateEmbed = (pageIndex: number) => {
+            const pageCommands = pages[pageIndex];
+            return new EmbedBuilder()
+                .setColor('Blurple')
+                .setTitle('Available Commands')
+                .setDescription(
+                    'Here are the commands you can use in Direct Messages:\n\n' +
+                    pageCommands.map(cmd => {
+                        const commandId = this.container.client.application?.commands.cache
+                            .find(c => c.name === cmd.name)?.id;
+                        
+                        const commandMention = commandId 
+                            ? `</${cmd.name}:${commandId}>`
+                            : `\`/${cmd.name}\``;
+                        
+                        return `${commandMention}\n↳ ${cmd.description || 'No description available'}\n`;
+                    }).join('\n')
+                )
+                .setFooter({ 
+                    text: needsPagination ? `Page ${pageIndex + 1}/${pages.length}` : 'Help Menu' 
+                });
+        };
+        
+        // Create initial embed and buttons (if needed)
+        const embed = generateEmbed(0);
+        
+        // Create pagination buttons if needed
+        const components = needsPagination 
+            ? [new ActionRowBuilder<ButtonBuilder>().addComponents(
+                ...this.createPaginationButtons(0, pages.length)
+            )] 
+            : [];
+        
+        // Send the response
+        const response = await (isSlash ? 
+            (interaction as Command.ChatInputCommandInteraction).editReply({ 
+                embeds: [embed], 
+                components 
+            }) :
+            (interaction.channel as any).send({ 
+                embeds: [embed], 
+                components 
+            }));
+        
+        // If we don't need pagination, just return
+        if (!needsPagination) return response;
+        
+        // Set up collector for pagination
+        interface DMHelpCollectorFilter {
+            (i: ButtonInteraction): boolean;
+        }
+
+        interface DMHelpCollectorOptions {
+            filter: DMHelpCollectorFilter;
+            time: number;
+        }
+
+        const collector = response.createMessageComponentCollector({
+            filter: (i: ButtonInteraction) => i.user.id === userId,
+            time: 300000 // 5 minutes
+        } as DMHelpCollectorOptions);
+        
+        collector.on('collect', async (i: ButtonInteraction) => {
+            // Get current page from footer
+            const [currentPage] = i.message.embeds[0].footer!.text
+                .match(/Page (\d+)\/(\d+)/)!
+                .slice(1)
+                .map(Number);
+            
+            let newPage = currentPage - 1; // Convert to 0-based index
+            if (i.customId === 'previous') newPage--;
+            if (i.customId === 'next') newPage++;
+            
+            // Update embed with new page
+            const newEmbed = generateEmbed(newPage);
+            const newButtons = this.createPaginationButtons(newPage, pages.length);
+            
+            // Update the message
+            await i.update({ 
+                embeds: [newEmbed], 
+                components: [new ActionRowBuilder<ButtonBuilder>().addComponents(...newButtons)] 
+            });
+        });
+        
+        // Update the handleDMHelp method's collector.on('end') event
+        collector.on('end', () => {
+            if (response instanceof Message) {
+                // Remove all components completely
+                response.edit({ components: [] }).catch(() => null);
+            } else if (isSlash) {
+                // For slash command responses
+                (interaction as Command.ChatInputCommandInteraction)
+                    .editReply({ components: [] })
+                    .catch(() => null);
+            }
+        });
+        
+        return response;
     }
 
     private async handleModuleSelect(interaction: StringSelectMenuInteraction) {
@@ -413,70 +557,49 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
                     const requiredPerms = cmd.options?.requiredUserPermissions;
                     if (requiredPerms) {
                         return interaction.member?.permissions instanceof PermissionsBitField;
-                        // && 
-                        // interaction.member.permissions.has(requiredPerms);
                     }
 
                     return true;
                 });
 
             if (!commands.length) {
+                // Get all categories (modules)
+                const categories = new Set<string>();
+                for (const command of container.stores.get('commands').values()) {
+                    if (command.category) categories.add(command.category);
+                }
+                
+                // Recreate the module select dropdown
+                const moduleSelect = this.createModuleSelect(Array.from(categories));
+                
+                const row = new ActionRowBuilder<StringSelectMenuBuilder>()
+                    .addComponents(moduleSelect);
+                    
                 await interaction.update({
                     embeds: [new EmbedBuilder()
                         .setColor(config.bot.embedColor.default as ColorResolvable)
                         .setTitle(`${selectedModule.charAt(0).toUpperCase() + selectedModule.slice(1)} Commands`)
                         .setDescription('No commands available in this module.')],
-                    components: [new ActionRowBuilder<ButtonBuilder>()
-                        .addComponents(new ButtonBuilder()
-                            .setCustomId('back-to-main')
-                            .setLabel('Back to Modules')
-                            .setStyle(ButtonStyle.Secondary))]
+                    components: [row]
                 });
                 return;
             }
 
-            const pages = this.generateCommandPages(commands);
-            const embed = this.generateCommandEmbed(pages[0], selectedModule, 1, pages.length);
-
-            const buttons = this.createPaginationButtons(0, pages.length);
-            const backButton = new ButtonBuilder()
-                .setCustomId('back-to-main')
-                .setLabel('Back to Modules')
-                .setStyle(ButtonStyle.Secondary);
-
-            const components = [
-                new ActionRowBuilder<ButtonBuilder>().addComponents(...buttons),
-                new ActionRowBuilder<ButtonBuilder>().addComponents(backButton)
-            ];
-
-            await interaction.update({ embeds: [embed], components });
-        } catch (error) {
-            console.error('Error in handleModuleSelect:', error);
-            await interaction.update({
-                content: 'An error occurred while fetching commands.',
-                components: []
-            }).catch(() => null);
-        }
-    }
-
-    private async handlePaginationButton(interaction: ButtonInteraction) {
-        if (interaction.customId === 'back-to-main') {
-            // Get guild settings
+            // Get all enabled modules to recreate dropdown
             const guildId = interaction.guildId!;
             const guildData = await GuildModel.findOne({ guildId });
-            if (!guildData) return;
-
-            // Get all categories (modules)
+            
+            // Get all categories (modules) for the dropdown
             const categories = new Set<string>();
             for (const command of container.stores.get('commands').values()) {
                 if (command.category) categories.add(command.category);
             }
 
-            // Filter modules based on user permissions and enabled status - same as in handleHelp
+            // Filter modules based on user permissions and enabled status
             const enabledModules = await Promise.all(
                 Array.from(categories).map(async (category: string) => {
                     // Check if module is enabled in guild
-                    const moduleStatus = guildData[`is${category}Module` as keyof typeof guildData];
+                    const moduleStatus = guildData?.[`is${category}Module` as keyof typeof guildData];
                     if (moduleStatus === false) return null;
 
                     // Check module's IsEnabled status
@@ -485,6 +608,18 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
                     
                     if (module && typeof module.IsEnabled === 'function') {
                         const moduleCommand = module.container.stores.get('commands').get(module.name);
+                        
+                        // Check for required module permissions
+                        if (module.requiredPermissions) {
+                            const hasPermission = module.requiredPermissions.some(perm => {
+                                if (!interaction.member?.permissions) return false;
+                                return typeof interaction.member.permissions === 'bigint'
+                                    ? (interaction.member.permissions & perm) === perm
+                                    : (interaction.member.permissions as Readonly<PermissionsBitField>).has(perm);
+                            });
+                            if (!hasPermission) return null;
+                        }
+
                         const isEnabled = await module.IsEnabled({
                             guild: interaction.guild! as DiscordGuild,
                             interaction: interaction as any,
@@ -513,24 +648,38 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
             const filteredModules = enabledModules.filter((module): module is string => module !== null);
 
             const moduleSelect = this.createModuleSelect(filteredModules);
+            
+            const pages = this.generateCommandPages(commands);
+            const embed = this.generateCommandEmbed(pages[0], selectedModule, 1, pages.length);
 
-            const mainEmbed = new EmbedBuilder()
-                .setColor(config.bot.embedColor.default as ColorResolvable)
-                .setTitle('Help Menu')
-                .setDescription(
-                    'Select a module from the dropdown menu below to view its commands.\n\n' +
-                    '**Available Modules:**\n' +
-                    filteredModules.map(module => `↳ • \`${module}\``).join('\n')
-                );
+            // Create navigation buttons for pagination
+            const buttons = this.createPaginationButtons(0, pages.length);
 
-            const row = new ActionRowBuilder<StringSelectMenuBuilder>()
-                .addComponents(moduleSelect);
+            // Set up components with dropdown always in first row
+            const components: (ActionRowBuilder<StringSelectMenuBuilder> | ActionRowBuilder<ButtonBuilder>)[] = [
+                new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(moduleSelect)
+            ];
+            
+            // Only add pagination buttons if needed
+            if (pages.length > 1) {
+                components.push(new ActionRowBuilder<ButtonBuilder>().addComponents(...buttons));
+            }
 
-            await interaction.update({ embeds: [mainEmbed], components: [row] });
-            return;
+            await interaction.update({ embeds: [embed], components });
+        } catch (error) {
+            console.error('Error in handleModuleSelect:', error);
+            await interaction.update({
+                content: 'An error occurred while fetching commands.',
+                components: []
+            }).catch(() => null);
         }
+    }
 
-        const [currentPage] = interaction.message.embeds[0].footer!.text
+    private async handlePaginationButton(interaction: ButtonInteraction) {
+        // Remove the back-to-main handler since we're keeping the dropdown menu
+    
+        // Get current page and total pages from footer text
+        const [currentPage, totalPages] = interaction.message.embeds[0].footer!.text
             .match(/Page (\d+)\/(\d+)/)!
             .slice(1)
             .map(Number);
@@ -538,23 +687,30 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
         let newPage = currentPage;
         if (interaction.customId === 'previous') newPage--;
         if (interaction.customId === 'next') newPage++;
+        
+        // Get module name from title
         const selectedModule = interaction.message.embeds[0].title!.split(' ')[0].toLowerCase();
+        
+        // Get commands for this module
         const commandStore = container.stores.get('commands');
         const commands = Array.from(commandStore.values())
             .filter(cmd => cmd.category?.toLowerCase() === selectedModule) as unknown as ExtendedCommand[];
 
+        // Generate new embed with updated page
         const pages = this.generateCommandPages(commands);
-        const embed = this.generateCommandEmbed(pages[newPage - 1], selectedModule, newPage, pages.length);
-        const buttons = this.createPaginationButtons(newPage - 1, pages.length);
+        const embed = this.generateCommandEmbed(pages[newPage - 1], selectedModule, newPage, totalPages);
+        
+        // Create pagination buttons with proper disabled states
+        const buttons = this.createPaginationButtons(newPage - 1, totalPages);
 
-        const backButton = new ButtonBuilder()
-            .setCustomId('back-to-main')
-            .setLabel('Back to Modules')
-            .setStyle(ButtonStyle.Secondary);
-
+        // Preserve the existing dropdown menu from the first component row
+        // This ensures the dropdown stays the same
+        
+        // Set up components with dropdown always in first row
         const components = [
-            new ActionRowBuilder<ButtonBuilder>().addComponents(...buttons),
-            new ActionRowBuilder<ButtonBuilder>().addComponents(backButton)
+            // Cast as ActionRowBuilder with correct generic type
+            interaction.message.components[0] as unknown as ActionRowBuilder<StringSelectMenuBuilder>,
+            new ActionRowBuilder<ButtonBuilder>().addComponents(...buttons)
         ];
 
         await interaction.update({ embeds: [embed], components });

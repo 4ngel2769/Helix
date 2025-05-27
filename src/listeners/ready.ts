@@ -12,7 +12,7 @@ const dev = process.env.NODE_ENV !== 'production';
 export class UserEvent extends Listener {
 	private readonly style = dev ? yellow : blue;
 
-	public override run() {
+	public override async run() {
 		// this.botStartup();
 
 		this.printBanner();
@@ -20,7 +20,10 @@ export class UserEvent extends Listener {
 		this.checkDatabaseStatus();
 		this.syncGuildDatabase();
 		this.botStartupFinish();
+		
+		// Initialize TPS Monitor
 		TPSMonitor.getInstance();
+		this.container.logger.info('TPS Monitor initialized');
 	}
 
 	// Experimental

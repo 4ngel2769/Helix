@@ -4,6 +4,7 @@ export class TPSMonitor {
     private tpsHistory: number[];
     private readonly targetTPS: number = 20;
     private readonly historyLength: number = 60; // Keep 1 minute of history
+    private intervalId: NodeJS.Timeout | null = null;
 
     private constructor() {
         this.lastTick = Date.now();
@@ -19,7 +20,10 @@ export class TPSMonitor {
     }
 
     private startTicking(): void {
-        setInterval(() => {
+        // Clear any existing interval to prevent duplicates
+        if (this.intervalId) clearInterval(this.intervalId);
+        
+        this.intervalId = setInterval(() => {
             const now = Date.now();
             const diff = now - this.lastTick;
             const currentTPS = Math.min(1000 / diff * this.targetTPS, this.targetTPS);
@@ -34,6 +38,7 @@ export class TPSMonitor {
     }
 
     public getTPS(duration: number = 60): number {
+        if (this.tpsHistory.length === 0) return this.targetTPS; // Default when no history
         const relevantHistory = this.tpsHistory.slice(-Math.min(duration, this.historyLength));
         const average = relevantHistory.reduce((a, b) => a + b, 0) / relevantHistory.length;
         return Math.round(average * 100) / 100; // Round to 2 decimal places
@@ -43,5 +48,16 @@ export class TPSMonitor {
         if (tps >= 18) return '🟢';
         if (tps >= 15) return '🟡';
         return '🔴';
+    }
+
+    public getTPSHistory(): number[] {
+        return [...this.tpsHistory];
+    }
+    
+    public cleanup(): void {
+        if (this.intervalId) {
+            clearInterval(this.intervalId);
+            this.intervalId = null;
+        }
     }
 }
