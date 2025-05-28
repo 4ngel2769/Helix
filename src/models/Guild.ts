@@ -62,6 +62,26 @@ interface LegacyModuleFlags {
   isWelcomingModule?: boolean;
 }
 
+// Interface for reaction roles
+interface ReactionRole {
+  roleId: string;
+  label: string;
+  description?: string;
+  emoji?: string;
+}
+
+interface ReactionRolesMenu {
+  messageId: string;
+  channelId: string;
+  title: string;
+  description: string;
+  roles: ReactionRole[];
+  maxSelections: number; // 0 for unlimited
+  active: boolean;
+  createdBy: string;
+  createdAt: Date;
+}
+
 export interface IGuild extends Document, LegacyModuleFlags, VerificationSettings {
   guildId: string;
   prefix?: string;
@@ -70,6 +90,7 @@ export interface IGuild extends Document, LegacyModuleFlags, VerificationSetting
   lockedChannels?: LockedChannel[];
   modules: ModuleSettings;
   automodKeywords?: AutoModKeywords;
+  reactionRolesMenus?: ReactionRolesMenu[];
 }
 
 const guildSchema = new Schema<IGuild>({
@@ -143,7 +164,25 @@ const guildSchema = new Schema<IGuild>({
     scams: { type: [String], default: [] },
     phishing: { type: [String], default: [] },
     custom: { type: [String], default: [] }
-  }
+  },
+  
+  // Reaction roles menus
+  reactionRolesMenus: [{
+    messageId: { type: String, required: true },
+    channelId: { type: String, required: true },
+    title: { type: String, required: true },
+    description: { type: String, default: '' },
+    roles: [{
+      roleId: { type: String, required: true },
+      label: { type: String, required: true },
+      description: { type: String, default: null },
+      emoji: { type: String, default: null }
+    }],
+    maxSelections: { type: Number, default: 0 }, // 0 for unlimited
+    active: { type: Boolean, default: true },
+    createdBy: { type: String, default: null },
+    createdAt: { type: Date, default: Date.now }
+  }]
 });
 
 // Add a pre-save middleware to sync legacy module flags with new module system

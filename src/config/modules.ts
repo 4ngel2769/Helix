@@ -80,6 +80,12 @@ export const moduleConfigs = {
         description: 'Commands for bot developers',
         emoji: '753658623065850036', // Custom emoji ID for "developer" (replace with your own)
         defaultEnabled: true
+    },
+    reactionRoles: {
+        name: 'Reaction Roles',
+        description: 'Assign roles based on reactions',
+        emoji: '1362832272251814019', // Custom emoji ID for "reaction roles" (replace with your own)
+        defaultEnabled: true
     }
 } as const;
 
