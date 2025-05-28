@@ -1,0 +1,10 @@
+<svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="helix-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5865F2" />
+      <stop offset="100%" stop-color="#8A94F8" />
+    </linearGradient>
+  </defs>
+  <rect width="120" height="120" rx="20" fill="url(#helix-gradient)" />
+  <path d="M35 30L85 30M35 60L85 60M35 90L85 90M60 30L60 90" stroke="white" stroke-width="10" stroke-linecap="round" />
+</svg>

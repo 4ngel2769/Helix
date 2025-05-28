@@ -74,10 +74,11 @@
     "dev3": "run-s build && run-p watch start",
     "watch:start": "tsc-watch --onSuccess \"node ./dist/index.js\"",
     "format": "prettier --write \"src/**/*.ts\"",
-    "dev:dashboard": "cd src/dashboard && vue-cli-service serve",
+    "dev:dashboard": "cd helix-dashboard && npm run serve",
     "build:both": "npm run build:bot && npm run build:dashboard",
     "build:bot": "tsc",
-    "build:dashboard": "cd src/dashboard && vue-cli-service build"
+    "build:dashboard": "cd helix-dashboard && npm run build",
+    "start:dashboard": "node helix-dashboard/server/index.js"
   },
   "prettier": "@sapphire/prettier-config",
   "packageManager": "yarn@4.2.1"

@@ -22,6 +22,7 @@
 	],
 	"exclude": [
 		"node_modules",
-		"src/dashboard/**"
+		"src/dashboard/**",
+		"helix-dashboard/**"
 	]
 }

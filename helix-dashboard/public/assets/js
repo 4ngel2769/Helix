@@ -1,0 +1,7 @@
+/src
+  /dashboard
+    /public
+      /css
+      /js
+    /views
+    dashboard.ts
