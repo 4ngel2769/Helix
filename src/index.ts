@@ -3,11 +3,16 @@ import { SapphireClient } from '@sapphire/framework';
 import { GatewayIntentBits, OAuth2Scopes, Partials } from 'discord.js';
 import '@sapphire/plugin-api/register';
 import '@kbotdev/plugin-modules/register';
+import '@sapphire/plugin-hmr/register';
 import config from './config';
 import {
     // initializeDatabase,
     verifyDatabaseConnection
 } from './lib/utils/dbCheck';
+
+const hmrOptions = {
+    enabled: process.env.NODE_ENV !== 'production'
+};
 
 const client = new SapphireClient({
     intents: [
@@ -19,6 +24,7 @@ const client = new SapphireClient({
     modules: {
         enabled: true,
     },
+    hmr: hmrOptions,
     api: {
         auth: {
             id: config.dashboard.oauth.clientId,

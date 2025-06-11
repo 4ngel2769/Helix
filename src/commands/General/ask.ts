@@ -206,7 +206,7 @@ export class AskCommand extends ModuleCommand<GeneralModule> {
 			// Check for specific error types
 			if (axios.isAxiosError(error)) {
 				if (error.code === 'ECONNREFUSED') {
-					errorMessage = 'Could not connect to the AI service. Please check if Ollama is running.';
+					errorMessage = 'Could not connect to the AI service. Please check check with the bot administrator.';
 				} else if (error.response?.status === 404) {
 					errorMessage = `Model '${model}' not found. Please try a different model.`;
 				} else if (error.response) {
