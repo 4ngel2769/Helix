@@ -22,8 +22,11 @@ WORKDIR /app
 # Set production environment
 ENV NODE_ENV=production
 
+RUN npm i -g npm@latest
+RUN npm -v && node -v
+
 # Install specific yarn version globally
-RUN npm install -g yarn@latest
+RUN npm install -g yarn@berry
 
 # Copy package files first for better layer caching
 COPY package.json yarn.lock ./
