@@ -36,6 +36,10 @@ RUN npm -v && node -v
 # Copy package files first for better layer caching
 COPY package.json package-lock.json ./
 
+# Install global dependencies
+RUN npm install -g typescript ts-node
+RUN npm install -g @sapphire/cli
+
 # Install dependencies
 RUN npm install
 
