@@ -22,7 +22,7 @@ config.json
 *.log
 
 # Ignore npm lockfiles file
-# package-lock.json
+package-lock.json
 
 # Environment variables
 .env.local
