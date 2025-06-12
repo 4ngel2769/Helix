@@ -24,6 +24,7 @@ ENV NODE_ENV=production
 
 RUN npm i -g npm@latest
 RUN npm -v && node -v
+RUN yarn -v
 
 # Install specific yarn version globally
 RUN npm install -g yarn@berry
