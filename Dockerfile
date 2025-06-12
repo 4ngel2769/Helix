@@ -39,6 +39,9 @@ COPY package.json package-lock.json ./
 # Install dependencies
 RUN npm install
 
+# Set PATH to include local node_modules binaries
+ENV PATH="./node_modules/.bin:$PATH"
+
 # Copy application source
 COPY . .
 
