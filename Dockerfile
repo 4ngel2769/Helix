@@ -27,7 +27,7 @@ RUN npm -v && node -v
 RUN yarn -v
 
 # Remove any existing Yarn binary
-RUN rm -f /usr/local/bin/yarn
+RUN rm -f /usr/local/bin/yarn*
 
 # Install Yarn using npm (Berry version)
 RUN npm install -g yarn@berry
