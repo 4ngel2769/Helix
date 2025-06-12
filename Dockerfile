@@ -34,7 +34,7 @@ RUN npm -v && node -v
 # RUN yarn -v
 
 # Copy package files first for better layer caching
-COPY package.json package-lock.json ./
+COPY package.json ./
 
 # Install global dependencies
 RUN npm install -g typescript ts-node
