@@ -39,7 +39,7 @@ COPY package.json ./
 # Install global dependencies
 RUN npm install -g typescript ts-node
 RUN npm install -g @sapphire/cli
-RUN npm install -g @sapphire/ts-config
+RUN npm install -D @sapphire/ts-config
 
 # Install dependencies
 RUN npm install
