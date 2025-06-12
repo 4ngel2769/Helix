@@ -43,14 +43,15 @@ RUN npm install
 COPY . .
 
 # Build application
-RUN npm run build:both
+###RUN npm run build:both
 
 # Clean up unnecessary files (but keep any needed assets)
-RUN find src -type f -name "*.ts" -delete && \
-    rm -rf .gitignore .vscode tsconfig.json
+###RUN find src -type f -name "*.ts" -delete && \
+###    rm -rf .gitignore .vscode tsconfig.json
 
 # Expose the dashboard port
-EXPOSE 8080
+###EXPOSE 8080
 
 # Start the bot in production mode
-CMD ["npm", "run start"]
+###CMD ["npm", "run start"]
+CMD ["/bin/zsh"]
