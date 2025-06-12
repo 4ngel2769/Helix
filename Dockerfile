@@ -1,57 +1,26 @@
-# Use the specified Node.js version
 FROM node:22.15.0-bullseye
 
-# Install zsh and set as default shell
-RUN apt-get update && \
-    apt-get install -y \
-    zsh \
-    curl \
-    git \
-    && \
-    sh -c "$(curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh)" && \
+# Install dependencies and oh-my-zsh
+RUN apt-get update && apt-get install -y zsh curl git && \
+    sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" && \
     echo "export ZSH=/root/.oh-my-zsh" >> /etc/zsh/zshenv && \
     chsh -s /bin/zsh && \
     echo "export NODE_ENV=production" >> /etc/zsh/zshenv
 
-# Set default shell for container operations
 SHELL ["/bin/zsh", "-c"]
 
-# Set working directory
 WORKDIR /app
 
-# Set production environment
 ENV NODE_ENV=production
-
-RUN npm i -g npm@latest
-RUN npm -v && node -v
-# RUN yarn -v
-
-# Remove any existing Yarn binary
-# RUN rm -f /usr/local/bin/yarn*
-
-# Install Yarn using npm (Berry version)
-# RUN npm install -g yarn@berry
-# RUN yarn -v
-
-# Copy package files first for better layer caching
-COPY package.json ./
-
-# Install global dependencies
-RUN npm install -g typescript ts-node
-RUN npm install -g @sapphire/cli
-RUN npm install -D @sapphire/ts-config
-
-# Install dependencies
-RUN npm install
-
-# Set PATH to include local node_modules binaries
 ENV PATH="./node_modules/.bin:$PATH"
 
-# Copy application source
-COPY . .
+RUN npm i -g npm@latest typescript ts-node @sapphire/cli
 
-# Build application
-###RUN npm run build:both
+COPY package.json package-lock.json ./ 
+
+RUN npm install
+
+COPY . .
 
 # Clean up unnecessary files (but keep any needed assets)
 ###RUN find src -type f -name "*.ts" -delete && \
@@ -62,4 +31,6 @@ COPY . .
 
 # Start the bot in production mode
 ###CMD ["npm", "run start"]
+
+# Keep tail running to keep container alive by default
 CMD ["tail", "-f", "/dev/null"]
