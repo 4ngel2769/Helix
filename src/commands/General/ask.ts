@@ -55,6 +55,17 @@ export class AskCommand extends ModuleCommand<GeneralModule> {
 		const userPrompt = interaction.options.getString('prompt', true);
 		const model = interaction.options.getString('model') || this.defaultModel;
 
+		if (!this.availableModels.includes(model)) {
+			return interaction.editReply({
+				embeds: [
+					new EmbedBuilder()
+						.setColor(config.bot.embedColor.err as ColorResolvable)
+						.setTitle('Error')
+						.setDescription(`Model "${model}" is not available.`)
+				]
+			});
+		}
+
 		const embed = new EmbedBuilder()
 			.setColor(config.bot.embedColor.default as ColorResolvable)
 			.setAuthor({
@@ -72,8 +83,8 @@ export class AskCommand extends ModuleCommand<GeneralModule> {
 				this.ollamaUrl,
 				{
 					model,
+					prompt: userPrompt,
 					system: this.systemPrompt,
-					messages: [{ role: 'user', content: userPrompt }],
 					stream: true
 				},
 				{ responseType: 'stream' }
@@ -92,9 +103,13 @@ export class AskCommand extends ModuleCommand<GeneralModule> {
 
 					for (const line of lines) {
 						if (!line) continue;
+
+						// Parse the JSON response
 						const data = JSON.parse(line);
-						if (data.message?.content) {
-							fullResponse += data.message.content;
+
+						// Fixed: Look for response key instead of message.content
+						if (data.response) {
+							fullResponse += data.response;
 
 							const now = Date.now();
 							if (now - lastUpdate > UPDATE_INTERVAL) {
@@ -108,8 +123,8 @@ export class AskCommand extends ModuleCommand<GeneralModule> {
 										fullResponse.trim().length > 0
 											? fullResponse.length > 4000
 												? fullResponse.substring(0, 4000) + '... (response truncated)'
-												: fullResponse
-											: '*No response received.*'
+												: fullResponse + '▌' // Add cursor to show typing
+											: '*Still thinking...*'
 									)
 									.setFooter({ text: `Asked by ${interaction.user.username} • Model: ${model}` })
 									.setTimestamp();
