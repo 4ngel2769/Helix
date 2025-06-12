@@ -37,7 +37,7 @@ RUN yarn -v
 COPY package.json yarn.lock ./
 
 # Install dependencies
-RUN yarn install --frozen-lockfile
+RUN yarn install
 
 # Copy application source
 COPY . .
