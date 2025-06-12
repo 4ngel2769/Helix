@@ -83,7 +83,7 @@
     "watch:start": "tsc-watch --onSuccess \"node ./dist/index.js\"",
     "format": "prettier --write \"src/**/*.ts\"",
     "dev:dashboard": "cd src/dashboard && vue-cli-service serve",
-    "build:both": "tsc && yarn build:dashboard",
+    "build:both": "npm run build:bot && npm run build:dashboard",
     "build:bot": "tsc",
     "build:dashboard": "cd src/dashboard && vue-cli-service build"
   },
