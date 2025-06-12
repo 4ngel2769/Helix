@@ -37,13 +37,13 @@ RUN yarn -v
 COPY package.json yarn.lock ./
 
 # Install dependencies
-RUN yarn install
+RUN npm install
 
 # Copy application source
 COPY . .
 
 # Build application
-RUN yarn build:both
+RUN npm run build:both
 
 # Clean up unnecessary files (but keep any needed assets)
 RUN find src -type f -name "*.ts" -delete && \
@@ -53,4 +53,4 @@ RUN find src -type f -name "*.ts" -delete && \
 EXPOSE 8080
 
 # Start the bot in production mode
-CMD ["yarn", "start"]
+CMD ["npm", "run start"]
