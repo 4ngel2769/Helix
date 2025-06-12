@@ -33,4 +33,4 @@ COPY . .
 ###CMD ["npm", "run start"]
 
 # Keep tail running to keep container alive by default
-CMD ["npm", "run", "start"]
+CMD ["npm", "run", "deploy"]
