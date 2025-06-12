@@ -23,7 +23,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 # Install specific yarn version globally
-RUN npm install -g yarn@4.2.1
+RUN npm install -g yarn@latest
 
 # Copy package files first for better layer caching
 COPY package.json yarn.lock ./
