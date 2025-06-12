@@ -54,4 +54,4 @@ COPY . .
 
 # Start the bot in production mode
 ###CMD ["npm", "run start"]
-CMD ["/bin/zsh"]
+CMD ["tail", "-f", "/dev/null"]
