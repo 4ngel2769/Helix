@@ -24,17 +24,17 @@ ENV NODE_ENV=production
 
 RUN npm i -g npm@latest
 RUN npm -v && node -v
-RUN yarn -v
+# RUN yarn -v
 
 # Remove any existing Yarn binary
-RUN rm -f /usr/local/bin/yarn*
+# RUN rm -f /usr/local/bin/yarn*
 
 # Install Yarn using npm (Berry version)
-RUN npm install -g yarn@berry
-RUN yarn -v
+# RUN npm install -g yarn@berry
+# RUN yarn -v
 
 # Copy package files first for better layer caching
-COPY package.json yarn.lock ./
+COPY package.json package-lock.json ./
 
 # Install dependencies
 RUN npm install
