@@ -74,7 +74,8 @@ export class ElephantCommand extends ModuleCommand<FunModule> {
 	private async fetchRandomElephant(): Promise<ElephantApiResponse> {
 		const response = await axios.get<ElephantApiResponse[]>('https://api.api-ninjas.com/v1/animals?name=elephant', {
 			headers: {
-				'X-Api-Key': process.env.API_NINJAS_KEY || config.secrets.apiNinjas
+				'X-Api-Key': process.env.API_NINJAS_KEY || null
+                //  || config.secrets.apiNinjas
 			}
 		});
 
