@@ -7,8 +7,8 @@ import {
     EmbedBuilder,
     User
 } from 'discord.js';
-import { getGameStatsModel } from '../../../models/GameStats';
-import { getGameControlRow, getReplayRow } from '../../../components/GameControls';
+import { getGameStatsModel } from '../../models/GameStats';
+import { getGameControlRow, getReplayRow } from '../../components/GameControls';
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 
 export async function startSinglePlayerGame(interaction: ModuleCommand.ChatInputCommandInteraction | ButtonInteraction, player: User, bot: User) {

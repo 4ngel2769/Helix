@@ -5,7 +5,7 @@ import { Command } from '@sapphire/framework';
 import {
     MessageFlags
 } from 'discord.js';
-import { startSinglePlayerGame, startMultiplayerGame } from './games/tictactoe';
+import { startSinglePlayerGame, startMultiplayerGame } from '../../lib/games/tictactoe';
 
 @ApplyOptions<Command.Options>({
     enabled: true,
