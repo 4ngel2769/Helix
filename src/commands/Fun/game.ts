@@ -13,7 +13,7 @@ import {
     MessageFlags
 } from 'discord.js';
 import { getGameStatsModel } from '../../models/GameStats';
-import { getReplayRow } from '../../components/GameControls';
+import { getGameControlRow, getReplayRow } from '../../components/GameControls';
 
 @ApplyOptions<Command.Options>({
     enabled: true,
@@ -84,7 +84,7 @@ export class GameCommand extends ModuleCommand<FunModule> {
     }
 
     private async startSinglePlayerGame(
-        interaction: ModuleCommand.ChatInputCommandInteraction,
+        interaction: ModuleCommand.ChatInputCommandInteraction | ButtonInteraction,
         player: User,
         bot: User
     ) {
@@ -113,7 +113,7 @@ export class GameCommand extends ModuleCommand<FunModule> {
         };
 
         const createGameButtons = (): ActionRowBuilder<ButtonBuilder>[] => {
-            return board.map((row, rowIndex) =>
+            const rows = board.map((row, rowIndex) =>
                 new ActionRowBuilder<ButtonBuilder>().addComponents(
                     row.map((cell, colIndex) =>
                         new ButtonBuilder()
@@ -123,14 +123,17 @@ export class GameCommand extends ModuleCommand<FunModule> {
                             .setDisabled(cell !== '⬜')
                     )
                 )
-            ).concat(
+            );
+            // Only add the withdraw row ONCE, not every time you call this function
+            return [
+                ...rows,
                 new ActionRowBuilder<ButtonBuilder>().addComponents(
                     new ButtonBuilder()
                         .setCustomId('withdraw')
                         .setLabel('Withdraw')
                         .setStyle(ButtonStyle.Danger)
                 )
-            );
+            ];
         };
 
         const checkWinner = (): string | null => {
@@ -160,20 +163,26 @@ export class GameCommand extends ModuleCommand<FunModule> {
         };
 
         const botMove = (): void => {
-            // Check if bot can win
-            for (let i = 0; i < 3; i++) {
-                for (let j = 0; j < 3; j++) {
+            const luck = Math.random();
+            if (luck < 0.15) {
+                // 15% chance: bot plays easy (random move)
+                const emptyCells: [number, number][] = [];
+                for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) if (board[i][j] === '⬜') emptyCells.push([i, j]);
+                const [row, col] = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+                board[row][col] = '⭕';
+                return;
+            }
+            if (luck > 0.95) {
+                // 5% chance: bot plays perfectly (always blocks/wins)
+                // (current logic, but run both win and block in one pass)
+                for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) {
                     if (board[i][j] === '⬜') {
                         board[i][j] = '⭕';
                         if (checkWinner() === '⭕') return;
                         board[i][j] = '⬜';
                     }
                 }
-            }
-
-            // Check if bot needs to block player
-            for (let i = 0; i < 3; i++) {
-                for (let j = 0; j < 3; j++) {
+                for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) {
                     if (board[i][j] === '⬜') {
                         board[i][j] = '❌';
                         if (checkWinner() === '❌') {
@@ -183,15 +192,36 @@ export class GameCommand extends ModuleCommand<FunModule> {
                         board[i][j] = '⬜';
                     }
                 }
+                // If no win/block, random move
+                const emptyCells: [number, number][] = [];
+                for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) if (board[i][j] === '⬜') emptyCells.push([i, j]);
+                const [row, col] = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+                board[row][col] = '⭕';
+                return;
             }
-
-            // Make a random move
-            const emptyCells: [number, number][] = [];
-            for (let i = 0; i < 3; i++) {
-                for (let j = 0; j < 3; j++) {
-                    if (board[i][j] === '⬜') emptyCells.push([i, j]);
+            // 80% chance: normal logic (your current logic)
+            // Check if bot can win
+            for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) {
+                if (board[i][j] === '⬜') {
+                    board[i][j] = '⭕';
+                    if (checkWinner() === '⭕') return;
+                    board[i][j] = '⬜';
                 }
             }
+            // Check if bot needs to block player
+            for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) {
+                if (board[i][j] === '⬜') {
+                    board[i][j] = '❌';
+                    if (checkWinner() === '❌') {
+                        board[i][j] = '⭕';
+                        return;
+                    }
+                    board[i][j] = '⬜';
+                }
+            }
+            // Random move
+            const emptyCells: [number, number][] = [];
+            for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) if (board[i][j] === '⬜') emptyCells.push([i, j]);
             const [row, col] = emptyCells[Math.floor(Math.random() * emptyCells.length)];
             board[row][col] = '⭕';
         };
@@ -219,7 +249,10 @@ export class GameCommand extends ModuleCommand<FunModule> {
 
         collector.on('collect', async (buttonInteraction: ButtonInteraction) => {
             if (buttonInteraction.customId === 'withdraw') {
-                collector.stop('withdraw');
+                if (![player.id, bot.id].includes(buttonInteraction.user.id)) {
+                    return buttonInteraction.reply({ content: 'Only the players can resign this game.', ephemeral: true });
+                }
+                collector.stop(`resign_${buttonInteraction.user.id}`);
                 return;
             }
 
@@ -263,7 +296,7 @@ export class GameCommand extends ModuleCommand<FunModule> {
 
             await buttonInteraction.update({
                 embeds: [createGameEmbed()],
-                components: createGameButtons()
+                components: createGameButtons() // do NOT add the withdraw row again here
             });
         });
 
@@ -312,50 +345,47 @@ export class GameCommand extends ModuleCommand<FunModule> {
             }
 
             await interaction.editReply({
-                embeds: [createGameEmbed('Game over!')],
+                embeds: [createGameEmbed(`Game over!`)],
                 components: [getReplayRow()]
             });
-
             const replayMsg = await interaction.fetchReply();
             const replayCollector = replayMsg.createMessageComponentCollector({
                 componentType: ComponentType.Button,
-                time: 15000 // 15 seconds
+                time: 15000
             });
-
-            let replayInitiator: string | null = null;
-
             replayCollector.on('collect', async (btn) => {
-                const allowedIds = [player.id];
-                if (!allowedIds.includes(btn.user.id)) {
-                    return btn.reply({ content: 'You did not play this game.', ephemeral: true });
+                if (btn.user.id !== player.id) {
+                    return btn.reply({ content: 'Only you can replay this game.', ephemeral: true });
                 }
-
-                if (replayInitiator && btn.user.id !== replayInitiator) {
-                    replayCollector.stop('accepted');
-                    await btn.update({ content: 'Starting a new game...', components: [] });
-                    await this.startSinglePlayerGame(interaction, player, interaction.client.user);
-                    return;
+                replayCollector.stop('accepted');
+                await btn.update({ content: 'Starting a new game...', components: [] });
+                try {
+                    // Only call reply if not already replied/deferred
+                    if (!btn.replied && !btn.deferred) {
+                        await this.startSinglePlayerGame(btn, player, bot);
+                    }
+                } catch (err: any) {
+                    if (err.code === 'InteractionAlreadyReplied') {
+                        // Optionally log or ignore
+                    } else {
+                        throw err;
+                    }
                 }
-
-                replayInitiator = btn.user.id;
-                await btn.update({
-                    embeds: [createGameEmbed(`${btn.user.username} wants a rematch! Waiting for you to accept...`)],
-                    components: [
-                        new ActionRowBuilder<ButtonBuilder>().addComponents(
-                            new ButtonBuilder()
-                                .setCustomId('replay')
-                                .setLabel('Accept Replay')
-                                .setStyle(ButtonStyle.Success)
-                        )
-                    ]
-                });
             });
-
             replayCollector.on('end', async (_, reason) => {
                 if (reason !== 'accepted') {
                     await interaction.editReply({
                         embeds: [createGameEmbed('Game over!')],
-                        components: []
+                        components: [
+                            new ActionRowBuilder<ButtonBuilder>().addComponents(
+                                new ButtonBuilder()
+                                    .setCustomId('replay')
+                                    .setLabel('Replay')
+                                    .setEmoji('🔄')
+                                    .setStyle(ButtonStyle.Success)
+                                    .setDisabled(true)
+                            )
+                        ]
                     });
                 }
             });
@@ -395,11 +425,12 @@ export class GameCommand extends ModuleCommand<FunModule> {
             ['⬜', '⬜', '⬜']
         ];
         let currentPlayer = Math.random() < 0.5 ? player1 : player2;
+        let movesMade = 0;
 
         const createGameEmbed = (status = `It's ${currentPlayer.username}'s turn!`): EmbedBuilder => {
             return new EmbedBuilder()
                 .setTitle('Tic Tac Toe')
-                .setDescription(board.map(row => row.join(' ')).join('\n'))
+                .setDescription(status)
                 .setFooter({ text: status });
         };
 
@@ -409,9 +440,9 @@ export class GameCommand extends ModuleCommand<FunModule> {
                     row.map((cell, colIndex) =>
                         new ButtonBuilder()
                             .setCustomId(`${rowIndex}-${colIndex}`)
-                            .setLabel(cell) // Use the cell value (e.g., ⬜, ❌, ⭕) as the label
+                            .setLabel(cell)
                             .setStyle(cell === '⬜' ? ButtonStyle.Secondary : ButtonStyle.Primary)
-                            .setDisabled(cell !== '⬜') // Disable buttons for non-empty cells
+                            .setDisabled(cell !== '⬜')
                     )
                 )
             );
@@ -444,9 +475,16 @@ export class GameCommand extends ModuleCommand<FunModule> {
         };
 
         const embed = createGameEmbed();
-        const components = createGameButtons();
+        const components = [
+            ...createGameButtons(),
+            getGameControlRow({ multiplayer: true })
+        ];
 
-        await interaction.reply({ embeds: [embed], components });
+        await interaction.reply({
+            content: `<@${player2.id}>`,
+            embeds: [embed],
+            components
+        });
         const message = await interaction.fetchReply();
 
         const collector = message.createMessageComponentCollector({
@@ -477,10 +515,11 @@ export class GameCommand extends ModuleCommand<FunModule> {
 
             board[row][col] = currentPlayer === player1 ? '❌' : '⭕';
             currentPlayer = currentPlayer === player1 ? player2 : player1;
+            movesMade++;
 
             const winner = checkWinner();
             if (winner) {
-                collector.stop();
+                collector.stop('win');
                 const winnerId = winner === '❌' ? player1Id : player2Id;
                 const loserId = winner === '❌' ? player2Id : player1Id;
 
@@ -501,7 +540,7 @@ export class GameCommand extends ModuleCommand<FunModule> {
             }
 
             if (isBoardFull()) {
-                collector.stop();
+                collector.stop('draw');
                 await gameStatsModel.updateOne(
                     { userId: player1Id },
                     { $inc: { 'gameStats.multiplayer.tictactoe.draws': 1, 'gameStats.multiplayer.tictactoe.gamesPlayed': 1 } }
@@ -515,19 +554,42 @@ export class GameCommand extends ModuleCommand<FunModule> {
                     embeds: [createGameEmbed('It\'s a draw!')],
                     components: []
                 });
-            }
+            };
 
             await buttonInteraction.update({
                 embeds: [createGameEmbed()],
-                components: createGameButtons()
+                components: [
+                    ...createGameButtons(),
+                    getGameControlRow({ multiplayer: true })
+                ]
             });
         });
 
-        collector.on('end', async () => {
-            await interaction.editReply({
-                embeds: [createGameEmbed('Game over!')],
-                components: []
-            });
+        collector.on('end', async (_, reason) => {
+            if (reason === 'win' || reason === 'draw') {
+                // Already handled above
+                return;
+            }
+            if (reason === 'time' || reason === 'idle' || reason === 'timeout') {
+                // If no moves were made, auto abort
+                if (movesMade === 0) {
+                    await interaction.editReply({
+                        content: `<@${player2.id}> did not join the game, auto aborting.`,
+                        embeds: [],
+                        components: []
+                    });
+                } else {
+                    await interaction.editReply({
+                        embeds: [createGameEmbed('Game over!')],
+                        components: [getGameControlRow({ multiplayer: true }), getReplayRow()]
+                    });
+                }
+            } else {
+                await interaction.editReply({
+                    embeds: [createGameEmbed('Game over!')],
+                    components: [getGameControlRow({ multiplayer: true }), getReplayRow()]
+                });
+            }
         });
     }
 }

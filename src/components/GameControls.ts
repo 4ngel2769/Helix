@@ -3,8 +3,9 @@ import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 export function getGameControlRow({ multiplayer = false }: { multiplayer?: boolean } = {}) {
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder()
-            .setCustomId('resign')
+            .setCustomId('withdraw')
             .setLabel('Resign')
+            .setEmoji('🤝')
             .setStyle(ButtonStyle.Danger)
     );
     if (multiplayer) {
@@ -23,6 +24,7 @@ export function getReplayRow() {
         new ButtonBuilder()
             .setCustomId('replay')
             .setLabel('Replay')
+            .setEmoji('🔄')
             .setStyle(ButtonStyle.Success)
     );
 }

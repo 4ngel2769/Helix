@@ -55,13 +55,27 @@ export class LeaderboardCommand extends ModuleCommand<FunModule> {
             ]);
             const botWins = botWinsAgg[0]?.botWins ?? 0;
 
+            const botGamesAgg = await gameStatsModel.aggregate([
+                { $group: { _id: null, botGames: { $sum: `$gameStats.singleplayer.${gameName}.gamesPlayed` } } }
+            ]);
+            const botGames = botGamesAgg[0]?.botGames ?? 0;
+
             const leaderboardText =
                 topPlayers
                     .map(
                         (player, index) => {
                             const stats = player.gameStats?.multiplayer?.[gameName] ?? {};
                             const wins = stats.wins ?? 0;
-                            return `**${index + 1}.** <@${player.userId}> - **${wins} Wins**`;
+                            const losses = stats.losses ?? 0;
+                            let ratio: string | number;
+                            if (losses === 0) {
+                                ratio = wins > 0 ? '∞' : '0';
+                            } else {
+                                ratio = (wins / losses).toFixed(2);
+                            }
+                            return `**${index + 1}.** <@${player.userId}> - **${wins} Wins**` +
+                            // `- W/L: \`${wins}/${losses}\`` +
+                            ` (Ratio: \`${ratio}\`)`;
                         }
                     )
                     .join('\n') || 'No players found.';
@@ -70,7 +84,7 @@ export class LeaderboardCommand extends ModuleCommand<FunModule> {
                 .setTitle(`Leaderboard for ${gameName}`)
                 .setDescription(
                     leaderboardText +
-                    `\n\n__Bot Stats__\n🤖 **Bot Wins (vs players): ${botWins}**`
+                    `\n\n__Bot Stats__\n **Helix (vs players): ${botWins}** (\`Played ${botGames} games\`)`
                 )
                 .setFooter({ text: 'Leaderboard is based on global stats.' });
 
