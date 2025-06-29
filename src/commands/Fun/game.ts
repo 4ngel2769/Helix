@@ -47,10 +47,7 @@ export class GameCommand extends ModuleCommand<FunModule> {
         );
     }
 
-    public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-        // Force all games to be public (non-ephemeral)
-        await interaction.deferReply();
-
+    public override async chatInputRun(interaction: ModuleCommand.ChatInputCommandInteraction) {
         const subcommand = interaction.options.getSubcommand();
 
         switch (subcommand) {
