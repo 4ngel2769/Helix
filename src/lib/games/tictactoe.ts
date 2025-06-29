@@ -12,16 +12,104 @@ import { getGameStatsModel } from '../../models/GameStats';
 import { getGameControlRow, getReplayRow } from '../../components/GameControls';
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 
-export async function startSinglePlayerGame(interaction: ModuleCommand.ChatInputCommandInteraction | ButtonInteraction, player: User, bot: User) {
-	const gameStatsModel = getGameStatsModel('userdb');
-	const playerId = player.id;
+function isBotProperlyInGuild(interaction: ModuleCommand.ChatInputCommandInteraction | ButtonInteraction): boolean {
+    // If it's a DM, we can't check guild membership
+    if (!interaction.guild) return true;
+    
+    // Check if the bot is a member of the guild
+    const botMember = interaction.guild.members.cache.get(interaction.client.user!.id);
+    return !!botMember;
+}
 
-	// Initialize stats if not already present
-	await gameStatsModel.updateOne(
-		{ userId: playerId },
-		{ $setOnInsert: { gameStats: { singleplayer: { tictactoe: { wins: 0, losses: 0, draws: 0, gamesPlayed: 0 } } } } },
-		{ upsert: true }
-	);
+function createBotNotInServerEmbed(): EmbedBuilder {
+    return new EmbedBuilder()
+        .setTitle('⚠️ Bot Not Properly Added')
+        .setDescription(
+            'This bot appears to be added as a user app instead of being properly invited to the server.\n\n' +
+            '**For multiplayer games to work properly, the bot needs to be invited to the server.**\n\n' +
+            '**How to fix:**\n' +
+            '1. Ask a server admin to invite the bot properly\n' +
+            '2. Use this invite link: [Invite Bot](https://discord.com/oauth2/authorize?client_id=' + 
+            `${this.client.user!.id}&permissions=2048&scope=bot)\n` +
+            '3. Grant the bot "Send Messages" permissions\n\n' +
+            '*Singleplayer games will still work, but messages will be ephemeral.*'
+        )
+        .setColor(0xFF6B35);
+}
+
+export async function startSinglePlayerGame(interaction: ModuleCommand.ChatInputCommandInteraction | ButtonInteraction, player: User, bot: User) {
+    const gameStatsModel = getGameStatsModel('userdb');
+    const playerId = player.id;
+
+    // Check if bot is properly in guild for multiplayer functionality
+    if (interaction.guild && !isBotProperlyInGuild(interaction)) {
+        await interaction.reply({
+            embeds: [createBotNotInServerEmbed()],
+            ephemeral: true
+        });
+        
+        // Ask if they want to continue with singleplayer anyway
+        const confirmButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
+            new ButtonBuilder()
+                .setCustomId('continue_singleplayer')
+                .setLabel('Continue Anyway')
+                .setStyle(ButtonStyle.Primary),
+            new ButtonBuilder()
+                .setCustomId('cancel_game')
+                .setLabel('Cancel')
+                .setStyle(ButtonStyle.Secondary)
+        );
+
+        const msg = await interaction.editReply({
+            embeds: [createBotNotInServerEmbed()],
+            components: [confirmButtons]
+        });
+
+        const confirmCollector = msg.createMessageComponentCollector({
+            componentType: ComponentType.Button,
+            time: 30000,
+            filter: (i) => i.user.id === player.id
+        });
+
+        confirmCollector.on('collect', async (btn) => {
+            if (btn.customId === 'continue_singleplayer') {
+                confirmCollector.stop('continue');
+                await btn.update({ 
+                    content: 'Starting singleplayer game (ephemeral mode)...', 
+                    embeds: [], 
+                    components: [] 
+                });
+                // Continue with the game setup below
+            } else {
+                confirmCollector.stop('cancel');
+                await btn.update({ 
+                    content: 'Game cancelled.', 
+                    embeds: [], 
+                    components: [] 
+                });
+                return;
+            }
+        });
+
+        confirmCollector.on('end', async (_, reason) => {
+            if (reason === 'time') {
+                await interaction.editReply({
+                    content: 'Game setup timed out.',
+                    embeds: [],
+                    components: []
+                });
+                return;
+            }
+            if (reason !== 'continue') return;
+        });
+
+        // Wait for the collector to finish
+        await new Promise<void>((resolve) => {
+            confirmCollector.on('end', (_, reason) => {
+                if (reason === 'continue') resolve();
+            });
+        });
+    }
 
 	const board: string[][] = [
 		['⬜', '⬜', '⬜'],
@@ -308,6 +396,20 @@ export async function startSinglePlayerGame(interaction: ModuleCommand.ChatInput
 }
 
 export async function startMultiplayerGame(interaction: ModuleCommand.ChatInputCommandInteraction, player1: User, player2: User) {
+    // Check if bot is properly in guild for multiplayer functionality
+    if (interaction.guild && !isBotProperlyInGuild(interaction)) {
+        return interaction.reply({
+            embeds: [
+                createBotNotInServerEmbed()
+                    .setDescription(
+                        createBotNotInServerEmbed().data.description + 
+                        '\n\n**Multiplayer games require the bot to be properly invited to the server.**'
+                    )
+            ],
+            ephemeral: true
+        });
+    }
+
     const gameStatsModel = getGameStatsModel('userdb');
     const player1Id = player1.id;
     const player2Id = player2.id;
