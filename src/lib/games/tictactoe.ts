@@ -5,6 +5,7 @@ import {
     ButtonStyle,
     ComponentType,
     EmbedBuilder,
+	MessageFlags,
     User
 } from 'discord.js';
 import { getGameStatsModel } from '../../models/GameStats';
@@ -175,20 +176,20 @@ export async function startSinglePlayerGame(interaction: ModuleCommand.ChatInput
 	collector.on('collect', async (buttonInteraction: ButtonInteraction) => {
 		if (buttonInteraction.customId === 'withdraw') {
 			if (![player.id, bot.id].includes(buttonInteraction.user.id)) {
-				return buttonInteraction.reply({ content: 'Only the players can resign this game.', ephemeral: true });
+				return buttonInteraction.reply({ content: 'Only the players can resign this game.', flags: MessageFlags.Ephemeral });
 			}
 			collector.stop(`resign_${buttonInteraction.user.id}`);
 			return;
 		}
 
 		if (buttonInteraction.user.id !== player.id) {
-			return buttonInteraction.reply({ content: 'This is not your game!', ephemeral: true });
+			return buttonInteraction.reply({ content: 'This is not your game!', flags: MessageFlags.Ephemeral });
 		}
 
 		const [row, col] = buttonInteraction.customId.split('-').map(Number);
 
 		if (board[row][col] !== '⬜') {
-			return buttonInteraction.reply({ content: 'This spot is already taken!', ephemeral: true });
+			return buttonInteraction.reply({ content: 'This spot is already taken!', flags: MessageFlags.Ephemeral });
 		}
 
 		board[row][col] = '❌';
@@ -269,48 +270,37 @@ export async function startSinglePlayerGame(interaction: ModuleCommand.ChatInput
 			});
 		}
 
+		// Show replay button after stats update
 		await interaction.editReply({
-			embeds: [createGameEmbed(`Game over!`)],
+			embeds: [createGameEmbed('Game over!')],
 			components: [getReplayRow()]
 		});
+		
 		const replayMsg = await interaction.fetchReply();
 		const replayCollector = replayMsg.createMessageComponentCollector({
 			componentType: ComponentType.Button,
 			time: 15000
 		});
+		
 		replayCollector.on('collect', async (btn) => {
+			if (btn.customId !== 'replay') return;
+			
 			if (btn.user.id !== player.id) {
-				return btn.reply({ content: 'Only you can replay this game.', ephemeral: true });
+				return btn.reply({ content: 'Only you can replay this game.', flags: MessageFlags.Ephemeral });
 			}
+			
 			replayCollector.stop('accepted');
 			await btn.update({ content: 'Starting a new game...', components: [] });
-			try {
-				// Only call reply if not already replied/deferred
-				if (!btn.replied && !btn.deferred) {
-					await startSinglePlayerGame(btn, player, bot);
-				}
-			} catch (err: any) {
-				if (err.code === 'InteractionAlreadyReplied') {
-					// Optionally log or ignore
-				} else {
-					throw err;
-				}
-			}
+			
+			// Start new singleplayer game using the button interaction
+			await startSinglePlayerGame(btn, player, bot);
 		});
+		
 		replayCollector.on('end', async (_, reason) => {
 			if (reason !== 'accepted') {
 				await interaction.editReply({
 					embeds: [createGameEmbed('Game over!')],
-					components: [
-						new ActionRowBuilder<ButtonBuilder>().addComponents(
-							new ButtonBuilder()
-								.setCustomId('replay')
-								.setLabel('Replay')
-								.setEmoji('🔄')
-								.setStyle(ButtonStyle.Success)
-								.setDisabled(true)
-						)
-					]
+					components: []
 				});
 			}
 		});
@@ -318,181 +308,325 @@ export async function startSinglePlayerGame(interaction: ModuleCommand.ChatInput
 }
 
 export async function startMultiplayerGame(interaction: ModuleCommand.ChatInputCommandInteraction, player1: User, player2: User) {
-	const gameStatsModel = getGameStatsModel('userdb');
-	const player1Id = player1.id;
-	const player2Id = player2.id;
+    const gameStatsModel = getGameStatsModel('userdb');
+    const player1Id = player1.id;
+    const player2Id = player2.id;
 
-	const defaultStats = {
-		wins: 0,
-		losses: 0,
-		draws: 0,
-		gamesPlayed: 0
-	};
-	await gameStatsModel.updateOne({ userId: player1Id }, { $setOnInsert: { 'gameStats.multiplayer.tictactoe': defaultStats } }, { upsert: true });
-	await gameStatsModel.updateOne({ userId: player2Id }, { $setOnInsert: { 'gameStats.multiplayer.tictactoe': defaultStats } }, { upsert: true });
+    const defaultStats = {
+        wins: 0,
+        losses: 0,
+        draws: 0,
+        gamesPlayed: 0
+    };
+    await gameStatsModel.updateOne({ userId: player1Id }, { $setOnInsert: { 'gameStats.multiplayer.tictactoe': defaultStats } }, { upsert: true });
+    await gameStatsModel.updateOne({ userId: player2Id }, { $setOnInsert: { 'gameStats.multiplayer.tictactoe': defaultStats } }, { upsert: true });
 
-	// Multiplayer game logic
-	const board: string[][] = [
-		['⬜', '⬜', '⬜'],
-		['⬜', '⬜', '⬜'],
-		['⬜', '⬜', '⬜']
-	];
-	let currentPlayer = Math.random() < 0.5 ? player1 : player2;
-	let movesMade = 0;
+    // Multiplayer game logic
+    const board: string[][] = [
+        ['⬜', '⬜', '⬜'],
+        ['⬜', '⬜', '⬜'],
+        ['⬜', '⬜', '⬜']
+    ];
+    let currentPlayer = Math.random() < 0.5 ? player1 : player2;
+    let movesMade = 0;
 
-	const createGameEmbed = (status = `It's ${currentPlayer.username}'s turn!`): EmbedBuilder => {
-		return new EmbedBuilder().setTitle('Tic Tac Toe').setDescription(status).setFooter({ text: status });
-	};
+    const createGameEmbed = (status = `It's ${currentPlayer.username}'s turn!`): EmbedBuilder => {
+        return new EmbedBuilder().setTitle('Tic Tac Toe').setDescription(status).setFooter({ text: status });
+    };
 
-	const createGameButtons = (): ActionRowBuilder<ButtonBuilder>[] => {
-		return board.map((row, rowIndex) =>
-			new ActionRowBuilder<ButtonBuilder>().addComponents(
-				row.map((cell, colIndex) =>
-					new ButtonBuilder()
-						.setCustomId(`${rowIndex}-${colIndex}`)
-						.setLabel(cell)
-						.setStyle(cell === '⬜' ? ButtonStyle.Secondary : ButtonStyle.Primary)
-						.setDisabled(cell !== '⬜')
-				)
-			)
-		);
-	};
+    const createGameButtons = (): ActionRowBuilder<ButtonBuilder>[] => {
+        return board.map((row, rowIndex) =>
+            new ActionRowBuilder<ButtonBuilder>().addComponents(
+                row.map((cell, colIndex) =>
+                    new ButtonBuilder()
+                        .setCustomId(`${rowIndex}-${colIndex}`)
+                        .setLabel(cell)
+                        .setStyle(cell === '⬜' ? ButtonStyle.Secondary : ButtonStyle.Primary)
+                        .setDisabled(cell !== '⬜')
+                )
+            )
+        );
+    };
 
-	const checkWinner = (): string | null => {
-		// Check rows and columns
-		for (let i = 0; i < 3; i++) {
-			if (board[i][0] !== '⬜' && board[i][0] === board[i][1] && board[i][1] === board[i][2]) {
-				return board[i][0];
-			}
-			if (board[0][i] !== '⬜' && board[0][i] === board[1][i] && board[1][i] === board[2][i]) {
-				return board[0][i];
-			}
-		}
+    const checkWinner = (): string | null => {
+        // Check rows and columns
+        for (let i = 0; i < 3; i++) {
+            if (board[i][0] !== '⬜' && board[i][0] === board[i][1] && board[i][1] === board[i][2]) {
+                return board[i][0];
+            }
+            if (board[0][i] !== '⬜' && board[0][i] === board[1][i] && board[1][i] === board[2][i]) {
+                return board[0][i];
+            }
+        }
 
-		// Check diagonals
-		if (board[0][0] !== '⬜' && board[0][0] === board[1][1] && board[1][1] === board[2][2]) {
-			return board[0][0];
-		}
-		if (board[0][2] !== '⬜' && board[0][2] === board[1][1] && board[1][1] === board[2][0]) {
-			return board[0][2];
-		}
+        // Check diagonals
+        if (board[0][0] !== '⬜' && board[0][0] === board[1][1] && board[1][1] === board[2][2]) {
+            return board[0][0];
+        }
+        if (board[0][2] !== '⬜' && board[0][2] === board[1][1] && board[1][1] === board[2][0]) {
+            return board[0][2];
+        }
 
-		return null;
-	};
+        return null;
+    };
 
-	const isBoardFull = (): boolean => {
-		return board.every((row) => row.every((cell) => cell !== '⬜'));
-	};
+    const isBoardFull = (): boolean => {
+        return board.every((row) => row.every((cell) => cell !== '⬜'));
+    };
 
-	const embed = createGameEmbed();
-	const components = [...createGameButtons(), getGameControlRow({ multiplayer: true })];
+    const embed = createGameEmbed();
+    const components = [...createGameButtons(), getGameControlRow({ multiplayer: true })];
 
-	await interaction.reply({
-		content: `<@${player2.id}>`,
-		embeds: [embed],
-		components
-	});
-	const message = await interaction.fetchReply();
+    await interaction.reply({
+        content: `<@${player2.id}>`,
+        embeds: [embed],
+        components
+    });
+    const message = await interaction.fetchReply();
 
-	const collector = message.createMessageComponentCollector({
-		componentType: ComponentType.Button,
-		time: 60000 // 1 minute
-	});
+    const collector = message.createMessageComponentCollector({
+        componentType: ComponentType.Button,
+        time: 60000 // 1 minute
+    });
 
-	collector.on('collect', async (buttonInteraction: ButtonInteraction) => {
-		if (![player1.id, player2.id].includes(buttonInteraction.user.id)) {
-			return buttonInteraction.reply({
-				content: 'This is not your game! Start a new game with `/game tictactoe`.',
-				ephemeral: true
-			});
-		}
+    collector.on('collect', async (buttonInteraction: ButtonInteraction) => {
+        // Handle resign button (any of the two players can click)
+        if (buttonInteraction.customId === 'withdraw') {
+            if (![player1.id, player2.id].includes(buttonInteraction.user.id)) {
+                return buttonInteraction.reply({
+                    content: 'Only the players can resign this game.',
+                    flags: MessageFlags.Ephemeral
+                });
+            }
+            collector.stop('resign');
+            const resignedPlayer = buttonInteraction.user.id === player1Id ? player1 : player2;
+            const winnerPlayer = buttonInteraction.user.id === player1Id ? player2 : player1;
+            
+            // Update stats
+            await gameStatsModel.updateOne(
+                { userId: buttonInteraction.user.id },
+                { $inc: { 'gameStats.multiplayer.tictactoe.losses': 1, 'gameStats.multiplayer.tictactoe.gamesPlayed': 1 } }
+            );
+            await gameStatsModel.updateOne(
+                { userId: winnerPlayer.id },
+                { $inc: { 'gameStats.multiplayer.tictactoe.wins': 1, 'gameStats.multiplayer.tictactoe.gamesPlayed': 1 } }
+            );
 
-		if (buttonInteraction.user.id !== currentPlayer.id) {
-			return buttonInteraction.reply({
-				content: "It's not your turn! Please wait for your turn.",
-				ephemeral: true
-			});
-		}
+            await buttonInteraction.update({
+                embeds: [createGameEmbed(`${resignedPlayer.username} resigned. ${winnerPlayer.username} wins!`)],
+                components: [getReplayRow()]
+            });
+            return;
+        }
 
-		const [row, col] = buttonInteraction.customId.split('-').map(Number);
+        // Handle offer draw button (any of the two players can click)
+        if (buttonInteraction.customId === 'offer_draw') {
+            if (![player1.id, player2.id].includes(buttonInteraction.user.id)) {
+                return buttonInteraction.reply({
+                    content: 'Only the players can offer a draw.',
+                    flags: MessageFlags.Ephemeral
+                });
+            }
+            const offeringPlayer = buttonInteraction.user.id === player1Id ? player1 : player2;
+            const otherPlayer = buttonInteraction.user.id === player1Id ? player2 : player1;
+            
+            const drawButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
+                new ButtonBuilder()
+                    .setCustomId(`accept_draw_${otherPlayer.id}`)
+                    .setLabel('Accept Draw')
+                    .setStyle(ButtonStyle.Success),
+                new ButtonBuilder()
+                    .setCustomId(`decline_draw_${otherPlayer.id}`)
+                    .setLabel('Decline Draw')
+                    .setStyle(ButtonStyle.Danger)
+            );
 
-		if (board[row][col] !== '⬜') {
-			return buttonInteraction.reply({ content: 'This spot is already taken!', ephemeral: true });
-		}
+            await buttonInteraction.update({
+                embeds: [createGameEmbed(`${offeringPlayer.username} offers a draw. ${otherPlayer.username}, do you accept?`)],
+                components: [...createGameButtons(), drawButtons]
+            });
+            return;
+        }
 
-		board[row][col] = currentPlayer === player1 ? '❌' : '⭕';
-		currentPlayer = currentPlayer === player1 ? player2 : player1;
-		movesMade++;
+        // Handle draw response buttons
+        if (buttonInteraction.customId.startsWith('accept_draw_') || buttonInteraction.customId.startsWith('decline_draw_')) {
+            const expectedUserId = buttonInteraction.customId.split('_')[2];
+            if (buttonInteraction.user.id !== expectedUserId) {
+                return buttonInteraction.reply({
+                    content: 'Only the player being asked can respond to the draw offer.',
+                    flags: MessageFlags.Ephemeral
+                });
+            }
 
-		const winner = checkWinner();
-		if (winner) {
-			collector.stop('win');
-			const winnerId = winner === '❌' ? player1Id : player2Id;
-			const loserId = winner === '❌' ? player2Id : player1Id;
+            if (buttonInteraction.customId.startsWith('accept_draw_')) {
+                collector.stop('draw');
+                await gameStatsModel.updateOne(
+                    { userId: player1Id },
+                    { $inc: { 'gameStats.multiplayer.tictactoe.draws': 1, 'gameStats.multiplayer.tictactoe.gamesPlayed': 1 } }
+                );
+                await gameStatsModel.updateOne(
+                    { userId: player2Id },
+                    { $inc: { 'gameStats.multiplayer.tictactoe.draws': 1, 'gameStats.multiplayer.tictactoe.gamesPlayed': 1 } }
+                );
 
-			// Update stats in the db
-			await gameStatsModel.updateOne(
-				{ userId: winnerId },
-				{ $inc: { 'gameStats.multiplayer.tictactoe.wins': 1, 'gameStats.multiplayer.tictactoe.gamesPlayed': 1 } }
-			);
-			await gameStatsModel.updateOne(
-				{ userId: loserId },
-				{ $inc: { 'gameStats.multiplayer.tictactoe.losses': 1, 'gameStats.multiplayer.tictactoe.gamesPlayed': 1 } }
-			);
+                await buttonInteraction.update({
+                    embeds: [createGameEmbed("Draw accepted! It's a draw!")],
+                    components: [getReplayRow()]
+                });
+                return;
+            } else {
+                await buttonInteraction.update({
+                    embeds: [createGameEmbed()],
+                    components: [...createGameButtons(), getGameControlRow({ multiplayer: true })]
+                });
+                return;
+            }
+        }
 
-			return interaction.editReply({
-				embeds: [createGameEmbed(`${winner === '❌' ? player1.username : player2.username} wins!`)],
-				components: []
-			});
-		}
+        // Regular game move logic (must be player's turn)
+        if (![player1.id, player2.id].includes(buttonInteraction.user.id)) {
+            return buttonInteraction.reply({
+                content: 'This is not your game! Start a new game with `/game tictactoe`.',
+                flags: MessageFlags.Ephemeral
+            });
+        }
 
-		if (isBoardFull()) {
-			collector.stop('draw');
-			await gameStatsModel.updateOne(
-				{ userId: player1Id },
-				{ $inc: { 'gameStats.multiplayer.tictactoe.draws': 1, 'gameStats.multiplayer.tictactoe.gamesPlayed': 1 } }
-			);
-			await gameStatsModel.updateOne(
-				{ userId: player2Id },
-				{ $inc: { 'gameStats.multiplayer.tictactoe.draws': 1, 'gameStats.multiplayer.tictactoe.gamesPlayed': 1 } }
-			);
+        if (buttonInteraction.user.id !== currentPlayer.id) {
+            return buttonInteraction.reply({
+                content: "It's not your turn! Please wait for your turn.",
+                flags: MessageFlags.Ephemeral
+            });
+        }
 
-			return interaction.editReply({
-				embeds: [createGameEmbed("It's a draw!")],
-				components: []
-			});
-		}
+        const [row, col] = buttonInteraction.customId.split('-').map(Number);
+        if (isNaN(row) || isNaN(col)) return; // Not a game move button
 
-		await buttonInteraction.update({
-			embeds: [createGameEmbed()],
-			components: [...createGameButtons(), getGameControlRow({ multiplayer: true })]
-		});
-	});
+        if (board[row][col] !== '⬜') {
+            return buttonInteraction.reply({ content: 'This spot is already taken!', flags: MessageFlags.Ephemeral });
+        }
 
-	collector.on('end', async (_, reason) => {
-		if (reason === 'win' || reason === 'draw') {
-			// Already handled above
-			return;
-		}
-		if (reason === 'time' || reason === 'idle' || reason === 'timeout') {
-			// If no moves were made, auto abort
-			if (movesMade === 0) {
-				await interaction.editReply({
-					content: `<@${player2.id}> did not join the game, auto aborting.`,
-					embeds: [],
-					components: []
-				});
-			} else {
-				await interaction.editReply({
-					embeds: [createGameEmbed('Game over!')],
-					components: [getGameControlRow({ multiplayer: true }), getReplayRow()]
-				});
-			}
-		} else {
-			await interaction.editReply({
-				embeds: [createGameEmbed('Game over!')],
-				components: [getGameControlRow({ multiplayer: true }), getReplayRow()]
-			});
-		}
-	});
+        board[row][col] = currentPlayer === player1 ? '❌' : '⭕';
+        currentPlayer = currentPlayer === player1 ? player2 : player1;
+        movesMade++;
+
+        const winner = checkWinner();
+        if (winner) {
+            collector.stop('win');
+            const winnerId = winner === '❌' ? player1Id : player2Id;
+            const loserId = winner === '❌' ? player2Id : player1Id;
+
+            // Update stats in the db
+            await gameStatsModel.updateOne(
+                { userId: winnerId },
+                { $inc: { 'gameStats.multiplayer.tictactoe.wins': 1, 'gameStats.multiplayer.tictactoe.gamesPlayed': 1 } }
+            );
+            await gameStatsModel.updateOne(
+                { userId: loserId },
+                { $inc: { 'gameStats.multiplayer.tictactoe.losses': 1, 'gameStats.multiplayer.tictactoe.gamesPlayed': 1 } }
+            );
+
+            await buttonInteraction.update({
+                embeds: [createGameEmbed(`${winner === '❌' ? player1.username : player2.username} wins!`)],
+                components: [getReplayRow()]
+            });
+            return;
+        }
+
+        if (isBoardFull()) {
+            collector.stop('draw');
+            await gameStatsModel.updateOne(
+                { userId: player1Id },
+                { $inc: { 'gameStats.multiplayer.tictactoe.draws': 1, 'gameStats.multiplayer.tictactoe.gamesPlayed': 1 } }
+            );
+            await gameStatsModel.updateOne(
+                { userId: player2Id },
+                { $inc: { 'gameStats.multiplayer.tictactoe.draws': 1, 'gameStats.multiplayer.tictactoe.gamesPlayed': 1 } }
+            );
+
+            await buttonInteraction.update({
+                embeds: [createGameEmbed("It's a draw!")],
+                components: [getReplayRow()]
+            });
+            return;
+        }
+
+        await buttonInteraction.update({
+            embeds: [createGameEmbed()],
+            components: [...createGameButtons(), getGameControlRow({ multiplayer: true })]
+        });
+    });
+
+    collector.on('end', async (_, reason) => {
+        if (reason === 'win' || reason === 'draw' || reason === 'resign') {
+            // Add replay functionality
+            const replayMsg = await interaction.fetchReply();
+            const replayCollector = replayMsg.createMessageComponentCollector({
+                componentType: ComponentType.Button,
+                time: 15000
+            });
+            let replayInitiator: string | null = null;
+            
+            replayCollector.on('collect', async (btn) => {
+                if (btn.customId !== 'replay') return;
+                
+                const allowedIds = [player1.id, player2.id];
+                if (!allowedIds.includes(btn.user.id)) {
+                    return btn.reply({ content: 'Only the players can replay this game.', flags: MessageFlags.Ephemeral });
+                }
+                
+                if (!replayInitiator) {
+                    // First click: set initiator, update button to "Accept Replay"
+                    replayInitiator = btn.user.id;
+                    await btn.update({
+                        embeds: [createGameEmbed(`${btn.user.username} wants a rematch! Waiting for the other player to accept...`)],
+                        components: [
+                            new ActionRowBuilder<ButtonBuilder>().addComponents(
+                                new ButtonBuilder()
+                                    .setCustomId('replay')
+                                    .setLabel('Accept Replay')
+                                    .setEmoji('🔄')
+                                    .setStyle(ButtonStyle.Success)
+                            )
+                        ]
+                    });
+                    return;
+                }
+                
+                if (btn.user.id === replayInitiator) {
+                    return btn.reply({ content: 'Waiting for the other player to accept.', flags: MessageFlags.Ephemeral });
+                }
+                
+                // Second player accepts
+                replayCollector.stop('accepted');
+                await btn.update({ content: 'Starting a new game...', components: [] });
+                await startMultiplayerGame(interaction, player1, player2);
+            });
+            
+            replayCollector.on('end', async (_, reason) => {
+                if (reason !== 'accepted') {
+                    await interaction.editReply({
+                        embeds: [createGameEmbed('Game over!')],
+                        components: []
+                    });
+                }
+            });
+            return;
+        }
+        
+        if (reason === 'time' || reason === 'idle' || reason === 'timeout') {
+            // If no moves were made, auto abort
+            if (movesMade === 0) {
+                await interaction.editReply({
+                    content: `<@${player2.id}> did not join the game, auto aborting.`,
+                    embeds: [],
+                    components: []
+                });
+            } else {
+                await interaction.editReply({
+                    embeds: [createGameEmbed('Game over!')],
+                    components: []
+                });
+            }
+        }
+    });
 }
