@@ -6,7 +6,6 @@ import {
     ButtonBuilder,
     StringSelectMenuBuilder,
     ButtonStyle,
-    ComponentType,
     MessageFlags,
     ColorResolvable,
     ModalBuilder,
@@ -63,49 +62,66 @@ export class NoteCommand extends Command {
 
     public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
         const subcommand = interaction.options.getSubcommand();
-
-        switch (subcommand) {
-            case 'add':
-                return this.handleAdd(interaction);
-            case 'list':
-                return this.handleList(interaction);
-            case 'delete':
-                return this.handleDelete(interaction);
-            default:
-                return interaction.reply({ 
-                    content: 'Unknown subcommand.', 
-                    flags: MessageFlags.Ephemeral 
-                });
+        // Route to subcommand handler
+        try {
+            switch (subcommand) {
+                case 'add':
+                    return await this.handleAdd(interaction);
+                case 'list':
+                    return await this.handleList(interaction);
+                case 'delete':
+                    return await this.handleDelete(interaction);
+                default:
+                    // Unknown subcommand
+                    return interaction.reply({ 
+                        content: 'Unknown subcommand.', 
+                        flags: MessageFlags.Ephemeral 
+                    });
+            }
+        } catch (error) {
+            // Catch-all error handler for subcommands
+            console.error('Error in note command:', error);
+            return interaction.reply({
+                content: 'An error occurred while processing your request.',
+                flags: MessageFlags.Ephemeral
+            });
         }
     }
 
     public override async autocompleteRun(interaction: Command.AutocompleteInteraction) {
         const focusedOption = interaction.options.getFocused(true);
-
-        if (focusedOption.name === 'note') {
-            const notes = await mongooseUtils.findAll(DevNote, {
-                sort: { createdAt: -1 },
-                limit: 25
-            });
-
-            const filtered = notes.filter(note => 
-                note.content.toLowerCase().includes(focusedOption.value.toLowerCase())
-            );
-
-            return interaction.respond(
-                filtered.map(note => ({
-                    name: note.content.length > 100 
-                        ? `${note.content.substring(0, 97)}...` 
-                        : note.content,
-                    value: note._id.toString()
-                }))
-            );
+        // Only autocomplete for the note option
+        switch (focusedOption.name) {
+            case 'note': {
+                try {
+                    const notes = await mongooseUtils.findAll(DevNote, {
+                        sort: { createdAt: -1 },
+                        limit: 25
+                    });
+                    const filtered = notes.filter(note => 
+                        note.content.toLowerCase().includes(focusedOption.value.toLowerCase())
+                    );
+                    return interaction.respond(
+                        filtered.map(note => ({
+                            name: note.content.length > 100 
+                                ? `${note.content.substring(0, 97)}...` 
+                                : note.content,
+                            value: note._id.toString()
+                        }))
+                    );
+                } catch (error) {
+                    console.error('Autocomplete error:', error);
+                    return interaction.respond([]);
+                }
+            }
+            default:
+                // No autocomplete for other options
+                return interaction.respond([]);
         }
     }
 
     private async handleAdd(interaction: Command.ChatInputCommandInteraction) {
         const suggestedBy = interaction.options.getUser('suggested_by');
-        
         // Create a modal for markdown input
         const modal = new ModalBuilder()
             .setCustomId(`note_add_modal${suggestedBy ? '_' + suggestedBy.id : ''}`)
@@ -118,64 +134,47 @@ export class NoteCommand extends Command {
             .setPlaceholder('Type your note here with Markdown.')
             .setRequired(true)
             .setMaxLength(4000);
-            
+
         const firstActionRow = new ActionRowBuilder<TextInputBuilder>().addComponents(contentInput);
-        
+        // Add the input to the modal
         modal.addComponents(firstActionRow);
-        
         await interaction.showModal(modal);
-        
         try {
+            // Wait for modal submit
             const filter = (i: any) => 
                 i.customId === `note_add_modal${suggestedBy ? '_' + suggestedBy.id : ''}` && 
                 i.user.id === interaction.user.id;
-                
             const modalSubmit = await interaction.awaitModalSubmit({
                 filter,
                 time: 300000 // 5 min
             });
-            
             const content = modalSubmit.fields.getTextInputValue('noteContent');
-            
             const note = new DevNote({
                 content,
                 suggestedBy: suggestedBy?.id
             });
-            
             await note.save();
-            
-            // Create response embed
+            // Build response embed
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.default as ColorResolvable)
                 .setTitle('📝 Note Added')
                 .setDescription(content)
                 .addFields([
-                    { 
-                        name: 'ID', 
-                        value: note._id.toString(), 
-                        inline: true 
-                    },
-                    { 
-                        name: 'Created', 
-                        value: `<t:${Math.floor(note.createdAt.getTime() / 1000)}:R>`, 
-                        inline: true 
-                    }
+                    { name: 'ID', value: note._id.toString(), inline: true },
+                    { name: 'Created', value: `<t:${Math.floor(note.createdAt.getTime() / 1000)}:R>`, inline: true }
                 ])
                 .setTimestamp();
-                
             if (suggestedBy) {
-                embed.addFields([{
-                    name: 'Suggested By',
-                    value: `<@${suggestedBy.id}>`,
-                    inline: true
-                }]);
+                embed.addFields([{ name: 'Suggested By', value: `<@${suggestedBy.id}>`, inline: true }]);
             }
-            
             return modalSubmit.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
-            
         } catch (error) {
+            // Modal may timeout or user may exit
+            if (error instanceof Error && error.name === 'Error' && error.message.includes('time')) {
+                // Modal timeout, do nothing
+                return;
+            }
             console.error('Error with note modal:', error);
-            // Don't send an error message as the user might exit the modal
             return;
         }
     }
@@ -315,7 +314,7 @@ export class NoteCommand extends Command {
             await mongooseUtils.deleteById(DevNote, noteId);
 
             const embed = new EmbedBuilder()
-                .setColor('#ff4444')
+                .setColor(config.bot.embedColor.err as ColorResolvable)
                 .setTitle('🗑️ Note Deleted')
                 .setDescription(note.content)
                 .addFields([{

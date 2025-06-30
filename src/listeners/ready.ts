@@ -77,12 +77,16 @@ export class UserEvent extends Listener {
 		`;
 
 		console.log(banner);
-		if (dev) logger.warn(`${blc('<')}${llc('/')}${blc('>')} ${llc('DEVELOPMENT MODE')}`);
-		logger.info(`${ylc(`Helix version ${config.bot.version}`)}${llc(' - ')}${llc('by ')}${rlc('Angel')}`);
-		logger.info(`[${success}] Gateway: ${blc(this.container.client.ws.shards.size.toString())} shards`);
-		logger.info(`[${success}] Database`);
-		logger.info(`[${success}] TPS Monitor`);
-		logger.info(`[${success}] Logger`);
+        
+        const tpsMonitor = TPSMonitor.getInstance();
+        logger.info(`[${success}] TPS Monitor initialized and tracking started`);
+        
+        if (dev) logger.warn(`${blc('<')}${llc('/')}${blc('>')} ${llc('DEVELOPMENT MODE')}`);
+        logger.info(`${ylc(`Helix version ${config.bot.version}`)}${llc(' - ')}${llc('by ')}${rlc('Angel')}`);
+        logger.info(`[${success}] Gateway: ${blc(this.container.client.ws.shards.size.toString())} shards`);
+        logger.info(`[${success}] Database`);
+        logger.info(`[${success}] TPS Monitor`);
+        logger.info(`[${success}] Logger`);
 	}
 
 	private printStoreDebugInformation() {
