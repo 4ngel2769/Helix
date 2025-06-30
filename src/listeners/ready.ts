@@ -5,6 +5,7 @@ import { blue, gray, green, magenta, magentaBright, white, yellow } from 'colore
 import { ActivityType } from 'discord.js';
 import { TPSMonitor } from '../lib/structures/TPSMonitor';
 import { Guild } from '../models/Guild';
+import { stripIndents } from 'common-tags';
 
 const dev = process.env.NODE_ENV !== 'production';
 
@@ -46,17 +47,31 @@ export class UserEvent extends Listener {
 		const line01 = llc('');
 		const line02 = llc('');
 		const line03 = llc('');
+		const line04 = llc('');
+		const line05 = llc('');
+		const line06 = llc('');
 
 		// Offset Pad
 		const pad = ' '.repeat(7);
 
-		console.log(
-			String.raw`
-				${line01} ${pad}${blc('10.0.0')}
-				${line02} ${pad}[${success}] Gateway
-				${line03}${dev ? ` ${pad}${blc('<')}${llc('/')}${blc('>')} ${llc('DEVELOPMENT MODE')}` : ''}
-		`.trim()
-		);
+		console.log(stripIndents`
+ ██░ ██ ▓█████  ██▓     ██▓▒██   ██▒
+▓██░ ██▒▓█   ▀ ▓██▒    ▓██▒▒▒ █ █ ▒░
+▒██▀▀██░▒███   ▒██░    ▒██▒░░  █   ░
+░▓█ ░██ ▒▓█  ▄ ▒██░    ░██░ ░ █ █ ▒ 
+░▓█▒░██▓░▒████▒░██████▒░██░▒██▒ ▒██▒
+ ▒ ░░▒░▒░░ ▒░ ░░ ▒░▓  ░░▓  ▒▒ ░ ░▓ ░
+ ▒ ░▒░ ░ ░ ░  ░░ ░ ▒  ░ ▒ ░░░   ░▒ ░
+ ░  ░░ ░   ░     ░ ░    ▒ ░ ░    ░  
+ ░  ░  ░   ░  ░    ░  ░ ░   ░    ░  
+                                    
+			Created by angeldev0
+${line01} ${pad}${blc('10.0.0')} ${llc(' - ')}${blc('Helix')} ${llc('by ')}${blc('Angel')}
+${line02} ${pad}[${success}] Gateway
+${line03}${dev ? ` ${pad}${blc('<')}${llc('/')}${blc('>')} ${llc('DEVELOPMENT MODE')}` : ''}
+${line04} ${pad}[${success}] Database
+${line05} ${pad}[${success}] TPS Monitor
+${line06} ${pad}[${success}] Logger`);
 	}
 
 	private printStoreDebugInformation() {

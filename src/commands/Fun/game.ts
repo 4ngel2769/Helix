@@ -1,3 +1,10 @@
+// ################################################################################### //
+//                                                                                     //
+// To add more games, create a game logic file at /src/lib/games/ in a game.ts file.   //
+// Then, import the game logic functions here and add them to the command handler.     //
+//                                                                                     // 
+// ################################################################################### //
+
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { FunModule } from '../../modules/Fun';
 import { ApplyOptions } from '@sapphire/decorators';
