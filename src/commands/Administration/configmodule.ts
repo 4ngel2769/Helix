@@ -69,27 +69,40 @@ export class ConfigModuleCommand extends Command {
 			guildData = new GuildModel(defaultData);
 		}
 
-		// Update module status
+		// Ensure modules object exists
 		if (!guildData.modules) {
 			guildData.modules = {};
 		}
 
-		const enabled = action === 'enable';
-		guildData.modules[moduleKey] = enabled;
+		// Use switch for action logic
+		switch (action) {
+			case 'enable':
+			case 'disable': {
+				const enabled = action === 'enable';
+				guildData.modules[moduleKey] = enabled;
+				// Save changes to DB
+				await guildData.save();
 
-		// Save changes
-		await guildData.save();
-
-		return interaction.reply({
-			content: `The ${moduleConfig.name} module has been ${enabled ? 'enabled' : 'disabled'} for this server.`,
-			ephemeral: true
-		});
+				// Confirmation reply
+				return interaction.reply({
+					content: `The ${moduleConfig.name} module has been ${enabled ? 'enabled' : 'disabled'} for this server.`,
+					ephemeral: true
+				});
+			}
+			default:
+				// Handle unknown actions
+				return interaction.reply({
+					content: 'Invalid action.',
+					ephemeral: true
+				});
+		}
 	}
 
+	// Creates default guild data with all modules set to their defaultEnabled state
 	private createDefaultGuildData(guildId: string) {
 		const modules: Record<string, boolean> = {};
 
-		// Use our module configs to set default values
+		// Set default values for all modules
 		getAllModuleKeys().forEach((moduleKey) => {
 			const config = getModuleConfig(moduleKey);
 			if (config) {

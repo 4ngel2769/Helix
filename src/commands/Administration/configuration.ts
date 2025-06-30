@@ -129,4 +129,4 @@ export class ConfigCommand extends ModuleCommand<AdministrationModule> {
             PermissionFlagsBits.ModerateMembers
         ]);
     }
-} 
+}
