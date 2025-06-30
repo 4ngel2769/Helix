@@ -24,13 +24,13 @@ export class TestCommand extends Command {
                 .setContexts(0,1,2)
         );
 
-        // Register context menu command available from any message
+        // Register context menu command for messages
         registry.registerContextMenuCommand({
             name: this.name,
             type: ApplicationCommandType.Message
         });
 
-        // Register context menu command available from any user
+        // Register context menu command for users
         registry.registerContextMenuCommand({
             name: this.name,
             type: ApplicationCommandType.User
@@ -46,14 +46,13 @@ export class TestCommand extends Command {
     public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
         const textComponent = new TextDisplayBuilder().setContent(
             'This is a text display component'
-          );
-      
-          const separatorComponent = new SeparatorBuilder();
-      
+        );
+        const separatorComponent = new SeparatorBuilder();
+
         return interaction.reply({
             flags: MessageFlags.IsComponentsV2,
             components: [textComponent, separatorComponent, textComponent],
-          });
+        });
     }
 
     // Context menu command

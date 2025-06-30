@@ -90,7 +90,7 @@ export class NoteCommand extends Command {
 
     public override async autocompleteRun(interaction: Command.AutocompleteInteraction) {
         const focusedOption = interaction.options.getFocused(true);
-        // Only autocomplete for the note option
+        // Use switch for future extensibility
         switch (focusedOption.name) {
             case 'note': {
                 try {
@@ -136,9 +136,9 @@ export class NoteCommand extends Command {
             .setMaxLength(4000);
 
         const firstActionRow = new ActionRowBuilder<TextInputBuilder>().addComponents(contentInput);
-        // Add the input to the modal
         modal.addComponents(firstActionRow);
         await interaction.showModal(modal);
+
         try {
             // Wait for modal submit
             const filter = (i: any) => 
@@ -167,15 +167,20 @@ export class NoteCommand extends Command {
             if (suggestedBy) {
                 embed.addFields([{ name: 'Suggested By', value: `<@${suggestedBy.id}>`, inline: true }]);
             }
-            return modalSubmit.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+            return modalSubmit.reply({
+                embeds: [embed],
+                flags: MessageFlags.Ephemeral
+            });
         } catch (error) {
             // Modal may timeout or user may exit
-            if (error instanceof Error && error.name === 'Error' && error.message.includes('time')) {
-                // Modal timeout, do nothing
-                return;
+            switch (true) {
+                case error instanceof Error && error.name === 'Error' && error.message.includes('time'):
+                    // Modal timeout, do nothing
+                    return;
+                default:
+                    console.error('Error with note modal:', error);
+                    return;
             }
-            console.error('Error with note modal:', error);
-            return;
         }
     }
 
@@ -206,18 +211,12 @@ export class NoteCommand extends Command {
 
             notes.forEach((note, index) => {
                 const noteNumber = page * pageSize + index + 1;
-                
-                // Extract title from note content
                 const noteTitle = this.extractNoteTitle(note.content);
-                
-                // Build field value with only essential info
                 let fieldValue = `**ID:** \`${note._id}\``;
                 fieldValue += `\n**Created:** <t:${Math.floor(note.createdAt.getTime() / 1000)}:R>`;
-                
                 if (note.suggestedBy) {
                     fieldValue += `\n**Suggested by:** <@${note.suggestedBy}>`;
                 }
-
                 embed.addFields([{
                     name: `${noteNumber}. ${noteTitle}`,
                     value: fieldValue,
@@ -225,7 +224,7 @@ export class NoteCommand extends Command {
                 }]);
             });
 
-            // Create pagination buttons
+            // Pagination and selection UI
             const buttons = new ActionRowBuilder<ButtonBuilder>()
                 .addComponents(
                     new ButtonBuilder()
@@ -240,7 +239,6 @@ export class NoteCommand extends Command {
                         .setDisabled(page >= totalPages - 1)
                 );
 
-            // Create selection menu for notes on current page
             const selectMenu = new ActionRowBuilder<StringSelectMenuBuilder>()
                 .addComponents(
                     new StringSelectMenuBuilder()
@@ -260,16 +258,20 @@ export class NoteCommand extends Command {
                         )
                 );
 
-            // Fix: Use proper typing for mixed components
             const components: (ActionRowBuilder<ButtonBuilder> | ActionRowBuilder<StringSelectMenuBuilder>)[] = [buttons];
             if (notes.length > 0) {
                 components.push(selectMenu);
             }
 
+            // Reply or edit reply based on interaction state
             if (interaction.replied || interaction.deferred) {
                 return interaction.editReply({ embeds: [embed], components });
             } else {
-                return interaction.reply({ embeds: [embed], components, flags: MessageFlags.Ephemeral });
+                return interaction.reply({
+                    embeds: [embed],
+                    components,
+                    flags: MessageFlags.Ephemeral
+                });
             }
         } catch (error) {
             console.error('Error listing notes:', error);
@@ -283,19 +285,19 @@ export class NoteCommand extends Command {
     private extractNoteTitle(content: string): string {
         const lines = content.split('\n');
         const firstLine = lines[0].trim();
-        
-        // Check if first line is a markdown header
-        if (firstLine.startsWith('#')) {
-            return firstLine.replace(/^#+\s*/, '').trim();
+
+        // Use switch for markdown header check
+        switch (true) {
+            case firstLine.startsWith('#'):
+                return firstLine.replace(/^#+\s*/, '').trim();
+            default: {
+                const words = firstLine.split(' ');
+                if (words.length > 7) {
+                    return words.slice(0, 7).join(' ') + '...';
+                }
+                return firstLine || 'Untitled Note';
+            }
         }
-        
-        // If not a header, use first 7 words
-        const words = firstLine.split(' ');
-        if (words.length > 7) {
-            return words.slice(0, 7).join(' ') + '...';
-        }
-        
-        return firstLine || 'Untitled Note';
     }
 
     private async handleDelete(interaction: Command.ChatInputCommandInteraction) {
@@ -303,28 +305,34 @@ export class NoteCommand extends Command {
 
         try {
             const note = await mongooseUtils.findById(DevNote, noteId);
-            
-            if (!note) {
-                return interaction.reply({ 
-                    content: 'Note not found.', 
-                    flags: MessageFlags.Ephemeral 
-                });
+
+            // Use switch for existence check
+            switch (!!note) {
+                case true: {
+                    await mongooseUtils.deleteById(DevNote, noteId);
+
+                    const embed = new EmbedBuilder()
+                        .setColor(config.bot.embedColor.err as ColorResolvable)
+                        .setTitle('🗑️ Note Deleted')
+                        .setDescription(note.content)
+                        .addFields([{
+                            name: 'Deleted Note ID',
+                            value: noteId,
+                            inline: true
+                        }])
+                        .setTimestamp();
+
+                    return interaction.reply({
+                        embeds: [embed],
+                        flags: MessageFlags.Ephemeral
+                    });
+                }
+                default:
+                    return interaction.reply({ 
+                        content: 'Note not found.', 
+                        flags: MessageFlags.Ephemeral 
+                    });
             }
-
-            await mongooseUtils.deleteById(DevNote, noteId);
-
-            const embed = new EmbedBuilder()
-                .setColor(config.bot.embedColor.err as ColorResolvable)
-                .setTitle('🗑️ Note Deleted')
-                .setDescription(note.content)
-                .addFields([{
-                    name: 'Deleted Note ID',
-                    value: noteId,
-                    inline: true
-                }])
-                .setTimestamp();
-
-            return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
         } catch (error) {
             console.error('Error deleting note:', error);
             return interaction.reply({ 
