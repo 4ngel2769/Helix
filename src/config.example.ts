@@ -1,4 +1,5 @@
 import { stripIndent } from 'common-tags';
+import * as pkgJson from '../package.json';
 
 const config = {
 	bot: {
@@ -17,7 +18,11 @@ const config = {
 		},
 		ownerIDs: ['', ''],
 		port: parseInt(process.env.PORT || '3000'),
-		mongoUri: process.env.MONGO || ''
+		mongoUri: process.env.MONGO || '',
+		version: pkgJson.version
+	},
+	secrets: {
+		apiNinjas: 'YOUR_API_NINJAS_KEY'
 	},
 	dashboard: {
 		port: 8080,
@@ -40,7 +45,7 @@ const config = {
 		},
 		session: {
 			secret: process.env.SESSION_SECRET || 'your-secure-session-secret',
-			name: 'bot.session',
+			name: 'helix.session',
 			saveUninitialized: false,
 			resave: false,
 			cookie: {
@@ -63,8 +68,8 @@ const config = {
 	},
 	ollama: {
 		url: process.env.OLLAMA_URL || 'http(s)://ollama-api-hostname:port/api/generate',
-		defaultModel: process.env.OLLAMA_DEFAULT_MODEL || '',
-		availableModels: ['', '', '', ''],
+		defaultModel: process.env.OLLAMA_DEFAULT_MODEL || 'ollama-model-name',
+		availableModels: ['model1', 'model2', 'model3', 'model4'],
 		systemPrompt: stripIndent`
         This is your ollama system prompt.
         `
@@ -72,3 +77,6 @@ const config = {
 };
 
 export default config;
+
+module.exports = config;
+export type Config = typeof config;
