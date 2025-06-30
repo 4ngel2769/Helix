@@ -1,11 +1,28 @@
+// Import from packages
 import { ApplyOptions } from '@sapphire/decorators';
 import { Listener } from '@sapphire/framework';
 import type { StoreRegistryValue } from '@sapphire/pieces';
-import { blue, gray, green, magenta, magentaBright, white, yellow } from 'colorette';
+import { stripIndents } from 'common-tags';
+import {
+	blue,
+	blueBright, 
+	gray,
+	green,
+	magenta,
+	magentaBright, 
+	redBright, 
+	white, 
+	yellow
+} from 'colorette';
 import { ActivityType } from 'discord.js';
+
+// Import from files
 import { TPSMonitor } from '../lib/structures/TPSMonitor';
 import { Guild } from '../models/Guild';
-import { stripIndents } from 'common-tags';
+import { Config } from '../config.js';
+import configModule from '../config.js';
+
+const config = configModule as Config;
 
 const dev = process.env.NODE_ENV !== 'production';
 
@@ -39,39 +56,33 @@ export class UserEvent extends Listener {
 	// }
 
 	private printBanner() {
+		const { logger } = this.container;
 		const success = green('+');
 
-		const llc = dev ? magentaBright : white;
-		const blc = dev ? magenta : blue;
+		const llc = dev ? blueBright : white;
+		const blc = dev ? blue : blue;
+		const ylc = dev ? yellow : yellow;
+		const rlc = dev ? redBright : redBright;
 
-		const line01 = llc('');
-		const line02 = llc('');
-		const line03 = llc('');
-		const line04 = llc('');
-		const line05 = llc('');
-		const line06 = llc('');
+		const banner = stripIndents`
+		| ██░ ██ ▓█████  ██▓     ██▓▒██   ██▒
+		|▓██░ ██▒▓█   ▀ ▓██▒    ▓██▒▒▒ █ █ ▒░
+		|▒██▀▀██░▒███   ▒██░    ▒██▒░░  █   ░
+		|░▓█ ░██ ▒▓█  ▄ ▒██░    ░██░ ░ █ █ ▒ 
+		|░▓█▒░██▓░▒████▒░██████▒░██░▒██▒ ▒██▒
+		| ▒ ░░▒░▒░░ ▒░ ░░ ▒░▓  ░░▓  ▒▒ ░ ░▓ ░
+		| ▒ ░▒░ ░ ░ ░  ░░ ░ ▒  ░ ▒ ░░░   ░▒ ░
+		| ░  ░░ ░   ░     ░ ░    ▒ ░ ░    ░  
+		| ░  ░  ░   ░  ░    ░  ░ ░   ░    ░  
+		`;
 
-		// Offset Pad
-		const pad = ' '.repeat(7);
-
-		console.log(stripIndents`
- ██░ ██ ▓█████  ██▓     ██▓▒██   ██▒
-▓██░ ██▒▓█   ▀ ▓██▒    ▓██▒▒▒ █ █ ▒░
-▒██▀▀██░▒███   ▒██░    ▒██▒░░  █   ░
-░▓█ ░██ ▒▓█  ▄ ▒██░    ░██░ ░ █ █ ▒ 
-░▓█▒░██▓░▒████▒░██████▒░██░▒██▒ ▒██▒
- ▒ ░░▒░▒░░ ▒░ ░░ ▒░▓  ░░▓  ▒▒ ░ ░▓ ░
- ▒ ░▒░ ░ ░ ░  ░░ ░ ▒  ░ ▒ ░░░   ░▒ ░
- ░  ░░ ░   ░     ░ ░    ▒ ░ ░    ░  
- ░  ░  ░   ░  ░    ░  ░ ░   ░    ░  
-                                    
-			Created by angeldev0
-${line01} ${pad}${blc('10.0.0')} ${llc(' - ')}${blc('Helix')} ${llc('by ')}${blc('Angel')}
-${line02} ${pad}[${success}] Gateway
-${line03}${dev ? ` ${pad}${blc('<')}${llc('/')}${blc('>')} ${llc('DEVELOPMENT MODE')}` : ''}
-${line04} ${pad}[${success}] Database
-${line05} ${pad}[${success}] TPS Monitor
-${line06} ${pad}[${success}] Logger`);
+		console.log(banner);
+		if (dev) logger.warn(`${blc('<')}${llc('/')}${blc('>')} ${llc('DEVELOPMENT MODE')}`);
+		logger.info(`${ylc(`Helix version ${config.bot.version}`)}${llc(' - ')}${llc('by ')}${rlc('Angel')}`);
+		logger.info(`[${success}] Gateway: ${blc(this.container.client.ws.shards.size.toString())} shards`);
+		logger.info(`[${success}] Database`);
+		logger.info(`[${success}] TPS Monitor`);
+		logger.info(`[${success}] Logger`);
 	}
 
 	private printStoreDebugInformation() {

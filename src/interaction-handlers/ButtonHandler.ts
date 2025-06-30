@@ -32,7 +32,6 @@ interface RedditMemeResponse {
     preview: string[];
 }
 
-// Cast the config to the proper type
 const config = configModule as Config;
 
 @ApplyOptions<InteractionHandler.Options>({
