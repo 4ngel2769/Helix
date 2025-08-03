@@ -1,16 +1,20 @@
-import { Route, ApplyOptions, methods } from '@sapphire/plugin-api';
-import type { ApiRequest, ApiResponse } from '@sapphire/plugin-api';
+import { Route } from '@sapphire/framework';
+import { ApiRequest, ApiResponse, HttpCodes } from '@sapphire/plugin-api';
 import { Guild } from '../models/Guild';
 import { fetch } from '@sapphire/fetch';
 import { PermissionsBitField } from 'discord.js';
 
-@ApplyOptions<Route.Options>({
-    route: 'guilds/:guildId/verification'
-})
 export class GuildVerificationRoute extends Route {
-    public async [methods.POST](request: ApiRequest, response: ApiResponse) {
+    public constructor(context: Route.LoaderContext, options: Route.Options) {
+        super(context, {
+            ...options,
+            route: 'guilds/:guildId/verification',
+        });
+    }
+
+    public async post(request: ApiRequest, response: ApiResponse) {
         if (!request.auth) {
-            return response.status(401).json({ error: 'Unauthorized' });
+            return response.status(HttpCodes.Unauthorized).json({ error: 'Unauthorized' });
         }
 
         const { guildId } = request.params;
@@ -25,12 +29,12 @@ export class GuildVerificationRoute extends Route {
             const guild = userGuilds.find(g => g.id === guildId);
 
             if (!guild) {
-                return response.status(403).json({ error: 'Forbidden: You are not in this guild.' });
+                return response.status(HttpCodes.Forbidden).json({ error: 'Forbidden: You are not in this guild.' });
             }
 
             const permissions = new PermissionsBitField(BigInt(guild.permissions));
             if (!permissions.has('ManageGuild')) {
-                return response.status(403).json({ error: 'Forbidden: You do not have Manage Guild permission.' });
+                return response.status(HttpCodes.Forbidden).json({ error: 'Forbidden: You do not have Manage Guild permission.' });
             }
 
             // 2. Get settings from request body
@@ -54,7 +58,7 @@ export class GuildVerificationRoute extends Route {
 
         } catch (error) {
             this.container.client.logger.error(error);
-            return response.status(500).json({ error: 'Internal Server Error' });
+            return response.status(HttpCodes.InternalServerError).json({ error: 'Internal Server Error' });
         }
     }
 }
