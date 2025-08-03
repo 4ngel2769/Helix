@@ -86,7 +86,8 @@
     "dev:dashboard": "cd src/dashboard && vue-cli-service serve",
     "build:both": "npm run build:bot && npm run build:dashboard",
     "build:bot": "tsc",
-    "build:dashboard": "cd src/dashboard && vue-cli-service build"
+    "build:dashboard": "cd src/dashboard && vue-cli-service build",
+    "test:dashboard": "npm test --prefix ./dashboard"
   },
   "prettier": "@sapphire/prettier-config",
   "packageManager": "yarn@4.2.1"
