@@ -1,17 +1,13 @@
-import { Route } from '@sapphire/framework';
-import { ApiRequest, ApiResponse, HttpCodes } from '@sapphire/plugin-api';
+import { Route, ApplyOptions, methods } from '@sapphire/plugin-api';
+import type { ApiRequest, ApiResponse } from '@sapphire/plugin-api';
 
+@ApplyOptions<Route.Options>({
+    route: 'users/@me'
+})
 export class UserRoute extends Route {
-    public constructor(context: Route.LoaderContext, options: Route.Options) {
-        super(context, {
-            ...options,
-            route: 'users/@me',
-        });
-    }
-
-    public get(request: ApiRequest, response: ApiResponse) {
+    public [methods.GET](request: ApiRequest, response: ApiResponse) {
         if (!request.auth) {
-            return response.status(HttpCodes.Unauthorized).json({ error: 'Unauthorized' });
+            return response.status(401).json({ error: 'Unauthorized' });
         }
         return response.json(request.auth);
     }
