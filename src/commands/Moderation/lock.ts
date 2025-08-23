@@ -125,8 +125,7 @@ export class LockCommand extends ModuleCommand<ModerationModule> {
             await channel.send({ embeds: [embed] });
 
             return interaction.reply({
-                content: `Successfully locked ${channel}${durationMs > 0 ? ` for ${durationText}` : ''}`,
-                flags: MessageFlags.Ephemeral
+                content: `Successfully locked ${channel}${durationMs > 0 ? ` for ${durationText}` : ''}`
             });
         } catch (error) {
             return ErrorHandler.sendCommandError(

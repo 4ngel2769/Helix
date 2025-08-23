@@ -10,6 +10,7 @@ import {
     MessageFlags
 } from 'discord.js';
 import config from '../../config';
+import { getReply } from '../../lib/utils/replies';
 
 @ApplyOptions<ModuleCommand.Options>({
     module: 'Moderation',
@@ -51,6 +52,12 @@ export class BanCommand extends ModuleCommand<ModerationModule> {
                         .setMaxValue(7)
                         .setRequired(false)
                 )
+                .addStringOption((option) =>
+                    option
+                        .setName('message')
+                        .setDescription('Custom message to send on ban')
+                        .setRequired(false)
+                )
         );
     }
 
@@ -67,25 +74,34 @@ export class BanCommand extends ModuleCommand<ModerationModule> {
             return interaction.reply({ content: 'I cannot ban that member.', flags: MessageFlags.Ephemeral });
         }
 
+        const customMessage = interaction.options.getString('message');
+        
+        // Handle custom message with variable replacement
+        let messageText: string;
+        if (customMessage) {
+            messageText = customMessage
+                .replace(/\$user/g, target.user.tag)
+                .replace(/\$mod/g, interaction.user.tag);
+        } else {
+            messageText = getReply('ban', { user: target.user.tag, mod: interaction.user.tag });
+        }
+
         try {
             await target.ban({ deleteMessageDays: days, reason });
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.default as ColorResolvable)
-                .setTitle('Member Banned')
-                .addFields(
-                    { name: 'Member', value: `${target.user.tag} (${target.id})` },
-                    { name: 'Moderator', value: `${interaction.user.tag}` },
-                    { name: 'Reason', value: reason }
-                )
-                .setTimestamp();
+                .setDescription(messageText)
+                .setFooter({
+                    text: `Mod: ${interaction.user.tag} · ${new Date().toLocaleString()}`
+                });
 
-            return interaction.reply({ embeds: [embed] });
+            return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
         } catch (error) {
-            return interaction.reply({ 
+            return interaction.reply({
                 content: 'There was an error while banning the member.',
-                flags: MessageFlags.Ephemeral 
+                flags: MessageFlags.Ephemeral
             });
         }
     }
-} 
+}

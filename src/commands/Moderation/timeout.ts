@@ -9,6 +9,7 @@ import {
     MessageFlags
 } from 'discord.js';
 import config from '../../config';
+import { getReply } from '../../lib/utils/replies';
 
 export class TimeoutCommand extends ModuleCommand<ModerationModule> {
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
@@ -46,6 +47,12 @@ export class TimeoutCommand extends ModuleCommand<ModerationModule> {
                         .setDescription('The reason for the timeout')
                         .setRequired(false)
                 )
+                .addStringOption((option) =>
+                    option
+                        .setName('message')
+                        .setDescription('Custom message to send on timeout')
+                        .setRequired(false)
+                )
         );
     }
 
@@ -62,26 +69,39 @@ export class TimeoutCommand extends ModuleCommand<ModerationModule> {
             return interaction.reply({ content: 'I cannot timeout that member.', flags: MessageFlags.Ephemeral });
         }
 
+        const customMessage = interaction.options.getString('message');
+        
+        // Handle custom message with variable replacement
+        let messageText: string;
+        if (customMessage) {
+            messageText = customMessage
+                .replace(/\$user/g, target.user.tag)
+                .replace(/\$mod/g, interaction.user.tag)
+                .replace(/\$duration/g, duration.toString());
+        } else {
+            messageText = getReply('timeout', { 
+                user: target.user.tag, 
+                mod: interaction.user.tag,
+                duration: duration.toString()
+            });
+        }
+
         try {
             await target.timeout(duration * 60 * 1000, reason);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.default as ColorResolvable)
-                .setTitle('Member Timed Out')
-                .addFields(
-                    { name: 'Member', value: `${target.user.tag} (${target.id})` },
-                    { name: 'Moderator', value: `${interaction.user.tag}` },
-                    { name: 'Duration', value: `${duration} minutes` },
-                    { name: 'Reason', value: reason }
-                )
-                .setTimestamp();
+                .setDescription(messageText)
+                .setFooter({
+                    text: `Mod: ${interaction.user.tag} · ${new Date().toLocaleString()}`
+                });
 
             return interaction.reply({ embeds: [embed] });
         } catch (error) {
-            return interaction.reply({ 
+            return interaction.reply({
                 content: 'There was an error while timing out the member.',
-                flags: MessageFlags.Ephemeral 
+                flags: MessageFlags.Ephemeral
             });
         }
     }
-} 
+}

@@ -9,6 +9,7 @@ import {
     MessageFlags
 } from 'discord.js';
 import config from '../../config';
+import { getReply } from '../../lib/utils/replies';
 
 export class KickCommand extends ModuleCommand<ModerationModule> {
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
@@ -38,6 +39,12 @@ export class KickCommand extends ModuleCommand<ModerationModule> {
                         .setDescription('The reason for the kick')
                         .setRequired(false)
                 )
+                .addStringOption((option) =>
+                    option
+                        .setName('message')
+                        .setDescription('Custom message to send on kick')
+                        .setRequired(false)
+                )
         );
     }
 
@@ -53,25 +60,34 @@ export class KickCommand extends ModuleCommand<ModerationModule> {
             return interaction.reply({ content: 'I cannot kick that member.', flags: MessageFlags.Ephemeral });
         }
 
+        const customMessage = interaction.options.getString('message');
+        
+        // Handle custom message with variable replacement
+        let messageText: string;
+        if (customMessage) {
+            messageText = customMessage
+                .replace(/\$user/g, target.user.tag)
+                .replace(/\$mod/g, interaction.user.tag);
+        } else {
+            messageText = getReply('kick', { user: target.user.tag, mod: interaction.user.tag });
+        }
+
         try {
             await target.kick(reason);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.default as ColorResolvable)
-                .setTitle('Member Kicked')
-                .addFields(
-                    { name: 'Member', value: `${target.user.tag} (${target.id})` },
-                    { name: 'Moderator', value: `${interaction.user.tag}` },
-                    { name: 'Reason', value: reason }
-                )
-                .setTimestamp();
+                .setDescription(messageText)
+                .setFooter({
+                    text: `Mod: ${interaction.user.tag} · ${new Date().toLocaleString()}`
+                });
 
             return interaction.reply({ embeds: [embed] });
         } catch (error) {
-            return interaction.reply({ 
+            return interaction.reply({
                 content: 'There was an error while kicking the member.',
-                flags: MessageFlags.Ephemeral 
+                flags: MessageFlags.Ephemeral
             });
         }
     }
-} 
+}
