@@ -26,7 +26,7 @@ const config = configModule as Config;
 
 const dev = process.env.NODE_ENV !== 'production';
 
-@ApplyOptions<Listener.Options>({ once: true })
+@ApplyOptions<Listener.Options>({ event: 'clientReady', once: true })
 export class UserEvent extends Listener {
 	private readonly style = dev ? yellow : blue;
 
