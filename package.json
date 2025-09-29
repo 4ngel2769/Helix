@@ -6,7 +6,7 @@
   "license": "GNU",
   "type": "commonjs",
   "engines": {
-    "node": "21.7.3"
+    "node": ">=21.7.3"
   },
   "dependencies": {
     "@kaname-png/plugin-subcommands-advanced": "^2.5.0",
@@ -27,7 +27,7 @@
     "@sapphire/utilities": "^3.18.2",
     "@skyra/env-utilities": "^2.0.1",
     "@types/mongoose": "^5.11.97",
-    "axios": "^1.11.0",
+    "axios": "^1.12.2",
     "colorette": "^2.0.20",
     "common-tags": "^1.8.2",
     "connect-mongo": "^5.1.0",

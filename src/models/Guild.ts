@@ -85,7 +85,7 @@ interface ReactionRolesMenu {
 export interface IGuild extends Document, LegacyModuleFlags, VerificationSettings {
   guildId: string;
   prefix?: string;
-  adminRoleId?: string; 
+  adminRoleId?: string;
   modRoleId?: string;
   lockedChannels?: LockedChannel[];
   modules: ModuleSettings;

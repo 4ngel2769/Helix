@@ -200,7 +200,7 @@ export class UserinfoCommand extends Command<GeneralModule> {
 				});
 			}
 
-			if (memberToGet && config.bot.ownerIDs.includes(memberToGet.id)) {
+			if (memberToGet && config.bot.ownerIDs.includes(memberToGet.id as string)) {
 				embed.addFields({
 					name: 'Notables',
 					value: `${emojis.badgesBlurple.developer} \` This user is the Bot developer \``
@@ -289,7 +289,7 @@ export class UserinfoCommand extends Command<GeneralModule> {
 				});
 			}
 
-			if (config.bot.ownerIDs.includes(memberToGet.id)) {
+			if (config.bot.ownerIDs.includes(memberToGet.id as string)) {
 				embed.addFields({
 					name: 'Notables',
 					value: `${emojis.badgesBlurple.developer} \` This user is the Bot developer \``
@@ -304,7 +304,7 @@ export class UserinfoCommand extends Command<GeneralModule> {
 				});
 			}
 			
-			if (config.bot.ownerIDs.includes(userToGet.id)) {
+			if (config.bot.ownerIDs.includes(userToGet.id as string)) {
 				embed.addFields({
 					name: 'Notables',
 					value: `${emojis.badgesBlurple.developer} \` This user is the Bot developer \``

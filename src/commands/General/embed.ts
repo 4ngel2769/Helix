@@ -61,7 +61,7 @@ export class EmbedCommand extends Command {
         const thumbnail = interaction.options.getString('thumbnail');
 
         // Validate hex color format if provided
-        let color = config.bot.embedColor.default;
+        let color: `#${string}` = config.bot.embedColor.default as `#${string}`;
         if (colorInput) {
             // Check if it's a valid hex color (with or without #)
             const hexColorRegex = /^#?([0-9A-Fa-f]{6})$/;
@@ -73,13 +73,13 @@ export class EmbedCommand extends Command {
             }
             
             // Ensure the color has a # prefix
-            color = colorInput.startsWith('#') ? colorInput : `#${colorInput}`;
+            color = (colorInput.startsWith('#') ? colorInput : `#${colorInput}`) as `#${string}`;
         }
 
         const embed = new EmbedBuilder()
             .setTitle(title)
             .setDescription(description)
-            .setColor(color as `#${string}`)
+            .setColor(color)
             .setTimestamp();
 
         if (footer) embed.setFooter({ text: footer });

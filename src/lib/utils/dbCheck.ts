@@ -86,7 +86,7 @@ export async function ensureCollectionsExist(): Promise<string[]> {
 		// Define required models and their initialization functions
 		const requiredModels = [
 			{ name: 'guilds', model: Guild },
-			{ name: 'custommessages', model: CustomMessage }
+			{ name: 'customMessages', model: CustomMessage }
 		];
 
 		// Create a test document for each model that doesn't exist

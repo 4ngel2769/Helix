@@ -8,20 +8,30 @@ export class GuildsRoute extends Route {
             return response.status(401).json({ error: 'Unauthorized' });
         }
 
+        const { guildId } = request.params;
+        if (!guildId) {
+            return response.status(400).json({ error: 'Missing guildId parameter' });
+        }
+
         try {
             const userGuilds = await this.fetchUserGuilds(request.auth.token);
-            
-            const enrichedGuilds = userGuilds.map((guild: OAuth2Guild) => ({
+            const guild = userGuilds.find((g: OAuth2Guild) => g.id === guildId);
+
+            if (!guild) {
+                return response.status(404).json({ error: 'Guild not found or not accessible by user' });
+            }
+
+            const enrichedGuild = {
                 ...guild,
                 hasBot: this.container.client.guilds.cache.has(guild.id),
-                icon: guild.icon 
-                    ? `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png` 
+                icon: guild.icon
+                    ? `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png`
                     : 'https://cdn.discordapp.com/embed/avatars/0.png'
-            }));
+            };
 
-            return response.json({ guilds: enrichedGuilds });
+            return response.json({ guild: enrichedGuild });
         } catch (error) {
-            return response.status(500).json({ error: 'Failed to fetch guilds' });
+            return response.status(500).json({ error: 'Failed to fetch guild' });
         }
     }
 
@@ -30,19 +40,16 @@ export class GuildsRoute extends Route {
             headers: { Authorization: `Bearer ${token}` }
         });
         if (!response.ok) {
-            // Try to extract error message from response, fallback to status text
             let errorMessage = `Failed to fetch guilds: ${response.status} ${response.statusText}`;
             try {
                 const errorData = await response.json();
-                if (errorData && errorData.message) {
-                    errorMessage = `Failed to fetch guilds: ${errorData.message}`;
+                if (errorData && typeof errorData === 'object' && 'message' in errorData) {
+                    errorMessage = `Failed to fetch guilds: ${(errorData as { message: string }).message}`;
                 }
-            } catch (_) {
-                // Ignore JSON parse errors, use default errorMessage
-            }
+            } catch (_) {}
             throw new Error(errorMessage);
         }
         const data = await response.json();
         return data as OAuth2Guild[];
     }
-} 
+}

@@ -55,7 +55,7 @@ export class AskCommand extends ModuleCommand<GeneralModule> {
 		const userPrompt = interaction.options.getString('prompt', true);
 		const model = interaction.options.getString('model') || this.defaultModel;
 
-		if (!this.availableModels.includes(model)) {
+		if (!this.availableModels.includes(model as (typeof this.availableModels)[number])) {
 			return interaction.editReply({
 				embeds: [
 					new EmbedBuilder()
