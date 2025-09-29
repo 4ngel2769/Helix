@@ -1,20 +1,47 @@
+// Import from packages
 import { ApplyOptions } from '@sapphire/decorators';
 import { Listener } from '@sapphire/framework';
 import type { StoreRegistryValue } from '@sapphire/pieces';
-import { blue, gray, green, magenta, magentaBright, white, yellow } from 'colorette';
+import { stripIndents } from 'common-tags';
+import {
+	blue,
+	blueBright, 
+	gray,
+	green,
+	magenta,
+	magentaBright, 
+	redBright, 
+	white, 
+	yellow
+} from 'colorette';
 import { ActivityType } from 'discord.js';
+
+// Import from files
+import { TPSMonitor } from '../lib/structures/TPSMonitor';
+import { Guild } from '../models/Guild';
+import { Config } from '../config.js';
+import configModule from '../config.js';
+
+const config = configModule as Config;
 
 const dev = process.env.NODE_ENV !== 'production';
 
-@ApplyOptions<Listener.Options>({ once: true })
+@ApplyOptions<Listener.Options>({ event: 'clientReady', once: true })
 export class UserEvent extends Listener {
 	private readonly style = dev ? yellow : blue;
 
-	public override run() {
+	public override async run() {
 		// this.botStartup();
+
 		this.printBanner();
 		this.printStoreDebugInformation();
+		this.checkDatabaseStatus();
+		this.syncGuildDatabase();
 		this.botStartupFinish();
+		
+		// Initialize TPS Monitor
+		TPSMonitor.getInstance();
+		this.container.logger.info('TPS Monitor initialized');
 	}
 
 	// Experimental
@@ -29,25 +56,37 @@ export class UserEvent extends Listener {
 	// }
 
 	private printBanner() {
+		const { logger } = this.container;
 		const success = green('+');
 
-		const llc = dev ? magentaBright : white;
-		const blc = dev ? magenta : blue;
+		const llc = dev ? blueBright : white;
+		const blc = dev ? blue : blue;
+		const ylc = dev ? yellow : yellow;
+		const rlc = dev ? redBright : redBright;
 
-		const line01 = llc('');
-		const line02 = llc('');
-		const line03 = llc('');
+		const banner = stripIndents`
+		| ██░ ██ ▓█████  ██▓     ██▓▒██   ██▒
+		|▓██░ ██▒▓█   ▀ ▓██▒    ▓██▒▒▒ █ █ ▒░
+		|▒██▀▀██░▒███   ▒██░    ▒██▒░░  █   ░
+		|░▓█ ░██ ▒▓█  ▄ ▒██░    ░██░ ░ █ █ ▒ 
+		|░▓█▒░██▓░▒████▒░██████▒░██░▒██▒ ▒██▒
+		| ▒ ░░▒░▒░░ ▒░ ░░ ▒░▓  ░░▓  ▒▒ ░ ░▓ ░
+		| ▒ ░▒░ ░ ░ ░  ░░ ░ ▒  ░ ▒ ░░░   ░▒ ░
+		| ░  ░░ ░   ░     ░ ░    ▒ ░ ░    ░  
+		| ░  ░  ░   ░  ░    ░  ░ ░   ░    ░  
+		`;
 
-		// Offset Pad
-		const pad = ' '.repeat(7);
-
-		console.log(
-			String.raw`
-				${line01} ${pad}${blc('10.0.0')}
-				${line02} ${pad}[${success}] Gateway
-				${line03}${dev ? ` ${pad}${blc('<')}${llc('/')}${blc('>')} ${llc('DEVELOPMENT MODE')}` : ''}
-		`.trim()
-		);
+		console.log(banner);
+        
+        const tpsMonitor = TPSMonitor.getInstance();
+        logger.info(`[${success}] TPS Monitor initialized and tracking started`);
+        
+        if (dev) logger.warn(`${blc('<')}${llc('/')}${blc('>')} ${llc('DEVELOPMENT MODE')}`);
+        logger.info(`${ylc(`Helix version ${config.bot.version}`)}${llc(' - ')}${llc('by ')}${rlc('Angel')}`);
+        logger.info(`[${success}] Gateway: ${blc(this.container.client.ws.shards.size.toString())} shards`);
+        logger.info(`[${success}] Database`);
+        logger.info(`[${success}] TPS Monitor`);
+        logger.info(`[${success}] Logger`);
 	}
 
 	private printStoreDebugInformation() {
@@ -74,5 +113,62 @@ export class UserEvent extends Listener {
 			status: 'idle',
 			activities: [{ name: 'Eating pizza', type: ActivityType.Custom}]
 		})
+	}
+	
+	private checkDatabaseStatus() {
+		const { database, logger } = this.container;
+		
+		if (database?.isConnected) {
+			logger.info(`Connected to MongoDB with ${database.collections.length} collections`);
+		} else {
+			logger.warn('Not connected to MongoDB. Some features may not work properly.');
+		}
+	}
+
+	private async syncGuildDatabase() {
+		const { client, logger, database } = this.container;
+		
+		// Skip if database is not connected
+		if (!database?.isConnected) {
+			logger.warn('Skipping guild database sync due to no database connection');
+			return;
+		}
+		
+		try {
+			// Get all guilds the bot is in
+			const guilds = client.guilds.cache;
+			logger.info(`Starting guild database sync for ${guilds.size} guilds...`);
+			
+			let created = 0;
+			let existing = 0;
+			
+			// Check each guild and create database entry if it doesn't exist
+			for (const [guildId] of guilds) {
+				const guildData = await Guild.findOne({ guildId });
+				
+				if (!guildData) {
+					// Create default guild data
+					const newGuild = new Guild({
+						guildId,
+						// Default module settings
+						isGeneralModule: true,
+						isModerationModule: true,
+						isAdministrationModule: true,
+						isFunModule: true,
+						isWelcomingModule: false,
+						isVerificationModule: false
+					});
+					
+					await newGuild.save();
+					created++;
+				} else {
+					existing++;
+				}
+			}
+			
+			logger.info(`Guild database sync complete: ${created} created, ${existing} existing`);
+		} catch (error) {
+			logger.error(`Error syncing guild database: ${error}`);
+		}
 	}
 }

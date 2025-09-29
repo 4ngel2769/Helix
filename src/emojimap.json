@@ -27,14 +27,20 @@
             "bugHunter2" : "<:discord_bughunter_2:914817650121642015>",
             "verifiedApp" : "<:verified_app:1242889751217049712>",
             "discordApp" : "<:discord_app:1242889663115427841>",
-            "activeDeveloper" : "<:active_developer:1242891214785744916>"
+            "activeDeveloper" : "<:active_developer:1242891214785744916>",
+            "earlyVerifiedBotDeveloper" : "<:verified_bot_developer:899907230307069973>",
+            "earlySupporter" : "<:early_supporter:914818697997197323>",
+            "certifiedModerator" : "<:mod:891086322733821992>",
+            "botSlashCommands" : "<:slash:899908737698000976>",
+            "staff" : "<:blurple_employee:899907312280563722>"
     
         },
         "economy" : {
 
         },
         "special" : {
-
+            "partner" : "<:partner:899907131757695016>",
+            "contributor" : "<:blurple_members:899908110934749184>"
         }
     }
 }

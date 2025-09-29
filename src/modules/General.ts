@@ -5,7 +5,7 @@ export class GeneralModule extends Module {
     public constructor(context: Module.LoaderContext, options: Piece.Options) {
         super(context, {
             ...options,
-            fullName: 'General Commands',
+            fullName: 'General',
             description: 'Commands used by everyone',
             enabled: true
         });

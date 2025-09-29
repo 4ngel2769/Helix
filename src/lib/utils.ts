@@ -76,7 +76,7 @@ async function readYamlFile<T>(filePath: string): Promise<T> {
 }
 
 async function loadReply(filePath: string = './defaultreplies.yaml'): Promise<Replies> {
-	if(!cachedReplies) {
+	if (!cachedReplies) {
 		cachedReplies = await readYamlFile<Replies>(filePath);
 	}
 	return cachedReplies;
