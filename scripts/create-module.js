@@ -20,7 +20,7 @@ class ModuleGenerator {
     }
 
     async collectModuleInfo() {
-        console.log('🚀 Helix Module Generator\n');
+        console.log('🚀 Helix Advanced Module Generator\n');
         console.log('This will create a new command module with all necessary files.\n');
 
         // Module name
@@ -64,18 +64,12 @@ class ModuleGenerator {
         // Emoji for the module
         this.moduleData.emoji = await this.question('Emoji for module (Unicode or Discord emoji ID): ') || '⚙️';
 
-        // Required permissions
-        if (this.moduleData.audience.permissions.length > 0) {
-            console.log(`\nRequired permissions: ${this.moduleData.audience.permissions.join(', ')}`);
-        }
-
         // Create sample command
         const createSample = await this.question('Create a sample command? (y/n): ');
         this.moduleData.createSample = createSample.toLowerCase() === 'y';
 
         if (this.moduleData.createSample) {
-            this.moduleData.sampleCommandName = await this.question('Sample command name: ') || 'example';
-            this.moduleData.sampleCommandDesc = await this.question('Sample command description: ') || 'Example command for this module';
+            await this.collectCommandInfo();
         }
 
         console.log('\n📋 Module Summary:');
@@ -85,7 +79,11 @@ class ModuleGenerator {
         console.log(`Default Enabled: ${this.moduleData.defaultEnabled}`);
         console.log(`Emoji: ${this.moduleData.emoji}`);
         if (this.moduleData.createSample) {
-            console.log(`Sample Command: ${this.moduleData.sampleCommandName}`);
+            console.log(`Sample Command: ${this.moduleData.command.name}`);
+            console.log(`Command Type: ${this.moduleData.command.type}`);
+            if (this.moduleData.command.subcommands.length > 0) {
+                console.log(`Subcommands: ${this.moduleData.command.subcommands.map(s => s.name).join(', ')}`);
+            }
         }
 
         const confirm = await this.question('\nProceed with creation? (y/n): ');
@@ -94,11 +92,230 @@ class ModuleGenerator {
         }
     }
 
+async scanExistingCommands() {
+    const commandsDir = path.join(this.srcDir, 'commands');
+    const existingCommands = new Set();
+    
+    try {
+        const dirs = await fs.readdir(commandsDir);
+        
+        for (const dir of dirs) {
+            const dirPath = path.join(commandsDir, dir);
+            const stat = await fs.lstat(dirPath);
+            
+            if (stat.isDirectory()) {
+                const files = await fs.readdir(dirPath);
+                for (const file of files) {
+                    if (file.endsWith('.ts') && !file.includes('README')) {
+                        const commandName = file.replace('.ts', '');
+                        existingCommands.add(commandName.toLowerCase());
+                    }
+                }
+            }
+        }
+    } catch (error) {
+        console.warn('Could not scan existing commands:', error.message);
+    }
+    
+    return existingCommands;
+}
+
+// Update collectCommandInfo method
+async collectCommandInfo() {
+    console.log('\n📝 Command Configuration');
+    
+    // Scan for existing commands
+    const existingCommands = await this.scanExistingCommands();
+    
+    let commandName;
+    while (true) {
+        commandName = await this.question('Command name: ') || 'example';
+        
+        if (existingCommands.has(commandName.toLowerCase())) {
+            console.log(`❌ Command "${commandName}" already exists. Please choose a different name.`);
+        } else {
+            break;
+        }
+    }
+    
+    this.moduleData.command = {
+        name: commandName,
+        description: await this.question('Command description: ') || 'Example command',
+        type: 'slash',
+        contextMenus: [],
+        subcommands: [],
+        options: [],
+        modals: false
+    };
+
+        // Command type selection
+        console.log('\nCommand Types:');
+        console.log('1. Slash command only');
+        console.log('2. Text (prefix) command only');
+        console.log('3. Both slash and text commands');
+        console.log('4. Context menu only');
+        console.log('5. Slash + Context menus');
+        
+        const cmdType = await this.question('Choose command type (1-5): ');
+        const cmdTypes = {
+            '1': 'slash',
+            '2': 'text',
+            '3': 'both',
+            '4': 'context',
+            '5': 'slash-context'
+        };
+        
+        this.moduleData.command.type = cmdTypes[cmdType] || 'slash';
+
+        // Context menus
+        if (this.moduleData.command.type === 'context' || this.moduleData.command.type === 'slash-context') {
+            const userContext = await this.question('Add user context menu? (y/n): ');
+            const messageContext = await this.question('Add message context menu? (y/n): ');
+            
+            if (userContext.toLowerCase() === 'y') {
+                this.moduleData.command.contextMenus.push('user');
+            }
+            if (messageContext.toLowerCase() === 'y') {
+                this.moduleData.command.contextMenus.push('message');
+            }
+        }
+
+        // Subcommands
+        if (this.moduleData.command.type.includes('slash')) {
+            const hasSubcommands = await this.question('Does this command have subcommands? (y/n): ');
+            
+            if (hasSubcommands.toLowerCase() === 'y') {
+                await this.collectSubcommands();
+            } else {
+                await this.collectOptions();
+            }
+        }
+
+        // Modal support
+        if (this.moduleData.command.type.includes('slash')) {
+            const hasModal = await this.question('Does this command use modals? (y/n): ');
+            this.moduleData.command.modals = hasModal.toLowerCase() === 'y';
+        }
+    }
+
+    async collectSubcommands() {
+        console.log('\n🔧 Adding Subcommands');
+        
+        while (true) {
+            const subName = await this.question('Subcommand name (or "done" to finish): ');
+            if (subName.toLowerCase() === 'done') break;
+            
+            const subDesc = await this.question(`Description for "${subName}": `);
+            
+            const subcommand = {
+                name: subName,
+                description: subDesc,
+                options: []
+            };
+
+            // Add options to subcommand
+            console.log(`\nAdding options to subcommand "${subName}"`);
+            await this.collectOptionsForSubcommand(subcommand);
+            
+            this.moduleData.command.subcommands.push(subcommand);
+        }
+    }
+
+    async collectOptionsForSubcommand(subcommand) {
+        while (true) {
+            const optName = await this.question('Option name (or "done" to finish): ');
+            if (optName.toLowerCase() === 'done') break;
+            
+            const option = await this.createOption(optName);
+            subcommand.options.push(option);
+        }
+    }
+
+    async collectOptions() {
+        console.log('\n⚙️ Adding Options');
+        
+        while (true) {
+            const optName = await this.question('Option name (or "done" to finish): ');
+            if (optName.toLowerCase() === 'done') break;
+            
+            const option = await this.createOption(optName);
+            this.moduleData.command.options.push(option);
+        }
+    }
+
+    async createOption(name) {
+        console.log('\nOption Types:');
+        console.log('1. String');
+        console.log('2. Integer');
+        console.log('3. Boolean');
+        console.log('4. User');
+        console.log('5. Channel');
+        console.log('6. Role');
+        console.log('7. Mentionable');
+        console.log('8. Number');
+        console.log('9. Attachment');
+        
+        const optType = await this.question('Option type (1-9): ');
+        const types = {
+            '1': 'String',
+            '2': 'Integer', 
+            '3': 'Boolean',
+            '4': 'User',
+            '5': 'Channel',
+            '6': 'Role',
+            '7': 'Mentionable',
+            '8': 'Number',
+            '9': 'Attachment'
+        };
+
+        const description = await this.question(`Description for "${name}": `);
+        const required = await this.question(`Is "${name}" required? (y/n): `);
+        
+        const option = {
+            name,
+            type: types[optType] || 'String',
+            description,
+            required: required.toLowerCase() === 'y',
+            choices: []
+        };
+
+        // Add choices for string/integer options
+        if (option.type === 'String' || option.type === 'Integer') {
+            const hasChoices = await this.question(`Add choices for "${name}"? (y/n): `);
+            if (hasChoices.toLowerCase() === 'y') {
+                await this.collectChoices(option);
+            }
+        }
+
+        return option;
+    }
+
+    async collectChoices(option) {
+        console.log(`\nAdding choices for "${option.name}"`);
+        
+        while (true) {
+            const choiceName = await this.question('Choice name (or "done" to finish): ');
+            if (choiceName.toLowerCase() === 'done') break;
+            
+            const choiceValue = await this.question(`Value for "${choiceName}": `);
+            
+            option.choices.push({
+                name: choiceName,
+                value: option.type === 'Integer' ? parseInt(choiceValue) : choiceValue
+            });
+        }
+    }
+
     async createDirectories() {
         const dirs = [
             path.join(this.srcDir, 'modules'),
             path.join(this.srcDir, 'commands', this.moduleData.cleanName)
         ];
+
+        // Create modals directory if needed
+        if (this.moduleData.command?.modals) {
+            dirs.push(path.join(this.srcDir, 'interaction-handlers', 'modals'));
+        }
 
         for (const dir of dirs) {
             try {
@@ -145,9 +362,10 @@ declare module '@kbotdev/plugin-modules' {
 `;
     }
 
-    generateSampleCommand() {
+    generateAdvancedCommand() {
         if (!this.moduleData.createSample) return null;
 
+        const cmd = this.moduleData.command;
         const preconditions = this.moduleData.audience.precondition 
             ? `\n    preconditions: ['${this.moduleData.audience.precondition}']` 
             : '';
@@ -156,62 +374,300 @@ declare module '@kbotdev/plugin-modules' {
             ? `\n                .setDefaultMemberPermissions(${this.moduleData.audience.permissions.map(p => `PermissionFlagsBits.${p}`).join(' | ')})`
             : '';
 
-        return `import { ApplyOptions } from '@sapphire/decorators';
+        // Generate imports
+        let imports = `import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import type { ${this.moduleData.cleanName}Module } from '../../modules/${this.moduleData.cleanName}';
-import { EmbedBuilder, MessageFlags${this.moduleData.audience.permissions.length > 0 ? ', PermissionFlagsBits' : ''} } from 'discord.js';
-import config from '../../config';
+import { EmbedBuilder, MessageFlags`;
 
+        if (this.moduleData.audience.permissions.length > 0) {
+            imports += ', PermissionFlagsBits';
+        }
+
+        if (cmd.type.includes('context') || cmd.contextMenus.length > 0) {
+            imports += ', ApplicationCommandType';
+        }
+
+        if (cmd.modals) {
+            imports += ', ModalBuilder, ActionRowBuilder, TextInputBuilder, TextInputStyle';
+        }
+
+        // Add Message import if text commands are enabled
+        if (cmd.type.includes('text') || cmd.type === 'both') {
+            imports += ', Message';
+        }
+
+        imports += ` } from 'discord.js';
+import config from '../../config';`;
+
+        // Generate class
+        let classContent = `
 @ApplyOptions<Command.Options>({
-    name: '${this.moduleData.sampleCommandName}',
-    description: '${this.moduleData.sampleCommandDesc}'${preconditions}
+    name: '${cmd.name}',
+    description: '${cmd.description}'${preconditions}
 })
-export class ${this.moduleData.sampleCommandName.charAt(0).toUpperCase() + this.moduleData.sampleCommandName.slice(1)}Command extends ModuleCommand<${this.moduleData.cleanName}Module> {
+export class ${cmd.name.charAt(0).toUpperCase() + cmd.name.slice(1)}Command extends ModuleCommand<${this.moduleData.cleanName}Module> {
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
         super(context, {
             ...options,
             module: '${this.moduleData.cleanName}',
-            description: '${this.moduleData.sampleCommandDesc}',
+            description: '${cmd.description}',
             enabled: true
         });
-    }
+    }`;
 
-    public override registerApplicationCommands(registry: Command.Registry) {
+        // Generate slash command registration
+        if (cmd.type.includes('slash')) {
+            classContent += `
+
+    public override registerApplicationCommands(registry: Command.Registry) {`;
+
+            // Slash command
+            if (cmd.type !== 'context') {
+                classContent += `
         registry.registerChatInputCommand((builder) =>
             builder
-                .setName('${this.moduleData.sampleCommandName}')
-                .setDescription('${this.moduleData.sampleCommandDesc}')${permissions}
-                .addStringOption((option) =>
-                    option
-                        .setName('input')
-                        .setDescription('Example input parameter')
-                        .setRequired(false)
-                )
-        );
+                .setName('${cmd.name}')
+                .setDescription('${cmd.description}')${permissions}`;
+
+                // Add subcommands
+                if (cmd.subcommands.length > 0) {
+                    for (const sub of cmd.subcommands) {
+                        classContent += `
+                .addSubcommand((subcommand) =>
+                    subcommand
+                        .setName('${sub.name}')
+                        .setDescription('${sub.description}')`;
+                        
+                        // Add options to subcommand
+                        for (const opt of sub.options) {
+                            classContent += this.generateOptionCode(opt, '                        ');
+                        }
+
+                        classContent += `
+                )`;
+                    }
+                } else {
+                    // Add direct options
+                    for (const opt of cmd.options) {
+                        classContent += this.generateOptionCode(opt, '                ');
+                    }
+                }
+
+                classContent += `
+        );`;
+            }
+
+            // Context menus
+            for (const contextType of cmd.contextMenus) {
+                const menuType = contextType === 'user' ? 'User' : 'Message';
+                classContent += `
+        
+        registry.registerContextMenuCommand({
+            name: '${cmd.description}',
+            type: ApplicationCommandType.${menuType}
+        });`;
+            }
+
+            classContent += `
+    }`;
+        }
+
+        // Generate command handlers
+        if (cmd.type.includes('slash') && cmd.type !== 'context') {
+            classContent += this.generateSlashHandler(cmd);
+        }
+
+        if (cmd.contextMenus.length > 0) {
+            classContent += this.generateContextHandler(cmd);
+        }
+
+        if (cmd.type.includes('text')) {
+            classContent += this.generateTextHandler(cmd);
+        }
+
+        if (cmd.modals) {
+            classContent += this.generateModalHandler(cmd);
+        }
+
+        classContent += '\n}';
+
+        return imports + classContent;
     }
 
-    public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-        const input = interaction.options.getString('input') || 'No input provided';
+    generateOptionCode(option, indent) {
+        const methodMap = {
+            'String': 'addStringOption',
+            'Integer': 'addIntegerOption',
+            'Boolean': 'addBooleanOption',
+            'User': 'addUserOption',
+            'Channel': 'addChannelOption',
+            'Role': 'addRoleOption',
+            'Mentionable': 'addMentionableOption',
+            'Number': 'addNumberOption',
+            'Attachment': 'addAttachmentOption'
+        };
+
+        let code = `
+${indent}.${methodMap[option.type]}((option) =>
+${indent}    option
+${indent}        .setName('${option.name}')
+${indent}        .setDescription('${option.description}')
+${indent}        .setRequired(${option.required})`;
+
+        // Add choices if they exist
+        if (option.choices.length > 0) {
+            code += `
+${indent}        .addChoices(`;
+            for (let i = 0; i < option.choices.length; i++) {
+                const choice = option.choices[i];
+                code += `
+${indent}            { name: '${choice.name}', value: ${typeof choice.value === 'string' ? `'${choice.value}'` : choice.value} }`;
+                if (i < option.choices.length - 1) code += ',';
+            }
+            code += `
+${indent}        )`;
+        }
+
+        code += `
+${indent})`;
+
+        return code;
+    }
+
+    generateSlashHandler(cmd) {
+        let handler = `
+
+    public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {`;
+
+        if (cmd.subcommands.length > 0) {
+            handler += `
+        const subcommand = interaction.options.getSubcommand();
+        
+        switch (subcommand) {`;
+            
+            for (const sub of cmd.subcommands) {
+                handler += `
+            case '${sub.name}': {
+                // Handle ${sub.name} subcommand`;
+                
+                // Generate option getting code
+                for (const opt of sub.options) {
+                    handler += `
+                const ${opt.name} = interaction.options.get${opt.type}('${opt.name}'${opt.required ? ', true' : ''});`;
+                }
+
+                handler += `
+                
+                const embed = new EmbedBuilder()
+                    .setColor(config.bot.embedColor.default)
+                    .setTitle('${this.moduleData.emoji} ${sub.name.charAt(0).toUpperCase() + sub.name.slice(1)}')
+                    .setDescription('Subcommand executed successfully!')
+                    .setTimestamp();
+
+                return interaction.reply({
+                    embeds: [embed],
+                    flags: MessageFlags.Ephemeral
+                });
+            }`;
+            }
+
+            handler += `
+            default:
+                return interaction.reply({
+                    content: 'Invalid subcommand.',
+                    flags: MessageFlags.Ephemeral
+                });
+        }`;
+        } else {
+            // Generate option getting code for main command
+            for (const opt of cmd.options) {
+                handler += `
+        const ${opt.name} = interaction.options.get${opt.type}('${opt.name}'${opt.required ? ', true' : ''});`;
+            }
+
+            handler += `
 
         const embed = new EmbedBuilder()
             .setColor(config.bot.embedColor.default)
-            .setTitle(\`\${this.moduleData.name} - \${this.moduleData.sampleCommandName.charAt(0).toUpperCase() + this.moduleData.sampleCommandName.slice(1)}\`)
-            .setDescription(\`This is a sample command for the \${this.moduleData.name} module.\`)
-            .addFields({
-                name: 'Your Input',
-                value: \`\\\`\\\`\\\`\\n\${input}\\n\\\`\\\`\\\`\`,
-                inline: false
-            })
+            .setTitle('${this.moduleData.emoji} ${cmd.name.charAt(0).toUpperCase() + cmd.name.slice(1)}')
+            .setDescription('Command executed successfully!')
+            .setTimestamp();
+
+        return interaction.reply({
+            embeds: [embed],
+            flags: MessageFlags.Ephemeral
+        });`;
+        }
+
+        handler += `
+    }`;
+
+        return handler;
+    }
+
+    generateContextHandler(cmd) {
+        return `
+
+    public override async contextMenuRun(interaction: Command.ContextMenuCommandInteraction) {
+        let target;
+        
+        if (interaction.isUserContextMenuCommand()) {
+            target = interaction.targetUser;
+        } else if (interaction.isMessageContextMenuCommand()) {
+            target = interaction.targetMessage;
+        }
+
+        const embed = new EmbedBuilder()
+            .setColor(config.bot.embedColor.default)
+            .setTitle('${this.moduleData.emoji} Context Menu Action')
+            .setDescription('Context menu command executed successfully!')
             .setTimestamp();
 
         return interaction.reply({
             embeds: [embed],
             flags: MessageFlags.Ephemeral
         });
+    }`;
     }
-}
-`;
+
+    generateTextHandler(cmd) {
+        return `
+
+    public override async messageRun(message: Message) {
+        const embed = new EmbedBuilder()
+            .setColor(config.bot.embedColor.default)
+            .setTitle('${this.moduleData.emoji} ${cmd.name.charAt(0).toUpperCase() + cmd.name.slice(1)}')
+            .setDescription('Text command executed successfully!')
+            .setTimestamp();
+
+        return message.reply({ embeds: [embed] });
+    }`;
+    }
+
+    generateModalHandler(cmd) {
+        return `
+
+    // Example modal interaction (you may want to move this to a separate interaction handler)
+    private async showModal(interaction: Command.ChatInputCommandInteraction) {
+        const modal = new ModalBuilder()
+            .setCustomId('${cmd.name}-modal')
+            .setTitle('${cmd.description}');
+
+        const textInput = new TextInputBuilder()
+            .setCustomId('text-input')
+            .setLabel('Enter your text')
+            .setStyle(TextInputStyle.Paragraph)
+            .setRequired(true);
+
+        const row = new ActionRowBuilder<TextInputBuilder>()
+            .addComponents(textInput);
+
+        modal.addComponents(row);
+
+        return interaction.showModal(modal);
+    }`;
     }
 
     async updateModulesConfig() {
@@ -220,7 +676,12 @@ export class ${this.moduleData.sampleCommandName.charAt(0).toUpperCase() + this.
         try {
             let content = await fs.readFile(configPath, 'utf8');
             
-            // Find the moduleConfigs object and add new module
+            // Check if module already exists
+            if (content.includes(`${this.moduleData.lowerName}:`)) {
+                console.log('⚠️ Module already exists in config, skipping update');
+                return;
+            }
+            
             const newModuleConfig = `    ${this.moduleData.lowerName}: {
         name: '${this.moduleData.name}',
         description: '${this.moduleData.description}',
@@ -228,7 +689,6 @@ export class ${this.moduleData.sampleCommandName.charAt(0).toUpperCase() + this.
         defaultEnabled: ${this.moduleData.defaultEnabled}${this.moduleData.audience.permissions.length > 0 ? `,\n        requiredPermissions: [${this.moduleData.audience.permissions.map(p => `PermissionsBitField.Flags.${p}`).join(', ')}]` : ''}
     },`;
 
-            // Insert before the closing brace of moduleConfigs
             content = content.replace(
                 /(\} as const;)/,
                 `${newModuleConfig}\n$1`
@@ -238,13 +698,6 @@ export class ${this.moduleData.sampleCommandName.charAt(0).toUpperCase() + this.
             console.log('✅ Updated modules config');
         } catch (error) {
             console.warn('⚠️ Could not update modules config automatically:', error.message);
-            console.log('\n📝 Please manually add this to your modules.ts config:');
-            console.log(`\n${this.moduleData.lowerName}: {
-    name: '${this.moduleData.name}',
-    description: '${this.moduleData.description}',
-    emoji: '${this.moduleData.emoji}',
-    defaultEnabled: ${this.moduleData.defaultEnabled}${this.moduleData.audience.permissions.length > 0 ? `,\n    requiredPermissions: [${this.moduleData.audience.permissions.map(p => `PermissionsBitField.Flags.${p}`).join(', ')}]` : ''}
-},`);
         }
     }
 
@@ -254,13 +707,12 @@ export class ${this.moduleData.sampleCommandName.charAt(0).toUpperCase() + this.
         try {
             let content = await fs.readFile(modelPath, 'utf8');
             
-            // Check if the field already exists
             if (content.includes(`is${this.moduleData.cleanName}Module`)) {
                 console.log('⚠️ Module field already exists in Guild model');
                 return;
             }
 
-            // Add to LegacyModuleFlags interface if it doesn't exist
+            // Add to LegacyModuleFlags interface
             const legacyFlag = `  is${this.moduleData.cleanName}Module?: boolean;`;
             content = content.replace(
                 /(interface LegacyModuleFlags \{[^}]*)/,
@@ -270,11 +722,11 @@ export class ${this.moduleData.sampleCommandName.charAt(0).toUpperCase() + this.
             // Add to schema
             const schemaField = `  is${this.moduleData.cleanName}Module: { type: Boolean, default: ${this.moduleData.defaultEnabled} },`;
             content = content.replace(
-                /(\/\/ Legacy module flags.*?\n[^}]*)/s,
+                /(isWelcomingModule: \{ type: Boolean, default: false \},)/,
                 `$1\n${schemaField}`
             );
 
-            // Add to pre-save middleware sync logic
+            // Add to pre-save middleware
             const syncToNew = `  if (this.isModified('is${this.moduleData.cleanName}Module')) {
     this.modules.${this.moduleData.lowerName} = this.is${this.moduleData.cleanName}Module ?? ${this.moduleData.defaultEnabled};
   }`;
@@ -284,80 +736,20 @@ export class ${this.moduleData.sampleCommandName.charAt(0).toUpperCase() + this.
   }`;
 
             content = content.replace(
-                /(\/\/ Sync from legacy to new system[^]*?)(  \/\/ Sync from new system to legacy)/,
-                `$1${syncToNew}\n  \n$2`
+                /(if \(this\.isModified\('isWelcomingModule'\)\) \{[^}]+\})/,
+                `$1\n${syncToNew}`
             );
 
             content = content.replace(
-                /(\/\/ Sync from new system to legacy[^]*?)(  next\(\);)/,
-                `$1${syncToLegacy}\n  \n$2`
+                /(if \(this\.isModified\('modules\.welcoming'\)\) \{[^}]+\})/,
+                `$1\n${syncToLegacy}`
             );
 
             await fs.writeFile(modelPath, content);
             console.log('✅ Updated Guild model');
         } catch (error) {
             console.warn('⚠️ Could not update Guild model automatically:', error.message);
-            console.log('\n📝 Please manually add this to your Guild model:');
-            console.log(`\n// In LegacyModuleFlags interface:\nis${this.moduleData.cleanName}Module?: boolean;\n`);
-            console.log(`// In schema:\nis${this.moduleData.cleanName}Module: { type: Boolean, default: ${this.moduleData.defaultEnabled} },\n`);
         }
-    }
-
-    async createPrecondition() {
-        if (!this.moduleData.audience.precondition || this.moduleData.audience.precondition === 'GuildOnly') {
-            return; // These already exist
-        }
-
-        if (this.moduleData.audience.precondition === 'OwnerOnly' || this.moduleData.audience.precondition === 'ModeratorOnly') {
-            return; // These already exist based on your files
-        }
-
-        // Create custom precondition if needed
-        const preconditionPath = path.join(this.srcDir, 'preconditions', `${this.moduleData.audience.precondition}.ts`);
-        
-        try {
-            await fs.access(preconditionPath);
-            console.log('✅ Precondition already exists');
-        } catch {
-            // Create precondition file
-            const preconditionContent = this.generatePrecondition();
-            await fs.writeFile(preconditionPath, preconditionContent);
-            console.log(`✅ Created precondition: ${this.moduleData.audience.precondition}`);
-        }
-    }
-
-    generatePrecondition() {
-        return `import { Precondition } from '@sapphire/framework';
-import type { Message } from 'discord.js';
-import type { ChatInputCommandInteraction } from 'discord.js';
-import { GuildMember, PermissionFlagsBits } from 'discord.js';
-
-export class ${this.moduleData.audience.precondition}Precondition extends Precondition {
-    public override async messageRun(message: Message) {
-        return this.checkPermissions(message.member);
-    }
-
-    public override async chatInputRun(interaction: ChatInputCommandInteraction) {
-        return this.checkPermissions(interaction.member as GuildMember);
-    }
-
-    private checkPermissions(member: GuildMember | null) {
-        if (!member) return this.error({ message: 'This command can only be used in a server!' });
-        
-        const hasPermission = member.permissions.has([${this.moduleData.audience.permissions.map(p => `PermissionFlagsBits.${p}`).join(', ')}]);
-        
-        return hasPermission
-            ? this.ok()
-            : this.error({ message: 'You do not have permission to use this command!' });
-    }
-}
-
-declare module '@sapphire/framework' {
-    interface Preconditions {
-        ${this.moduleData.audience.precondition}: never;
-    }
-}
-`;
     }
 
     async writeFiles() {
@@ -370,9 +762,17 @@ declare module '@sapphire/framework' {
 
         if (this.moduleData.createSample) {
             files.push({
-                path: path.join(this.srcDir, 'commands', this.moduleData.cleanName, `${this.moduleData.sampleCommandName}.ts`),
-                content: this.generateSampleCommand()
+                path: path.join(this.srcDir, 'commands', this.moduleData.cleanName, `${this.moduleData.command.name}.ts`),
+                content: this.generateAdvancedCommand()
             });
+
+            // Generate modal handler if needed
+            if this.moduleData.command.modals) {
+                files.push({
+                    path: path.join(this.srcDir, 'interaction-handlers', 'modals', `${this.moduleData.command.name}Modal.ts`),
+                    content: this.generateModalInteractionHandler()
+                });
+            }
         }
 
         for (const file of files) {
@@ -381,9 +781,82 @@ declare module '@sapphire/framework' {
         }
     }
 
+    generateModalInteractionHandler() {
+        return `import { InteractionHandler, InteractionHandlerTypes } from '@sapphire/framework';
+import { ModalSubmitInteraction, MessageFlags, EmbedBuilder } from 'discord.js';
+import config from '../../config';
+
+export class ${this.moduleData.command.name.charAt(0).toUpperCase() + this.moduleData.command.name.slice(1)}ModalHandler extends InteractionHandler {
+    public constructor(context: InteractionHandler.Context, options: InteractionHandler.Options) {
+        super(context, {
+            ...options,
+            interactionHandlerType: InteractionHandlerTypes.ModalSubmit
+        });
+    }
+
+    public override parse(interaction: ModalSubmitInteraction) {
+        if (interaction.customId !== '${this.moduleData.command.name}-modal') return this.none();
+        return this.some();
+    }
+
+    public async run(interaction: ModalSubmitInteraction) {
+        const textInput = interaction.fields.getTextInputValue('text-input');
+
+        const embed = new EmbedBuilder()
+            .setColor(config.bot.embedColor.success)
+            .setTitle('${this.moduleData.emoji} Modal Submitted')
+            .setDescription('Your modal submission was processed successfully!')
+            .addFields({
+                name: 'Your Input',
+                value: \`\\\`\\\`\\\`\\n\${textInput}\\n\\\`\\\`\\\`\`,
+                inline: false
+            })
+            .setTimestamp();
+
+        return interaction.reply({
+            embeds: [embed],
+            flags: MessageFlags.Ephemeral
+        });
+    }
+}`;
+    }
+
     async generateREADME() {
         const readmePath = path.join(this.srcDir, 'commands', this.moduleData.cleanName, 'README.md');
         
+        let commandDocs = 'No commands created yet.';
+        
+        if (this.moduleData.createSample) {
+            const cmd = this.moduleData.command;
+            commandDocs = `### \`${cmd.type.includes('slash') ? '/' : ''}${cmd.name}\`
+${cmd.description}
+
+**Type**: ${cmd.type}
+**Usage**: \`/${cmd.name}\``;
+
+            if (cmd.subcommands.length > 0) {
+                commandDocs += '\n**Subcommands**:\n';
+                for (const sub of cmd.subcommands) {
+                    commandDocs += `- \`${sub.name}\`: ${sub.description}\n`;
+                }
+            }
+
+            if (cmd.options.length > 0) {
+                commandDocs += '\n**Options**:\n';
+                for (const opt of cmd.options) {
+                    commandDocs += `- \`${opt.name}\` (${opt.type}${opt.required ? ', required' : ''}): ${opt.description}\n`;
+                }
+            }
+
+            if (cmd.contextMenus.length > 0) {
+                commandDocs += `\n**Context Menus**: ${cmd.contextMenus.join(', ')}\n`;
+            }
+
+            if (cmd.modals) {
+                commandDocs += '\n**Uses Modals**: Yes\n';
+            }
+        }
+
         const readmeContent = `# ${this.moduleData.name} Module
 
 ${this.moduleData.description}
@@ -396,12 +869,7 @@ ${this.moduleData.description}
 
 ## Commands
 
-${this.moduleData.createSample ? `### \`/${this.moduleData.sampleCommandName}\`
-${this.moduleData.sampleCommandDesc}
-
-**Usage**: \`/${this.moduleData.sampleCommandName} [input]\`
-**Parameters**:
-- \`input\` (optional): Example input parameter` : 'No commands created yet. Add your commands to this directory.'}
+${commandDocs}
 
 ## Setup
 
@@ -414,6 +882,15 @@ To add new commands to this module:
 1. Create a new file in \`src/commands/${this.moduleData.cleanName}/\`
 2. Extend \`ModuleCommand<${this.moduleData.cleanName}Module>\`
 3. Set the module property to \`'${this.moduleData.cleanName}'\`
+
+### Features Used
+${this.moduleData.createSample ? `
+- **Command Type**: ${this.moduleData.command.type}
+- **Subcommands**: ${this.moduleData.command.subcommands.length > 0 ? 'Yes' : 'No'}
+- **Context Menus**: ${this.moduleData.command.contextMenus.length > 0 ? 'Yes' : 'No'}
+- **Modals**: ${this.moduleData.command.modals ? 'Yes' : 'No'}
+- **Options**: ${this.moduleData.command.options.length > 0 ? 'Yes' : 'No'}
+` : 'No sample command created'}
 `;
 
         await fs.writeFile(readmePath, readmeContent);
@@ -425,20 +902,25 @@ To add new commands to this module:
             await this.collectModuleInfo();
             await this.createDirectories();
             await this.writeFiles();
-            await this.createPrecondition();
             await this.updateModulesConfig();
             await this.updateGuildModel();
             await this.generateREADME();
 
-            console.log('\n🎉 Module created successfully!');
-            console.log('\n  Next Steps:');
+            console.log('\n🎉 Advanced Module created successfully!');
+            console.log('\n📋 Next Steps:');
             console.log('1. Run `npm run build` to compile the TypeScript');
             console.log('2. Restart your bot to load the new module');
             console.log('3. Use `/configmodule` to enable the module in your server');
             if (this.moduleData.createSample) {
-                console.log(`4. Test the sample command: \`/${this.moduleData.sampleCommandName}\``);
+                console.log(`4. Test the command: \`/${this.moduleData.command.name}\``);
+                if (this.moduleData.command.modals) {
+                    console.log('5. Test modal interactions');
+                }
+                if (this.moduleData.command.contextMenus.length > 0) {
+                    console.log('6. Test context menu commands');
+                }
             }
-            console.log(`5. Add more commands to src/commands/${this.moduleData.cleanName}/`);
+            console.log(`7. Add more commands to src/commands/${this.moduleData.cleanName}/`);
 
         } catch (error) {
             console.error('\n❌ Error:', error.message);
@@ -448,5 +930,6 @@ To add new commands to this module:
     }
 }
 
+// Run the generator
 const generator = new ModuleGenerator();
 generator.run();

@@ -60,7 +60,7 @@ interface LegacyModuleFlags {
   isFunModule?: boolean;
   isVerificationModule?: boolean;
   isWelcomingModule?: boolean;
-}
+  isEconomyModule?: boolean;}
 
 // Interface for reaction roles
 interface ReactionRole {
@@ -105,8 +105,7 @@ const guildSchema = new Schema<IGuild>({
   isFunModule: { type: Boolean, default: true },
   isVerificationModule: { type: Boolean, default: false },
   isWelcomingModule: { type: Boolean, default: false },
-  
-  // Verification settings
+  isEconomyModule: { type: Boolean, default: true },// Verification settings
   verificationChannelId: { type: String, default: null },
   verificationRoleId: { type: String, default: null },
   verificationMessageId: { type: String, default: null },
@@ -203,8 +202,9 @@ guildSchema.pre('save', function(next) {
   if (this.isModified('isWelcomingModule')) {
     this.modules.welcoming = this.isWelcomingModule ?? false;
   }
-  
-  // Sync from new system to legacy
+  if (this.isModified('isEconomyModule')) {
+    this.modules.economy = this.isEconomyModule ?? true;
+  }// Sync from new system to legacy
   if (this.isModified('modules.administration')) {
     this.isAdministration = this.modules.administration;
   }
@@ -220,8 +220,9 @@ guildSchema.pre('save', function(next) {
   if (this.isModified('modules.welcoming')) {
     this.isWelcomingModule = this.modules.welcoming;
   }
-  
-  next();
+  if (this.isModified('modules.economy')) {
+    this.isEconomyModule = this.modules.economy;
+  }next();
 });
 
 export const Guild = model<IGuild>('Guild', guildSchema);

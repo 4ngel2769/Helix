@@ -62,14 +62,7 @@ export const moduleConfigs = {
         description: 'Play music in voice channels',
         emoji: '901302164004171787', // Custom emoji ID for "music" (replace with your own)
         defaultEnabled: true
-    },
-    economy: {
-        name: 'Economy',
-        description: 'Currency system for your server',
-        emoji: '💰',
-        defaultEnabled: false
-    },
-    leveling: {
+    },leveling: {
         name: 'Leveling',
         description: 'XP and level tracking system',
         emoji: '466042779273920514', // Custom emoji ID for "leveling" (replace with your own)
@@ -86,7 +79,13 @@ export const moduleConfigs = {
         description: 'Assign roles based on reactions',
         emoji: '1362832272251814019', // Custom emoji ID for "reaction roles" (replace with your own)
         defaultEnabled: true
-    }
+    },
+    economy: {
+        name: 'Economy',
+        description: 'Economy module! (Very cool)',
+        emoji: '💸',
+        defaultEnabled: true
+    },
 } as const;
 
 /**

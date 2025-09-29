@@ -17,9 +17,15 @@ const client = new SapphireClient({
     intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent
+        GatewayIntentBits.MessageContent // Required for prefix commands
     ],
     partials: [Partials.Channel],
+    // Add these options for message commands
+    defaultPrefix: config.bot.defaultPrefix || '!', // Make sure this is set
+    regexPrefix: /^(hey +)?bot[,! ]/i, // Optional: allows "bot," "hey bot" etc.
+    caseInsensitiveCommands: true,
+    caseInsensitivePrefixes: true,
+    loadMessageCommandListeners: true, // This is important!
     modules: {
         enabled: true,
     },

@@ -146,131 +146,6 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
         }
     }
 
-    // Add a new method to show commands for a specific module
-    // private async showModuleCommands(interaction: Command.ChatInputCommandInteraction, moduleName: string) {
-    //     const guildId = interaction.guildId;
-    //     const member = interaction.member;
-        
-    //     // Handle DM case
-    //     if (!guildId) {
-    //         return interaction.editReply({
-    //             embeds: [new EmbedBuilder()
-    //                 .setColor('Blurple')
-    //                 .setTitle(`${moduleName.charAt(0).toUpperCase() + moduleName.slice(1)} Commands`)
-    //                 .setDescription('Module-specific command lists are not available in Direct Messages.')]
-    //         });
-    //     }
-        
-    //     // Get guild settings
-    //     let guildData;
-    //     try {
-    //         guildData = await Promise.race([
-    //             GuildModel.findOne({ guildId }),
-    //             new Promise((_, reject) => 
-    //                 setTimeout(() => reject(new Error('Database timeout')), 10000)
-    //             )
-    //         ]);
-    //     } catch (error) {
-    //         console.error('Database error in help command:', error);
-    //         guildData = this.createDefaultGuildData(guildId);
-    //     }
-        
-    //     if (!guildData) {
-    //         guildData = this.createDefaultGuildData(guildId);
-    //     }
-        
-    //     // Check if module is enabled
-    //     const moduleStatus = guildData[`is${moduleName.charAt(0).toUpperCase() + moduleName.slice(1)}Module` as keyof typeof guildData];
-    //     if (moduleStatus === false) {
-    //         return interaction.editReply({
-    //             content: `The ${moduleName} module is disabled in this server.`
-    //         });
-    //     }
-        
-    //     // Check module's IsEnabled status
-    //     const moduleStore = container.stores.get('modules');
-    //     const module = moduleStore.get(moduleName.toLowerCase() as keyof Modules) as ExtendedModule | undefined;
-        
-    //     if (module && typeof module.IsEnabled === 'function') {
-    //         const moduleCommand = module.container.stores.get('commands').get(module.name);
-            
-    //         // Check for required module permissions
-    //         if (module.requiredPermissions) {
-    //             const hasPermission = module.requiredPermissions.some(perm => {
-    //                 if (!member?.permissions) return false;
-    //                 return typeof member.permissions === 'bigint'
-    //                     ? (member.permissions & perm) === perm
-    //                     : (member.permissions as Readonly<PermissionsBitField>).has(perm);
-    //             });
-    //             if (!hasPermission) {
-    //                 return interaction.editReply({
-    //                     content: `You don't have the required permissions to view the ${moduleName} module.`
-    //                 });
-    //             }
-    //         }
-            
-    //         const isEnabled = await module.IsEnabled({
-    //             guild: interaction.guild! as DiscordGuild,
-    //             interaction: interaction as any,
-    //             command: moduleCommand as ModuleCommandUnion
-    //         });
-    //         if (isEnabled.isErr() || !isEnabled.unwrap()) {
-    //             return interaction.editReply({
-    //                 content: `The ${moduleName} module is currently unavailable.`
-    //             });
-    //         }
-    //     }
-        
-    //     // Check if user has required permissions for restricted modules
-    //     if (this.modulePermissions[moduleName.charAt(0).toUpperCase() + moduleName.slice(1)]) {
-    //         const hasPermission = this.modulePermissions[moduleName.charAt(0).toUpperCase() + moduleName.slice(1)].some(perm => {
-    //             if (!member?.permissions) return false;
-    //             return typeof member.permissions === 'bigint' 
-    //                 ? member.permissions === perm
-    //                 : (member.permissions as Readonly<PermissionsBitField>).has(perm);
-    //         });
-    //         if (!hasPermission) {
-    //             return interaction.editReply({
-    //                 content: `You don't have the required permissions to view the ${moduleName} module.`
-    //             });
-    //         }
-    //     }
-        
-    //     // Get commands for the selected module
-    //     const commands = Array.from(container.stores.get('commands').values() as IterableIterator<ExtendedCommand>)
-    //         .filter(cmd => {
-    //             // Filter commands by module
-    //             if (cmd.category?.toLowerCase() !== moduleName.toLowerCase()) return false;
-    //             // Check if user has required permissions for the command
-    //             const requiredPerms = cmd.options?.requiredUserPermissions;
-    //             if (requiredPerms) {
-    //                 return member?.permissions instanceof PermissionsBitField && 
-    //                        (member.permissions as Readonly<PermissionsBitField>).has(requiredPerms);
-    //             }
-    //             return true;
-    //         });
-        
-    //     if (!commands.length) {
-    //         return interaction.editReply({
-    //             embeds: [new EmbedBuilder()
-    //                 .setColor(config.bot.embedColor.default as ColorResolvable)
-    //                 .setTitle(`${moduleName.charAt(0).toUpperCase() + moduleName.slice(1)} Commands`)
-    //                 .setDescription('No commands available in this module.')]
-    //         });
-    //     }
-        
-    //     const pages = this.generateCommandPages(commands);
-    //     const embed = this.generateCommandEmbed(pages[0], moduleName, 1, pages.length);
-        
-    //     const buttons = this.createPaginationButtons(0, pages.length);
-        
-    //     const components = pages.length > 1 
-    //         ? [new ActionRowBuilder<ButtonBuilder>().addComponents(...buttons)]
-    //         : [];
-        
-    //     return interaction.editReply({ embeds: [embed], components });
-    // }
-
     private async handleHelp(interaction: Command.ChatInputCommandInteraction | Message) {
         const isSlash = 'options' in interaction;
         const guildId = isSlash ? interaction.guildId : interaction.guild?.id;
@@ -394,27 +269,62 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
         const collector = response.createMessageComponentCollector({
             filter: (i) => 
                 i.user.id === (isSlash ? interaction.user.id : (interaction as Message).author.id),
-            time: 300000
+            time: 300000 // 5 minutes
         });
 
         collector.on('collect', async (i: ButtonInteraction | StringSelectMenuInteraction) => {
-            if (i.isStringSelectMenu()) {
-                await this.handleModuleSelect(i);
-            } else if (i.isButton()) {
-                await this.handlePaginationButton(i);
+            try {
+                // Check interaction age before processing
+                const interactionAge = Date.now() - i.createdTimestamp;
+                if (interactionAge > 2500) { // 2.5 seconds - close to Discord's 3-second limit
+                    // Interaction might be too old, defer immediately
+                    if (!i.deferred && !i.replied) {
+                        await i.deferUpdate().catch(() => null);
+                    }
+                }
+
+                if (i.isStringSelectMenu()) {
+                    await this.handleModuleSelect(i);
+                } else if (i.isButton()) {
+                    await this.handlePaginationButton(i);
+                }
+            } catch (error) {
+                console.error('Error handling interaction in collector:', error);
+                
+                // More robust error handling
+                if (error.code === 10062) { // Unknown interaction
+                    // Interaction expired - just log it, don't try to respond
+                    console.log('Interaction expired, ignoring...');
+                } else {
+                    await this.sendErrorMessage(i as ButtonInteraction, 'An error occurred while processing your request.');
+                }
             }
         });
 
-        // Update the handleHelp method's collector.on('end') event
-        collector.on('end', () => {
-            if (response instanceof Message) {
-                // Remove all components completely
-                response.edit({ components: [] }).catch(() => null);
-            } else if (isSlash) {
-                // For slash command responses
-                (interaction as Command.ChatInputCommandInteraction)
-                    .editReply({ components: [] })
-                    .catch(() => null);
+        collector.on('end', async () => {
+            try {
+                // Create a new embed indicating the menu has expired
+                const expiredEmbed = new EmbedBuilder()
+                    .setColor('#ff6b6b')
+                    .setTitle('Help Menu Expired')
+                    .setDescription('This help menu has expired. Use `/help` to open a new one.')
+                    .setTimestamp();
+
+                if (response instanceof Message) {
+                    await response.edit({ 
+                        embeds: [expiredEmbed], 
+                        components: [] 
+                    }).catch(() => null);
+                } else if (isSlash) {
+                    await (interaction as Command.ChatInputCommandInteraction)
+                        .editReply({ 
+                            embeds: [expiredEmbed], 
+                            components: [] 
+                        })
+                        .catch(() => null);
+                }
+            } catch (error) {
+                console.error('Error updating message on collector end:', error);
             }
         });
     }
@@ -487,52 +397,58 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
         if (!needsPagination) return response;
         
         // Set up collector for pagination
-        interface DMHelpCollectorFilter {
-            (i: ButtonInteraction): boolean;
-        }
-
-        interface DMHelpCollectorOptions {
-            filter: DMHelpCollectorFilter;
-            time: number;
-        }
-
         const collector = response.createMessageComponentCollector({
             filter: (i: ButtonInteraction) => i.user.id === userId,
             time: 300000 // 5 minutes
-        } as DMHelpCollectorOptions);
-        
-        collector.on('collect', async (i: ButtonInteraction) => {
-            // Get current page from footer
-            const [currentPage] = i.message.embeds[0].footer!.text
-                .match(/Page (\d+)\/(\d+)/)!
-                .slice(1)
-                .map(Number);
-            
-            let newPage = currentPage - 1; // Convert to 0-based index
-            if (i.customId === 'previous') newPage--;
-            if (i.customId === 'next') newPage++;
-            
-            // Update embed with new page
-            const newEmbed = generateEmbed(newPage);
-            const newButtons = this.createPaginationButtons(newPage, pages.length);
-            
-            // Update the message
-            await i.update({ 
-                embeds: [newEmbed], 
-                components: [new ActionRowBuilder<ButtonBuilder>().addComponents(...newButtons)] 
-            });
         });
         
-        // Update the handleDMHelp method's collector.on('end') event
+        collector.on('collect', async (i: ButtonInteraction) => {
+            try {
+                // Get current page from footer
+                const footerText = i.message.embeds[0].footer?.text;
+                if (!footerText) return;
+                
+                const match = footerText.match(/Page (\d+)\/(\d+)/);
+                if (!match) return;
+                
+                const currentPage = parseInt(match[1]) - 1; // Convert to 0-based index
+                
+                let newPage = currentPage;
+                if (i.customId === 'previous') newPage--;
+                if (i.customId === 'next') newPage++;
+                
+                // Bounds check
+                if (newPage < 0 || newPage >= pages.length) return;
+                
+                // Update embed with new page
+                const newEmbed = generateEmbed(newPage);
+                const newButtons = this.createPaginationButtons(newPage, pages.length);
+                
+                // Update the message
+                await i.update({ 
+                    embeds: [newEmbed], 
+                    components: [new ActionRowBuilder<ButtonBuilder>().addComponents(...newButtons)] 
+                });
+            } catch (error) {
+                console.error('Error handling DM help pagination:', error);
+                // Handle expired interaction
+                if (error.code === 10062) {
+                    console.log('DM help interaction expired, ignoring...');
+                }
+            }
+        });
+        
         collector.on('end', () => {
-            if (response instanceof Message) {
-                // Remove all components completely
-                response.edit({ components: [] }).catch(() => null);
-            } else if (isSlash) {
-                // For slash command responses
-                (interaction as Command.ChatInputCommandInteraction)
-                    .editReply({ components: [] })
-                    .catch(() => null);
+            try {
+                if (response instanceof Message) {
+                    response.edit({ components: [] }).catch(() => null);
+                } else if (isSlash) {
+                    (interaction as Command.ChatInputCommandInteraction)
+                        .editReply({ components: [] })
+                        .catch(() => null);
+                }
+            } catch (error) {
+                console.error('Error removing components on DM help collector end:', error);
             }
         });
         
@@ -804,52 +720,132 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
             await interaction.update({ embeds: [embed], components });
         } catch (error) {
             console.error('Error in handleModuleSelect:', error);
-            await interaction.update({
-                content: 'An error occurred while fetching commands.',
-                components: []
-            }).catch(() => null);
+            
+            // Handle expired interaction
+            if (error.code === 10062) {
+                console.log('Module select interaction expired, ignoring...');
+                return;
+            }
+            
+            try {
+                await interaction.update({
+                    content: 'An error occurred while fetching commands.',
+                    components: []
+                }).catch(() => null);
+            } catch (updateError) {
+                console.error('Failed to update interaction:', updateError);
+            }
         }
     }
 
-    private async handlePaginationButton(interaction: ButtonInteraction) {
-        // Remove the back-to-main handler since we're keeping the dropdown menu
-    
-        // Get current page and total pages from footer text
-        const [currentPage, totalPages] = interaction.message.embeds[0].footer!.text
-            .match(/Page (\d+)\/(\d+)/)!
-            .slice(1)
-            .map(Number);
+    public async handlePaginationButton(interaction: ButtonInteraction) {
+        try {
+            // Check if interaction is still valid (not expired)
+            if (Date.now() - interaction.createdTimestamp > 14 * 60 * 1000) { // 14 minutes
+                // Interaction is close to expiring, just ignore
+                console.log('Pagination interaction expired, ignoring...');
+                return;
+            }
 
-        let newPage = currentPage;
-        if (interaction.customId === 'previous') newPage--;
-        if (interaction.customId === 'next') newPage++;
-        
-        // Get module name from title
-        const selectedModule = interaction.message.embeds[0].title!.split(' ')[0].toLowerCase();
-        
-        // Get commands for this module
-        const commandStore = container.stores.get('commands');
-        const commands = Array.from(commandStore.values())
-            .filter(cmd => cmd.category?.toLowerCase() === selectedModule) as unknown as ExtendedCommand[];
+            // Defer the update immediately to prevent timeout
+            if (!interaction.deferred && !interaction.replied) {
+                await interaction.deferUpdate();
+            }
 
-        // Generate new embed with updated page
-        const pages = this.generateCommandPages(commands);
-        const embed = this.generateCommandEmbed(pages[newPage - 1], selectedModule, newPage, totalPages);
-        
-        // Create pagination buttons with proper disabled states
-        const buttons = this.createPaginationButtons(newPage - 1, totalPages);
+            // Get current page and total pages from footer text
+            const footerText = interaction.message.embeds[0].footer?.text;
+            if (!footerText) {
+                throw new Error('Footer text not found');
+            }
 
-        // Preserve the existing dropdown menu from the first component row
-        // This ensures the dropdown stays the same
-        
-        // Set up components with dropdown always in first row
-        const components = [
-            // Cast as ActionRowBuilder with correct generic type
-            interaction.message.components[0] as unknown as ActionRowBuilder<StringSelectMenuBuilder>,
-            new ActionRowBuilder<ButtonBuilder>().addComponents(...buttons)
-        ];
+            const match = footerText.match(/Page (\d+)\/(\d+)/);
+            if (!match) {
+                throw new Error('Page information not found in footer');
+            }
 
-        await interaction.update({ embeds: [embed], components });
+            const [, currentPageStr, totalPagesStr] = match;
+            const currentPage = parseInt(currentPageStr);
+            const totalPages = parseInt(totalPagesStr);
+
+            let newPage = currentPage;
+            if (interaction.customId === 'previous') newPage--;
+            if (interaction.customId === 'next') newPage++;
+            
+            // Bounds check
+            if (newPage < 1 || newPage > totalPages) {
+                return;
+            }
+            
+            // Get module name from title
+            const titleText = interaction.message.embeds[0].title;
+            if (!titleText) {
+                throw new Error('Title not found');
+            }
+            
+            const selectedModule = titleText.split(' ')[0].toLowerCase();
+            
+            // Get commands for this module
+            const commandStore = container.stores.get('commands');
+            const commands = Array.from(commandStore.values())
+                .filter(cmd => cmd.category?.toLowerCase() === selectedModule) as unknown as ExtendedCommand[];
+
+            // Generate new embed with updated page
+            const pages = this.generateCommandPages(commands);
+            const embed = this.generateCommandEmbed(pages[newPage - 1], selectedModule, newPage, totalPages);
+            
+            // Create pagination buttons with proper disabled states
+            const buttons = this.createPaginationButtons(newPage - 1, totalPages);
+
+            // Preserve the existing dropdown menu from the first component row
+            const components = [
+                // Cast as ActionRowBuilder with correct generic type
+                interaction.message.components[0] as unknown as ActionRowBuilder<StringSelectMenuBuilder>,
+                new ActionRowBuilder<ButtonBuilder>().addComponents(...buttons)
+            ];
+
+            // Use editReply instead of update if we deferred
+            if (interaction.deferred) {
+                await interaction.editReply({ embeds: [embed], components });
+            } else {
+                await interaction.update({ embeds: [embed], components });
+            }
+
+        } catch (error) {
+            console.error('Error in handlePaginationButton:', error);
+            
+            // Handle expired interaction
+            if (error.code === 10062) {
+                console.log('Pagination interaction expired, ignoring...');
+                return;
+            }
+            
+            // Handle other errors
+            await this.sendErrorMessage(interaction, 'An error occurred while navigating pages.');
+        }
+    }
+
+    private async sendErrorMessage(interaction: ButtonInteraction, message: string) {
+        try {
+            if (!interaction.replied && !interaction.deferred) {
+                await interaction.reply({
+                    content: message,
+                    flags: MessageFlags.Ephemeral
+                });
+            } else if (interaction.deferred) {
+                await interaction.editReply({
+                    content: message
+                });
+            } else {
+                await interaction.followUp({
+                    content: message,
+                    flags: MessageFlags.Ephemeral
+                });
+            }
+        } catch (error) {
+            console.error('Failed to send error message:', error);
+            // Just log the error if we can't send a response
+            console.log('Unable to send error message to user, interaction may have expired');
+        }
     }
 
     private generateCommandPages(commands: ExtendedCommand[]) {

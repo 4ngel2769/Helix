@@ -92,7 +92,9 @@
     "build:bot": "tsc",
     "build:dashboard": "cd src/dashboard && vue-cli-service build",
     "create-module": "node scripts/create-module.js",
-    "generate:module": "node scripts/create-module.js"
+    "generate:module": "node scripts/create-module.js",
+    "delete-module": "node scripts/delete-module.js",
+    "remove:module": "node scripts/delete-module.js"
   },
   "prettier": "@sapphire/prettier-config",
   "packageManager": "yarn@4.2.1"
