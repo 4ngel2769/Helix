@@ -284,6 +284,10 @@ export class BankUpgradeCommand extends ModuleCommand<EconomyModule> {
             });
 
             collector.on('collect', async (i) => {
+                // Check if interaction is still valid
+                if (i.replied || i.deferred) {
+                    return;
+                }
                 if (i.customId === 'bank_upgrade_cancel') {
                     const cancelEmbed = new EmbedBuilder()
                         .setColor(config.bot.embedColor.warn as ColorResolvable)
