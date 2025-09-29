@@ -214,7 +214,7 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
                 // Fix the userId property issue
                 guildData.verificationLastModifiedBy = {
                     username: interaction.user.username,
-                    id: interaction.user.id, // Use 'id' instead of 'userId'
+                    id: interaction.user.id,
                     timestamp: new Date()
                 };
                 
