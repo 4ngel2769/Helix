@@ -87,7 +87,7 @@ export class EconomyService {
   /**
    * Remove money from user's wallet or bank
    */
-  static async removeMoney(userId: string, amount: number, location: 'wallet' | 'bank' = 'wallet', reason: string = 'Unknown': Promise<boolean> {
+  static async removeMoney(userId: string, amount: number, location: 'wallet' | 'bank' = 'wallet', reason: string = 'Unknown'): Promise<boolean> {
     try {
       const user = await User.findOne({ userId });
       if (!user) return false;
@@ -180,7 +180,7 @@ export class EconomyService {
   }
 
   /**
-   * Get user's inventory with updated sell prices
+   * Get user's inventory with updated sell prices and complete item data
    */
   static async getUserInventory(userId: string, category?: string): Promise<{ success: boolean; inventory?: (EconomyItem & { sellPrice: number })[]; message?: string }> {
     try {
@@ -193,18 +193,75 @@ export class EconomyService {
         inventory = inventory.filter(item => item.category === category);
       }
 
-      // Calculate current sell prices for all items
+      // Get complete item data from EconomyItem collection and merge with user inventory
       const inventoryWithPrices = await Promise.all(
-        inventory.map(async (item) => {
-          const currentSellPrice = await this.getItemPrice(item.itemId, 'sell');
-          return {
-            ...item,
-            sellPrice: currentSellPrice
-          };
+        inventory.map(async (invItem) => {
+          try {
+            // Fetch the complete item data from EconomyItem collection
+            const economyItem = await EconomyItemModel.findOne({ itemId: invItem.itemId });
+            
+            if (!economyItem) {
+              console.warn(`Item ${invItem.itemId} not found in EconomyItem collection`);
+              return {
+                ...invItem,
+                name: invItem.name || 'Unknown Item',
+                sellPrice: 0,
+                sellable: false
+              };
+            }
+
+            // Calculate sell price
+            let sellPrice = 0;
+            if (economyItem.sellable) {
+              // Calculate sell price as 70% of base price with rarity multiplier
+              const rarityMultipliers: Record<string, number> = {
+                common: 1,
+                uncommon: 1.5,
+                rare: 2.5,
+                epic: 4,
+                legendary: 7,
+                mythical: 12,
+                divine: 20,
+                cursed: 15
+              };
+              
+              const basePrice = economyItem.basePrice || 0;
+              const rarityMultiplier = rarityMultipliers[economyItem.rarity] || 1;
+              sellPrice = Math.floor(basePrice * rarityMultiplier * 0.7);
+            }
+
+            // Merge inventory item data with complete economy item data
+            return {
+              itemId: economyItem.itemId,
+              name: economyItem.name,
+              description: economyItem.description,
+              category: economyItem.category,
+              rarity: economyItem.rarity,
+              sellable: economyItem.sellable,
+              emoji: economyItem.emoji,
+              image: economyItem.image,
+              quantity: Number(invItem.quantity) || 0,
+              purchasePrice: Number(invItem.purchasePrice) || 0,
+              sellPrice: sellPrice,
+              // Include any additional properties from the inventory item
+              ...invItem
+            };
+          } catch (itemError) {
+            console.error(`Error processing inventory item ${invItem.itemId}:`, itemError);
+            return {
+              ...invItem,
+              name: invItem.name || 'Unknown Item',
+              sellPrice: 0,
+              quantity: Number(invItem.quantity) || 0
+            };
+          }
         })
       );
 
-      return { success: true, inventory: inventoryWithPrices };
+      // Filter out items with 0 quantity (they shouldn't be in inventory)
+      const validInventory = inventoryWithPrices.filter(item => item.quantity > 0);
+
+      return { success: true, inventory: validInventory };
     } catch (error) {
       console.error('Error getting user inventory:', error);
       return { success: false, message: 'Failed to retrieve inventory' };
@@ -212,44 +269,50 @@ export class EconomyService {
   }
 
   /**
-   * Add item to user's inventory with sell price
+   * Add item to user's inventory with complete data
    */
-  static async addItem(userId: string, itemId: string, quantity: number = 1, purchasePrice: number = 0): Promise<boolean> {
+  static async addItem(userId: string, itemId: string, quantity: number, purchasePrice: number = 0): Promise<boolean> {
     try {
-      const user = await User.findOne({ userId });
-      const item = await EconomyItemModel.findOne({ itemId });
-      
-      if (!user || !item) return false;
+      // Get the complete item data from EconomyItem collection
+      const economyItem = await EconomyItemModel.findOne({ itemId });
+      if (!economyItem) {
+        console.error(`Item ${itemId} not found in EconomyItem collection`);
+        return false;
+      }
 
-      // Calculate sell price
-      const sellPrice = await this.getItemPrice(itemId, 'sell');
+      const user = await User.findOne({ userId });
+      if (!user) return false;
 
       // Check if user already has this item
-      const existingItem = user.economy.inventory.find(inv => inv.itemId === itemId);
-      
-      if (existingItem) {
-        existingItem.quantity += quantity;
-        existingItem.sellPrice = sellPrice;
+      const existingItemIndex = user.economy.inventory.findIndex(item => item.itemId === itemId);
+
+      if (existingItemIndex !== -1) {
+        // Add to existing quantity
+        user.economy.inventory[existingItemIndex].quantity += quantity;
       } else {
-        user.economy.inventory.push({
-          itemId: item.itemId,
-          name: item.name,
-          description: item.description,
-          category: item.category,
-          quantity,
-          purchasePrice,
+        // Add new item with complete data
+        const newInventoryItem = {
+          itemId: economyItem.itemId,
+          name: economyItem.name,
+          description: economyItem.description,
+          category: economyItem.category,
+          rarity: economyItem.rarity,
+          sellable: economyItem.sellable,
+          emoji: economyItem.emoji,
+          quantity: quantity,
+          purchasePrice: purchasePrice,
+          acquiredAt: new Date(),
           purchaseDate: new Date(),
-          rarity: item.rarity,
-          tradeable: item.tradeable,
-          sellable: item.sellable,
-          sellPrice
-        });
+          tradeable: economyItem.tradeable ?? false
+        };
+
+        user.economy.inventory.push(newInventoryItem);
       }
 
       await user.save();
       return true;
     } catch (error) {
-      console.error('Error adding item:', error);
+      console.error('Error adding item to inventory:', error);
       return false;
     }
   }
@@ -283,12 +346,12 @@ export class EconomyService {
   }
 
   /**
-   * Calculate item price with market fluctuations
+   * Calculate item price with market fluctuations - improved error handling
    */
   static async getItemPrice(itemId: string, type: 'buy' | 'sell' = 'buy'): Promise<number> {
     try {
       const item = await EconomyItemModel.findOne({ itemId });
-      if (!item) return 0;
+      if (!item || !item.basePrice) return 0;
 
       let price = item.basePrice;
       
@@ -299,7 +362,9 @@ export class EconomyService {
         rare: 2.5,
         epic: 4,
         legendary: 7,
-        mythical: 12
+        mythical: 12,
+        divine: 20,
+        cursed: 15
       };
       
       price *= rarityMultipliers[item.rarity] || 1;
@@ -309,12 +374,15 @@ export class EconomyService {
         const fluctuation = (Math.random() - 0.5) * 0.4; // ±20%
         price *= (1 + fluctuation);
       } else {
+        // For sell price, check if item is sellable
+        if (!item.sellable) return 0;
         price *= 0.7; // Sell for 70% of buy price
       }
       
-      return Math.floor(price);
+      const finalPrice = Math.floor(price);
+      return isNaN(finalPrice) ? 0 : finalPrice;
     } catch (error) {
-      console.error('Error calculating item price:', error);
+      console.error('Error calculating item price for', itemId, ':', error);
       return 0;
     }
   }
@@ -619,6 +687,45 @@ export class EconomyService {
     } catch (error) {
       console.error('Error getting diamonds:', error);
       return 0;
+    }
+  }
+
+  /**
+   * Refresh user inventory data by re-fetching item details from EconomyItem collection
+   */
+  static async refreshUserInventory(userId: string): Promise<boolean> {
+    try {
+      const user = await User.findOne({ userId });
+      if (!user) return false;
+
+      // Update each inventory item with fresh data from EconomyItem collection
+      const refreshedInventory = await Promise.all(
+        user.economy.inventory.map(async (invItem) => {
+          const economyItem = await EconomyItemModel.findOne({ itemId: invItem.itemId });
+          
+          if (economyItem) {
+            return {
+              ...invItem,
+              name: economyItem.name,
+              description: economyItem.description,
+              category: economyItem.category,
+              rarity: economyItem.rarity,
+              sellable: economyItem.sellable,
+              emoji: economyItem.emoji
+            };
+          }
+          
+          return invItem; // Keep original if item not found
+        })
+      );
+
+      user.economy.inventory = refreshedInventory;
+      await user.save();
+      
+      return true;
+    } catch (error) {
+      console.error('Error refreshing user inventory:', error);
+      return false;
     }
   }
 }

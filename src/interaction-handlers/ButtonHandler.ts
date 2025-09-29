@@ -14,6 +14,7 @@ export class ButtonHandler extends InteractionHandler {
             'verify-button', 
             'my-awesome-button',
             'note_back',
+            'bank_upgrade_cancel',
             // Help command pagination buttons (handled by the help command collector)
             'previous',
             'next'
@@ -24,7 +25,9 @@ export class ButtonHandler extends InteractionHandler {
             'note_prev_',
             'note_next_', 
             'note_delete_',
-            'auction_'
+            'auction_',
+            'bank_upgrade_confirm_',
+            'inventory_'
         ];
 
         if (handledElsewhere.includes(interaction.customId)) {

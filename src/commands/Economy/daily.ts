@@ -61,6 +61,15 @@ export class DailyCommand extends ModuleCommand<EconomyModule> {
                     }
                 );
 
+                // Show diamonds earned if any
+                if (result.data.diamondsEarned > 0) {
+                    embed.addFields({
+                        name: '💎 Rare Find!',
+                        value: `**+${result.data.diamondsEarned}** diamond${result.data.diamondsEarned > 1 ? 's' : ''}! ✨`,
+                        inline: true
+                    });
+                }
+
                 if (result.data.bonusXP > 0) {
                     embed.addFields({
                         name: '⭐ Bonus XP',
@@ -86,6 +95,8 @@ export class DailyCommand extends ModuleCommand<EconomyModule> {
                     embed.setFooter({ text: '👑 Legendary dedication! 100+ day streak!' });
                 } else if (result.data.newStreak % 10 === 0 && result.data.newStreak >= 10) {
                     embed.setFooter({ text: `🌟 ${result.data.newStreak} days strong! Keep it up!` });
+                } else if (result.data.diamondsEarned > 0) {
+                    embed.setFooter({ text: '✨ Lady Luck smiles upon you today! Diamonds are extremely rare!' });
                 }
             } else if (!result.success && result.nextDailyTime) {
                 embed.addFields({
@@ -139,6 +150,15 @@ export class DailyCommand extends ModuleCommand<EconomyModule> {
                         inline: true
                     }
                 );
+
+                // Show diamonds earned if any
+                if (result.data.diamondsEarned > 0) {
+                    embed.addFields({
+                        name: '💎 Rare Find!',
+                        value: `**+${result.data.diamondsEarned}** diamond${result.data.diamondsEarned > 1 ? 's' : ''}! ✨`,
+                        inline: true
+                    });
+                }
 
                 if (result.data.bonusXP > 0) {
                     embed.addFields({
@@ -225,14 +245,37 @@ export class DailyCommand extends ModuleCommand<EconomyModule> {
             const totalCoins = baseReward + streakBonus + levelBonus + randomBonus;
             const bonusXP = Math.floor(totalCoins / 10); // 10% of coins earned as XP
 
-            // Diamond rewards for long streaks (rare)
+            // Diamond rewards - VERY RARE (random chance only)
             let diamondsEarned = 0;
-            if (newStreak >= 7 && Math.random() < 0.1) { // 10% chance at 7+ day streak
+            const diamondRoll = Math.random(); // Roll once for all diamond chances
+            
+            // Base diamond chance: 1% for 1 diamond
+            if (diamondRoll < 0.01) {
                 diamondsEarned = 1;
-            } else if (newStreak >= 30 && Math.random() < 0.25) { // 25% chance at 30+ day streak
-                diamondsEarned = Math.floor(Math.random() * 3) + 1; // 1-3 diamonds
-            } else if (newStreak >= 100 && Math.random() < 0.5) { // 50% chance at 100+ day streak
-                diamondsEarned = Math.floor(Math.random() * 5) + 2; // 2-6 diamonds
+            }
+            // Rare chance: 0.3% for 2 diamonds  
+            else if (diamondRoll < 0.004) {
+                diamondsEarned = 2;
+            }
+            // Ultra rare chance: 0.1% for 3 diamonds
+            else if (diamondRoll < 0.001) {
+                diamondsEarned = 3;
+            }
+            
+            // Slight streak bonus to diamond chances (doesn't guarantee, just improves odds slightly)
+            if (newStreak >= 7) {
+                const streakBonusRoll = Math.random();
+                if (streakBonusRoll < 0.005) { // Additional 0.5% chance for streak users
+                    diamondsEarned = Math.max(diamondsEarned, 1); // At least 1 diamond if this triggers
+                }
+            }
+            
+            // Very high streak users get slightly better odds
+            if (newStreak >= 50) {
+                const highStreakRoll = Math.random();
+                if (highStreakRoll < 0.008) { // Additional 0.8% chance for high streak users
+                    diamondsEarned = Math.max(diamondsEarned, 1);
+                }
             }
 
             // Add money and XP
@@ -249,7 +292,7 @@ export class DailyCommand extends ModuleCommand<EconomyModule> {
 
             // Add diamonds if earned
             if (diamondsEarned > 0) {
-                await EconomyService.addDiamonds(userId, diamondsEarned, `Daily streak bonus (${newStreak} days)`);
+                await EconomyService.addDiamonds(userId, diamondsEarned, `Daily reward rare find (${newStreak} day streak)`);
             }
 
             // Add experience
@@ -273,7 +316,7 @@ export class DailyCommand extends ModuleCommand<EconomyModule> {
 
             let message = `You claimed your daily reward and earned **${totalCoins.toLocaleString()}** coins!`;
             if (diamondsEarned > 0) {
-                message += ` You also found **${diamondsEarned}** 💎 diamond${diamondsEarned > 1 ? 's' : ''}!`;
+                message += ` 💎 **RARE FIND!** You discovered **${diamondsEarned}** diamond${diamondsEarned > 1 ? 's' : ''}! ✨`;
             }
             if (leveledUp) {
                 message += ` You leveled up to **Level ${newLevel}**! 🎉`;

@@ -30,11 +30,10 @@ export class BankUpgradeCommand extends ModuleCommand<EconomyModule> {
         { limit: 200000, coinCost: 500000, diamondCost: 5 }, // Tier 4
         { limit: 500000, coinCost: 1000000, diamondCost: 10 }, // Tier 5
         { limit: 1000000, coinCost: 2000000, diamondCost: 20 }, // Tier 6
-        { limit: 2500000, coinCost: 5000000, diamondCost: 50 }, // Tier 7
-        { limit: 10000000, coinCost: 10000000, diamondCost: 100 }, // Tier 8
-        { limit: 300000000, coinCost: 100000000, diamondCost: 250 }, // Tier 9
-        { limit: 5000000000, coinCost: 1000000000, diamondCost: 500 }, // Tier 10
-        { limit: 10000000000, coinCost: 5000000000, diamondCost: 1000 }, // Tier 11 (10 billion)
+        { limit: 25000000, coinCost: 5000000, diamondCost: 50 }, // Tier 7
+        { limit: 300000000, coinCost: 10000000, diamondCost: 100 }, // Tier 8
+        { limit: 3000000000, coinCost: 100000000, diamondCost: 250 }, // Tier 9
+        { limit: 100000000000, coinCost: 5000000000, diamondCost: 1000 }, // Tier 10 (100 billion)
     ];
 
     public override registerApplicationCommands(registry: Command.Registry) {
@@ -54,10 +53,10 @@ export class BankUpgradeCommand extends ModuleCommand<EconomyModule> {
                         .addIntegerOption((option) =>
                             option
                                 .setName('tier')
-                                .setDescription('Bank tier to upgrade to (1-8)')
+                                .setDescription('Bank tier to upgrade to (1-10)')
                                 .setRequired(true)
                                 .setMinValue(1)
-                                .setMaxValue(8)
+                                .setMaxValue(10)
                         )
                 )
         );
@@ -296,8 +295,7 @@ export class BankUpgradeCommand extends ModuleCommand<EconomyModule> {
                 }
 
                 if (i.customId.startsWith('bank_upgrade_confirm_')) {
-                    await i.deferUpdate();
-                    
+                    // Remove the deferUpdate() call since we're going to use update() immediately
                     try {
                         // Perform the upgrade
                         const success = await this.performUpgrade(user.userId, targetTier);
@@ -322,7 +320,7 @@ export class BankUpgradeCommand extends ModuleCommand<EconomyModule> {
                                 .setThumbnail(interaction.user.displayAvatarURL())
                                 .setTimestamp();
 
-                            return i.editReply({ embeds: [successEmbed], components: [] });
+                            return i.update({ embeds: [successEmbed], components: [] });
                         } else {
                             throw new Error('Upgrade failed');
                         }
@@ -335,7 +333,7 @@ export class BankUpgradeCommand extends ModuleCommand<EconomyModule> {
                             .setDescription('An error occurred while processing the upgrade. Your funds have not been charged.')
                             .setTimestamp();
 
-                        return i.editReply({ embeds: [errorEmbed], components: [] });
+                        return i.update({ embeds: [errorEmbed], components: [] });
                     }
                 }
             });
