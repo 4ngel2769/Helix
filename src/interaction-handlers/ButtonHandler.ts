@@ -18,7 +18,6 @@ import { Config } from '../config.js';
 import configModule from '../config.js';
 import { DevNote } from '../models/DevNote.js';
 import { findAll, countDocuments, findById, deleteById } from '../lib/utils/mongooseUtils.js';
-import 'node-fetch';
 
 interface RedditMemeResponse {
     postLink: string;
