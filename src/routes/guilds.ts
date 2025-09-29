@@ -29,6 +29,19 @@ export class GuildsRoute extends Route {
         const response = await fetch('https://discord.com/api/users/@me/guilds', {
             headers: { Authorization: `Bearer ${token}` }
         });
+        if (!response.ok) {
+            // Try to extract error message from response, fallback to status text
+            let errorMessage = `Failed to fetch guilds: ${response.status} ${response.statusText}`;
+            try {
+                const errorData = await response.json();
+                if (errorData && errorData.message) {
+                    errorMessage = `Failed to fetch guilds: ${errorData.message}`;
+                }
+            } catch (_) {
+                // Ignore JSON parse errors, use default errorMessage
+            }
+            throw new Error(errorMessage);
+        }
         const data = await response.json();
         return data as OAuth2Guild[];
     }
