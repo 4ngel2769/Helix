@@ -1,21 +1,21 @@
-import { ModuleCommand } from '@kbotdev/plugin-modules';
-import { VerificationModule } from '../../modules/Verification';
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
-import { 
-    ChannelType, 
-    EmbedBuilder, 
-    PermissionFlagsBits,
+import { ModuleCommand } from '@kbotdev/plugin-modules';
+import type { VerificationModule } from '../../modules/Verification';
+import {
     ActionRowBuilder,
     ButtonBuilder,
     ButtonStyle,
-    ColorResolvable,
+    ChannelType,
+    EmbedBuilder,
+    MessageFlags,
+    PermissionFlagsBits,
     TextChannel,
-    MessageFlags
+    ColorResolvable
 } from 'discord.js';
 import { Guild } from '../../models/Guild';
-import config from '../../config';
 import { ErrorHandler } from '../../lib/structures/ErrorHandler';
+import config from '../../config';
 
 @ApplyOptions<Command.Options>({
     name: 'verification',
@@ -177,7 +177,7 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
 
                 await this.checkAndSendVerificationMessage(guildData);
                 return interaction.reply({
-                    content: `Verification channel set to ${channel}`,
+                    content: `✅ Verification channel set to ${channel}`,
                     flags: MessageFlags.Ephemeral
                 });
             }
@@ -191,6 +191,11 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
                     return ErrorHandler.sendPermissionError(interaction, 'ManageRoles');
                 }
 
+                // Check if role is manageable by bot
+                if (role.position >= botMember.roles.highest.position) {
+                    return ErrorHandler.sendCommandError(interaction, 'I cannot manage this role. Make sure my highest role is above the verification role.');
+                }
+
                 guildData.verificationRoleId = role.id;
                 await guildData.save();
 
@@ -201,126 +206,109 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
 
                 await this.checkAndSendVerificationMessage(guildData);
                 return interaction.reply({
-                    content: `Verification role set to ${role}`,
+                    content: `✅ Verification role set to ${role}`,
                     flags: MessageFlags.Ephemeral
                 });
             }
 
             case 'toggle': {
                 const enabled = interaction.options.getBoolean('enabled', true);
+                
                 guildData.isVerificationModule = enabled;
-                
-                // Update last modified info
-                // Fix the userId property issue
-                guildData.verificationLastModifiedBy = {
-                    username: interaction.user.username,
-                    id: interaction.user.id,
-                    timestamp: new Date()
-                };
-                
                 await guildData.save();
 
-                if (enabled) {
-                    await this.checkAndSendVerificationMessage(guildData);
-                } else {
-                    await this.updateVerificationMessageState(guildData, false);
-                }
+                // Update the verification message state
+                await this.updateVerificationMessageState(guildData, enabled);
 
                 return interaction.reply({
-                    content: `Verification system has been ${enabled ? 'enabled' : 'disabled'}.`,
+                    content: `✅ Verification ${enabled ? 'enabled' : 'disabled'}`,
                     flags: MessageFlags.Ephemeral
                 });
             }
 
             case 'message': {
-                const messageType = interaction.options.getString('type', true);
+                const type = interaction.options.getString('type', true);
                 const message = interaction.options.getString('message', true);
 
-                if (messageType === 'enabled') {
+                if (type === 'enabled') {
                     guildData.verificationMessage = message;
-                } else {
+                } else if (type === 'disabled') {
                     guildData.verificationDisabledMessage = message;
                 }
-                
-                await guildData.save();
 
-                // Update verification message if it exists
-                if (guildData.verificationChannelId && guildData.verificationMessageId) {
-                    await this.updateVerificationMessageState(
-                        guildData,
-                        guildData.isVerificationModule || false
-                    );
-                }
+                guildData.verificationLastModifiedBy = {
+                    username: interaction.user.username,
+                    id: interaction.user.id,
+                    timestamp: new Date()
+                };
+
+                await guildData.save();
+                await this.checkAndSendVerificationMessage(guildData);
 
                 return interaction.reply({
-                    content: `${messageType === 'enabled' ? 'Verification' : 'Disabled'} message updated`,
+                    content: `✅ ${type === 'enabled' ? 'Verification' : 'Disabled'} message updated`,
                     flags: MessageFlags.Ephemeral
                 });
             }
 
             case 'title': {
                 const title = interaction.options.getString('title', true);
+                
                 guildData.verificationTitle = title;
-                await guildData.save();
+                guildData.verificationLastModifiedBy = {
+                    username: interaction.user.username,
+                    id: interaction.user.id,
+                    timestamp: new Date()
+                };
 
-                // Update verification message if it exists
-                if (guildData.verificationChannelId && guildData.verificationMessageId) {
-                    await this.updateVerificationMessageState(
-                        guildData,
-                        guildData.isVerificationModule || false
-                    );
-                }
+                await guildData.save();
+                await this.checkAndSendVerificationMessage(guildData);
 
                 return interaction.reply({
-                    content: `Verification title updated to "${title}"`,
+                    content: `✅ Verification title updated to: "${title}"`,
                     flags: MessageFlags.Ephemeral
                 });
             }
 
             case 'footer': {
-                const footer = interaction.options.getString('footer', true);
+                const footer = interaction.options.getString('footer');
+                
                 guildData.verificationFooter = footer;
-                await guildData.save();
+                guildData.verificationLastModifiedBy = {
+                    username: interaction.user.username,
+                    id: interaction.user.id,
+                    timestamp: new Date()
+                };
 
-                // Update verification message if it exists
-                if (guildData.verificationChannelId && guildData.verificationMessageId) {
-                    await this.updateVerificationMessageState(
-                        guildData,
-                        guildData.isVerificationModule || false
-                    );
-                }
+                await guildData.save();
+                await this.checkAndSendVerificationMessage(guildData);
 
                 return interaction.reply({
-                    content: `Verification footer updated`,
+                    content: footer ? `✅ Verification footer updated` : `✅ Verification footer removed`,
                     flags: MessageFlags.Ephemeral
                 });
             }
 
             case 'thumbnail': {
-                const url = interaction.options.getString('url', true);
+                const url = interaction.options.getString('url');
                 
-                // Validate URL format
-                const urlRegex = /^https?:\/\/.+\.(png|jpg|jpeg|gif|webp)$/i;
-                if (!urlRegex.test(url)) {
-                    return interaction.reply({
-                        content: 'Invalid image URL. Please provide a valid URL ending with .png, .jpg, .jpeg, .gif, or .webp',
-                        flags: MessageFlags.Ephemeral
-                    });
+                // Validate URL if provided
+                if (url && !this.isValidImageUrl(url)) {
+                    return ErrorHandler.sendCommandError(interaction, 'Invalid image URL. Please provide a direct link to an image (PNG, JPG, GIF).');
                 }
 
                 guildData.verificationThumb = url;
-                await guildData.save();
+                guildData.verificationLastModifiedBy = {
+                    username: interaction.user.username,
+                    id: interaction.user.id,
+                    timestamp: new Date()
+                };
 
-                // Update verification message if it exists
-                if (guildData.verificationChannelId && guildData.verificationMessageId) {
-                    await this.updateVerificationMessageState(
-                        guildData,
-                        guildData.isVerificationModule || false
-                    );
-                }
+                await guildData.save();
+                await this.checkAndSendVerificationMessage(guildData);
 
                 return interaction.reply({
-                    content: `Verification thumbnail updated`,
+                    content: url ? `✅ Verification thumbnail updated` : `✅ Verification thumbnail removed`,
                     flags: MessageFlags.Ephemeral
                 });
             }
@@ -328,81 +316,80 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
             case 'status': {
                 const embed = new EmbedBuilder()
                     .setColor(config.bot.embedColor.default as ColorResolvable)
-                    .setTitle('Verification Settings')
-                    .addFields(
-                        { 
-                            name: 'Status', 
-                            value: guildData.isVerificationModule 
-                                ? '<:on:1305487724656070717> Enabled' 
-                                : '<:off:1305487877366612109> Disabled',
-                            inline: true
-                        },
-                        { 
-                            name: '\`📝\` Last Modified', 
-                            value: guildData.verificationLastModifiedBy?.timestamp
-                                ? `By: ${guildData.verificationLastModifiedBy.username}\nWhen: <t:${Math.floor(guildData.verificationLastModifiedBy.timestamp.getTime() / 1000)}:R>`
-                                : 'No modifications recorded',
-                            inline: true
-                        },
-                        { 
-                            name: '\u200B', 
-                            value: '\u200B', 
-                            inline: true 
-                        },
-                        { 
-                            name: '\`📋\` Channel:', 
-                            value: guildData.verificationChannelId 
-                                ? `<#${guildData.verificationChannelId}>` 
-                                : 'Not set',
-                            inline: true
-                        },
-                        { 
-                            name: '\`🎭\` Verification Role:', 
-                            value: guildData.verificationRoleId 
-                                ? `<@&${guildData.verificationRoleId}>` 
-                                : 'Not set',
-                            inline: true
-                        },
-                        { 
-                            name: '\u200B', 
-                            value: '\u200B', 
-                            inline: true 
-                        },
-                        {
-                            name: '\`🔴\` "Verification Disabled" Message:',
-                            value: guildData.verificationDisabledMessage || 'Verification is currently disabled.'
-                        },
-                        {
-                            name: '\`✅\` Verification Message:',
-                            value: guildData.verificationMessage || 'Click the button below to verify yourself and gain access to the server!'
-                        },
-                        {
-                            name: '\`🔤\` Title:',
-                            value: guildData.verificationTitle || 'Server Verification'
-                        }
-                    )
-                    .setFooter({
-                        text: 'Hint: you can edit any of these settings using the /verification command.'});
+                    .setTitle('🔧 Verification Settings')
+                    .setTimestamp();
 
-                // Add footer and thumbnail info if they exist
+                // Status indicator
+                const isEnabled = guildData.isVerificationModule !== false;
+                embed.addFields({
+                    name: 'Status',
+                    value: isEnabled ? '✅ Enabled' : '❌ Disabled',
+                    inline: true
+                });
+
+                // Channel
+                const channel = guildData.verificationChannelId 
+                    ? `<#${guildData.verificationChannelId}>` 
+                    : '❌ Not set';
+                embed.addFields({
+                    name: 'Channel',
+                    value: channel,
+                    inline: true
+                });
+
+                // Role
+                const role = guildData.verificationRoleId 
+                    ? `<@&${guildData.verificationRoleId}>` 
+                    : '❌ Not set';
+                embed.addFields({
+                    name: 'Role',
+                    value: role,
+                    inline: true
+                });
+
+                // Messages
+                embed.addFields({
+                    name: 'Verification Message',
+                    value: guildData.verificationMessage || 'Default message',
+                    inline: false
+                });
+
+                if (guildData.verificationDisabledMessage) {
+                    embed.addFields({
+                        name: 'Disabled Message',
+                        value: guildData.verificationDisabledMessage,
+                        inline: false
+                    });
+                }
+
+                // Additional settings
+                embed.addFields({
+                    name: 'Title',
+                    value: guildData.verificationTitle || 'Server Verification',
+                    inline: true
+                });
+
                 if (guildData.verificationFooter) {
                     embed.addFields({
-                        name: '\`🏷️\` Footer:',
-                        value: guildData.verificationFooter
+                        name: 'Footer',
+                        value: guildData.verificationFooter,
+                        inline: true
                     });
                 }
 
                 if (guildData.verificationThumb) {
                     embed.addFields({
-                        name: '\`🖼️\` Thumbnail:',
-                        value: guildData.verificationThumb
+                        name: 'Thumbnail',
+                        value: '[Image URL](' + guildData.verificationThumb + ')',
+                        inline: true
                     });
                     embed.setThumbnail(guildData.verificationThumb);
                 }
 
-                if (!guildData.isVerificationModule) {
-                    embed.setFooter({ 
-                        text: '⚠️ Verification is currently disabled. Use /verification toggle true to enable it.' 
+                // Last modified
+                if (guildData.verificationLastModifiedBy) {
+                    embed.setFooter({
+                        text: `Last modified by ${guildData.verificationLastModifiedBy.username}`,
                     });
                 }
 
@@ -428,18 +415,8 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
             
             // If we already have a message, update it instead of sending a new one
             if (guildData.verificationMessageId) {
-                try {
-                    const channel = await this.container.client.channels.fetch(guildData.verificationChannelId);
-                    if (channel?.isTextBased()) {
-                        const message = await (channel as TextChannel).messages.fetch(guildData.verificationMessageId);
-                        if (message) {
-                            await this.updateVerificationMessageState(guildData, true);
-                            return;
-                        }
-                    }
-                } catch (error) {
-                    // Message not found, send a new one
-                }
+                await this.updateVerificationMessage(guildData);
+                return;
             }
 
             // Send new verification message
@@ -452,13 +429,14 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
     }
 
     private async sendVerificationMessage(channelId: string, message: string, guildId: string) {
-        const channel = await this.container.client.channels.fetch(channelId);
-        const guildData = await Guild.findOne({ guildId });
-        if (!channel?.isTextBased()) {
-            throw new Error('Invalid channel type. Expected text channel.');
-        }
-
         try {
+            const channel = await this.container.client.channels.fetch(channelId);
+            const guildData = await Guild.findOne({ guildId });
+            
+            if (!channel?.isTextBased()) {
+                throw new Error('Invalid channel type. Expected text channel.');
+            }
+
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.default as ColorResolvable)
                 .setTitle(guildData?.verificationTitle || 'Server Verification')
@@ -477,7 +455,8 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
             const button = new ButtonBuilder()
                 .setCustomId('verify-button')
                 .setLabel('Verify')
-                .setStyle(ButtonStyle.Primary);
+                .setStyle(ButtonStyle.Primary)
+                .setEmoji('✅');
 
             const row = new ActionRowBuilder<ButtonBuilder>()
                 .addComponents(button);
@@ -489,11 +468,60 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
 
             // Save the message ID
             await Guild.updateOne(
-                { verificationChannelId: channelId },
+                { guildId },
                 { verificationMessageId: sentMessage.id }
             );
         } catch (error) {
+            console.error('Failed to send verification message:', error);
             throw new Error('Failed to send verification message.');
+        }
+    }
+
+    private async updateVerificationMessage(guildData: any) {
+        if (!guildData.verificationChannelId || !guildData.verificationMessageId) return;
+
+        try {
+            const channel = await this.container.client.channels.fetch(guildData.verificationChannelId);
+            if (!channel?.isTextBased()) return;
+
+            const message = await (channel as TextChannel).messages.fetch(guildData.verificationMessageId);
+            if (!message) return;
+
+            const isEnabled = guildData.isVerificationModule !== false;
+
+            const embed = new EmbedBuilder()
+                .setColor(isEnabled ? config.bot.embedColor.default as ColorResolvable : 'Red')
+                .setTitle(guildData.verificationTitle || 'Server Verification')
+                .setDescription(isEnabled 
+                    ? (guildData.verificationMessage || "Click the button below to verify yourself and gain access to the server!")
+                    : (guildData.verificationDisabledMessage || "⚠️ Verification is currently disabled. Please try again later."));
+
+            // Add thumbnail if set
+            if (guildData.verificationThumb) {
+                embed.setThumbnail(guildData.verificationThumb);
+            }
+
+            // Add footer if set
+            if (guildData.verificationFooter) {
+                embed.setFooter({ text: guildData.verificationFooter });
+            }
+
+            const button = new ButtonBuilder()
+                .setCustomId('verify-button')
+                .setLabel('Verify')
+                .setStyle(ButtonStyle.Primary)
+                .setEmoji('✅')
+                .setDisabled(!isEnabled);
+
+            const row = new ActionRowBuilder<ButtonBuilder>()
+                .addComponents(button);
+
+            await message.edit({
+                embeds: [embed],
+                components: [row]
+            });
+        } catch (error) {
+            console.error('Failed to update verification message:', error);
         }
     }
 
@@ -528,6 +556,7 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
                 .setCustomId('verify-button')
                 .setLabel('Verify')
                 .setStyle(ButtonStyle.Primary)
+                .setEmoji('✅')
                 .setDisabled(!enabled);
 
             const row = new ActionRowBuilder<ButtonBuilder>()
@@ -539,6 +568,16 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
             });
         } catch (error) {
             console.error('Failed to update verification message:', error);
+        }
+    }
+
+    private isValidImageUrl(url: string): boolean {
+        try {
+            const parsedUrl = new URL(url);
+            const validExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp'];
+            return validExtensions.some(ext => parsedUrl.pathname.toLowerCase().endsWith(ext));
+        } catch {
+            return false;
         }
     }
 }

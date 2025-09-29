@@ -2,12 +2,10 @@ import { Route } from '@sapphire/plugin-api';
 import type { ApiRequest, ApiResponse } from '@sapphire/plugin-api';
 
 export class ServerCountRoute extends Route {
-    public run(_request: ApiRequest, response: ApiResponse) {
-        const serverCount = this.container.client.guilds.cache.size;
-        const moduleCount = this.container.client.modules?.size ?? 0;
+    public override run(_request: ApiRequest, response: ApiResponse) {
         return response.json({
-            servers: serverCount,
-            modules: moduleCount,
+            guilds: this.container.client.guilds.cache.size,
+            users: this.container.client.users.cache.size,
             uptime: this.container.client.uptime
         });
     }
