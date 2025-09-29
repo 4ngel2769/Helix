@@ -10,14 +10,18 @@ const OWNERS = envParseArray('OWNERS');
 
 // Fetch usernames of the bot developers (async, so you may want to use this in a command or setup function)
 const developerUsernames: string[] = [];
-config.bot.ownerIDs.forEach(async (id) => {
-    // You need a Discord client instance to fetch users, so this is just an example:
-    // const user = await client.users.fetch(id);
-    // developerUsernames.push(user.username);
-    // For now, just push the ID as a placeholder:
-    developerUsernames.push(id);
-});
 
+// Async function to fetch developer usernames (call this during setup or in a command)
+export async function fetchDeveloperUsernames(client: { users: { fetch: (id: string) => Promise<{ username: string }> } }) {
+    developerUsernames.length = 0; // Clear the array
+    for (const id of config.bot.ownerIDs) {
+        // Example of fetching user asynchronously:
+        // const user = await client.users.fetch(id);
+        // developerUsernames.push(user.username);
+        // For now, just push the ID as a placeholder:
+        developerUsernames.push(id);
+    }
+}
 export class UserPrecondition extends AllFlowsPrecondition {
     #message = `This command can only be used by the bot developer(s):`+ ` ${config.bot.ownerIDs.join(', ')}.`;
 
