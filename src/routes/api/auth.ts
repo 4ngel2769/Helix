@@ -9,6 +9,10 @@ import config from '../../config';
 })
 export class AuthRoute extends Route {
     public override run(_request: ApiRequest, response: ApiResponse) {
+        console.log('🔐 [AUTH] Login endpoint called');
+        console.log(`🔐 [AUTH] Client ID: ${config.dashboard.oauth.clientId}`);
+        console.log(`🔐 [AUTH] Redirect URI: ${config.api.auth.domain}${config.api.auth.redirect}`);
+        
         // Generate Discord OAuth2 URL
         const params = new URLSearchParams({
             client_id: config.dashboard.oauth.clientId,
@@ -18,6 +22,8 @@ export class AuthRoute extends Route {
         });
 
         const authUrl = `https://discord.com/api/oauth2/authorize?${params.toString()}`;
+        
+        console.log(`🔐 [AUTH] Generated OAuth URL: ${authUrl}`);
         
         return response.json({
             success: true,

@@ -10,15 +10,21 @@ import config from '../../config';
 })
 export class UserRoute extends Route {
     public override async run(request: ApiRequest, response: ApiResponse) {
+        console.log('👤 [USER] User info endpoint called');
+        console.log(`👤 [USER] Headers:`, request.headers);
+        
         // Get token from cookies header
         const token = this.getTokenFromRequest(request);
 
         if (!token) {
+            console.log('❌ [USER] No authentication token found');
             return response.status(HttpCodes.Unauthorized).json({
                 success: false,
                 error: 'Not authenticated'
             });
         }
+
+        console.log(`✅ [USER] Token found, fetching user data from Discord...`);
 
         try {
             // Fetch user information from Discord
@@ -29,6 +35,8 @@ export class UserRoute extends Route {
             });
 
             const user = userResponse.data;
+
+            console.log(`✅ [USER] Successfully fetched user: ${user.username}#${user.discriminator}`);
 
             return response.json({
                 success: true,
@@ -43,7 +51,7 @@ export class UserRoute extends Route {
                 }
             });
         } catch (error) {
-            console.error('Failed to fetch user:', error);
+            console.error('❌ [USER] Failed to fetch user:', error);
             return response.status(HttpCodes.Unauthorized).json({
                 success: false,
                 error: 'Invalid token'

@@ -50,7 +50,6 @@ interface ExtendedModule extends Module {
     // enabled: true
 })
 export class HelpCommand extends ModuleCommand<GeneralModule> {
-    container: any;
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
         super(context, {
             ...options,
