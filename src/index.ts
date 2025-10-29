@@ -3,11 +3,13 @@ import { LogLevel, SapphireClient } from '@sapphire/framework';
 import { GatewayIntentBits, OAuth2Scopes, Partials } from 'discord.js';
 import { Server, Middleware } from '@sapphire/plugin-api';
 import type { Request, Response, NextFunction } from 'express';
+import type { Message } from 'discord.js';
 import '@sapphire/plugin-api/register';
 import '@kbotdev/plugin-modules/register';
 import '@sapphire/plugin-hmr/register';
 import config from './config';
 import { verifyDatabaseConnection } from './lib/utils/dbCheck';
+import { Guild } from './models/Guild';
 
 const hmrOptions = {
     enabled: process.env.NODE_ENV !== 'production'
@@ -21,7 +23,22 @@ const client = new SapphireClient({
     ],
     partials: [Partials.Channel],
     // Add these options for message commands
-    defaultPrefix: config.bot.defaultPrefix || '!', // Make sure this is set
+    defaultPrefix: config.bot.defaultPrefix || '!', // Fallback prefix
+    fetchPrefix: async (message: Message) => {
+        // DMs use default prefix
+        if (!message.guild) return config.bot.defaultPrefix;
+        
+        try {
+            // Fetch guild config from database
+            const guildData = await Guild.findOne({ guildId: message.guild.id });
+            
+            // Return custom prefix if set, otherwise use default
+            return guildData?.prefix || config.bot.defaultPrefix;
+        } catch (error) {
+            console.error('Error fetching prefix:', error);
+            return config.bot.defaultPrefix;
+        }
+    },
     regexPrefix: /^(hey +)?bot[,! ]/i, // Optional: allows "bot," "hey bot" etc.
     caseInsensitiveCommands: true,
     caseInsensitivePrefixes: true,

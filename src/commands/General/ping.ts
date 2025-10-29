@@ -1,7 +1,7 @@
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { GeneralModule } from '../../modules/General'; 
 import { ApplyOptions } from '@sapphire/decorators';
-import { Command } from '@sapphire/framework';
+import { Command, container } from '@sapphire/framework';
 import { send } from '@sapphire/plugin-editable-commands';
 import {
 	ApplicationCommandType,
@@ -16,12 +16,10 @@ import mongoose from 'mongoose';
 import config from '../../config';
 
 @ApplyOptions<Command.Options>({
-	enabled: true,
 	nsfw: false,
-	name: 'ping',
 	description: 'Bot ping',
 	detailedDescription: 'Get the latency of the bot\'s connection to the Discord WebService and database.',
-	aliases: ['latency'],
+	// aliases: ['latency'],
 	fullCategory: ['General'],
 	cooldownDelay: 5000,
 	cooldownLimit: 3,
@@ -32,11 +30,8 @@ export class UserCommand extends ModuleCommand<GeneralModule> {
 	public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
 		super(context, {
 			...options,
-			// module: 'General',
 			description: 'ping command',
-			enabled: true,
 			nsfw: false,
-			// preconditions: ['ModuleEnabled']
 		});
 	}
 
@@ -45,8 +40,8 @@ export class UserCommand extends ModuleCommand<GeneralModule> {
 		// Register slash command
 		registry.registerChatInputCommand((builder) =>
 			builder
-				.setName(this.name)
-				.setDescription(this.description)
+				.setName('ping')
+				.setDescription('Bot ping')
 				.setIntegrationTypes(0,1)
 				.setContexts(0,1,2)
 				.addIntegerOption((option) =>
@@ -55,30 +50,98 @@ export class UserCommand extends ModuleCommand<GeneralModule> {
 						.setDescription('Specific shard to check latency for')
 						.setRequired(false)
 						.setMinValue(0)
-						.setMaxValue(this.container.client.shard?.count ? this.container.client.shard.count - 1 : 0)
+						.setMaxValue(container.client.shard?.count ? container.client.shard.count - 1 : 0)
 				)
 		);
 
 		// Register context menu command available from any message
 		registry.registerContextMenuCommand({
-			name: this.name,
+			name: 'ping',
 			type: ApplicationCommandType.Message
 		});
 
 		// Register context menu command available from any user
 		registry.registerContextMenuCommand({
-			name: this.name,
+			name: 'ping',
 			type: ApplicationCommandType.User
 		});
 	}
 
 	// Message command
 	public override async messageRun(message: Message) {
-		if (message.guild) {
-			let defReply = await getDefReply('welcome');
-			return send(message, `${defReply}`);
+		// Send initial measuring message and measure event/API latency
+		const apiStart = Date.now();
+		const replyMessage = (await send(message, 'Measuring latency...')) as Message;
+		const apiLatency = Date.now() - apiStart;
+
+		// Measure database latency
+		const dbStart = Date.now();
+		try {
+			await mongoose.connection.db?.admin().ping();
+		} catch {
+			// ignore DB errors for the purpose of latency reporting
+		}
+		const dbLatency = Date.now() - dbStart;
+
+		// Determine current shard id
+		const currentShardId = container.client.shard?.ids[0] ?? 0;
+
+		// Get websocket latency (try to get from shards if shard manager present)
+		let wsLatency = 0;
+		if (container.client.shard) {
+			try {
+				const shardPingResults = await container.client.shard.broadcastEval((client) => {
+					return {
+						id: client.shard?.ids[0] ?? 0,
+						ping: client.ws.ping
+					};
+				});
+				if (Array.isArray(shardPingResults) && shardPingResults.length > 0) {
+					// prefer the result from the current shard if available
+					const found = shardPingResults.find(r => r && typeof r.id !== 'undefined' && r.id === currentShardId);
+					wsLatency = (found ?? shardPingResults[0]).ping;
+				} else {
+					wsLatency = container.client.ws.ping;
+				}
+			} catch {
+				wsLatency = container.client.ws.ping;
+			}
 		} else {
-			return send(message, `DM command`);
+			wsLatency = container.client.ws.ping;
+		}
+
+		// Build embed
+		const embed = new EmbedBuilder()
+			.setColor(config.bot.embedColor.default as ColorResolvable)
+			.setTitle('🏓 Pong!')
+			.setDescription('Latency information')
+			.addFields(
+				{ name: '⚡ Event Latency', value: `\`[${apiLatency}ms]\``, inline: true },
+				{ name: '🌐 Discord API Latency', value: `\`[${Math.round(wsLatency)}ms]\``, inline: true },
+				{ name: '💾 Database Latency', value: `\`[${dbLatency}ms]\``, inline: true }
+			)
+			.setFooter({ text: `Shard: ${currentShardId}${container.client.shard ? ` / ${container.client.shard.count}` : ''}` })
+			.setTimestamp();
+
+		// If using multiple shards, list them
+		if (container.client.shard && container.client.shard.count > 1) {
+			let shardInfo = '';
+			for (let i = 0; i < container.client.shard.count; i++) {
+				shardInfo += `• Shard #${i}${i === currentShardId ? ' (current)' : ''}\n`;
+			}
+			embed.addFields({
+				name: '🔢 Available Shards',
+				value: shardInfo,
+				inline: false
+			});
+		}
+
+		// Edit the initial reply with the embed
+		try {
+			return await replyMessage.edit({ content: null, embeds: [embed] });
+		} catch {
+			// fallback: send a new message if edit fails
+			return send(message, { embeds: [embed] } as any);
 		}
 	}
 
@@ -90,7 +153,7 @@ export class UserCommand extends ModuleCommand<GeneralModule> {
 		
 		// Get selected shard or current shard
 		const selectedShardId = interaction.options.getInteger('shard');
-		const currentShardId = this.container.client.shard?.ids[0] ?? 0;
+		const currentShardId = container.client.shard?.ids[0] ?? 0;
 		const shardId = selectedShardId !== null ? selectedShardId : currentShardId;
 		
 		// Measure Discord API latency
@@ -109,10 +172,10 @@ export class UserCommand extends ModuleCommand<GeneralModule> {
 		
 		// Get WebSocket latency for the selected shard
 		let wsLatency = 0;
-		if (this.container.client.shard) {
+		if (container.client.shard) {
 			// If using shards, get the latency for the selected shard
 			try {
-				const shardPingResults = await this.container.client.shard.broadcastEval(
+				const shardPingResults = await container.client.shard.broadcastEval(
 					(client) => {
 						return { 
 							id: client.shard?.ids[0] ?? 0,
@@ -127,11 +190,11 @@ export class UserCommand extends ModuleCommand<GeneralModule> {
 				}
 			} catch (error) {
 				// If eval fails, use current client's ping
-				wsLatency = this.container.client.ws.ping;
+				wsLatency = container.client.ws.ping;
 			}
 		} else {
 			// If not using shards, just use the current client's ping
-			wsLatency = this.container.client.ws.ping;
+			wsLatency = container.client.ws.ping;
 		}
 		
 		// Create embed with all latency information
@@ -144,13 +207,13 @@ export class UserCommand extends ModuleCommand<GeneralModule> {
 				{ name: '🌐 Discord API Latency', value: `\`[${Math.round(wsLatency)}ms]\``, inline: true },
 				{ name: '💾 Database Latency', value: `\`[${dbLatency}ms]\``, inline: true }
 			)
-			.setFooter({ text: `Shard: ${shardId}${this.container.client.shard ? ` / ${this.container.client.shard.count}` : ''}` })
+			.setFooter({ text: `Shard: ${shardId}${container.client.shard ? ` / ${container.client.shard.count}` : ''}` })
 			.setTimestamp();
 		
 		// If using shards, add information about available shards
-		if (this.container.client.shard && this.container.client.shard.count > 1) {
+		if (container.client.shard && container.client.shard.count > 1) {
 			let shardInfo = '';
-			for (let i = 0; i < this.container.client.shard.count; i++) {
+			for (let i = 0; i < container.client.shard.count; i++) {
 				shardInfo += `• Shard #${i}${i === currentShardId ? ' (current)' : ''}\n`;
 			}
 			
@@ -183,7 +246,7 @@ export class UserCommand extends ModuleCommand<GeneralModule> {
 		const dbLatency = Date.now() - dbStartTime;
 		
 		// Get current shard
-		const currentShardId = this.container.client.shard?.ids[0] ?? 0;
+		const currentShardId = container.client.shard?.ids[0] ?? 0;
 		
 		// Create embed with all latency information
 		const embed = new EmbedBuilder()
@@ -192,10 +255,10 @@ export class UserCommand extends ModuleCommand<GeneralModule> {
 			.setDescription('Latency information')
 			.addFields(
 				{ name: '⚡ Event Latency', value: `\`[${apiLatency}ms]\``, inline: true },
-				{ name: '🌐 Discord API Latency', value: `\`[${Math.round(this.container.client.ws.ping)}ms]\``, inline: true },
+				{ name: '🌐 Discord API Latency', value: `\`[${Math.round(container.client.ws.ping)}ms]\``, inline: true },
 				{ name: '💾 Database Latency', value: `\`[${dbLatency}ms]\``, inline: true }
 			)
-			.setFooter({ text: `Shard: ${currentShardId}${this.container.client.shard ? ` / ${this.container.client.shard.count}` : ''}` })
+			.setFooter({ text: `Shard: ${currentShardId}${container.client.shard ? ` / ${container.client.shard.count}` : ''}` })
 			.setTimestamp();
 		
 		return interaction.editReply({ content: null, embeds: [embed] });

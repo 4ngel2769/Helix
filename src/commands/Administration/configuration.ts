@@ -13,7 +13,7 @@ import { ErrorHandler } from '../../lib/structures/ErrorHandler';
 import config from '../../config';
 
 @ApplyOptions<Command.Options>({
-    name: 'config',
+    // name: 'config',
     description: 'Configure server settings',
     preconditions: ['GuildOnly']
 })
@@ -23,7 +23,7 @@ export class ConfigCommand extends ModuleCommand<AdministrationModule> {
             ...options,
             module: 'Administration',
             description: 'Configure server settings',
-            enabled: true
+            // enabled: true
         });
     }
 
@@ -33,6 +33,18 @@ export class ConfigCommand extends ModuleCommand<AdministrationModule> {
                 .setName('config')
                 .setDescription('Configure server settings')
                 .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+                .addSubcommand((subcommand) =>
+                    subcommand
+                        .setName('prefix')
+                        .setDescription('Set a custom prefix for text commands')
+                        .addStringOption((option) =>
+                            option
+                                .setName('prefix')
+                                .setDescription('The prefix to use (leave empty to reset to default)')
+                                .setRequired(false)
+                                .setMaxLength(5)
+                        )
+                )
                 .addSubcommand((subcommand) =>
                     subcommand
                         .setName('admin_role')
@@ -76,6 +88,46 @@ export class ConfigCommand extends ModuleCommand<AdministrationModule> {
         }
 
         switch (subcommand) {
+            case 'prefix': {
+                const newPrefix = interaction.options.getString('prefix');
+                
+                if (newPrefix === null || newPrefix === '') {
+                    // Reset to default prefix
+                    guildData.prefix = null;
+                    await guildData.save();
+
+                    const embed = new EmbedBuilder()
+                        .setColor(config.bot.embedColor.success as ColorResolvable)
+                        .setTitle('✅ Prefix Reset')
+                        .setDescription(`Text command prefix has been reset to the default: \`${config.bot.defaultPrefix}\``)
+                        .setFooter({ text: 'Users can now use the default prefix for text commands.' });
+
+                    return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+                }
+
+                // Validate prefix (no spaces, reasonable length)
+                if (newPrefix.includes(' ')) {
+                    return ErrorHandler.sendCommandError(
+                        interaction,
+                        'Prefix cannot contain spaces.'
+                    );
+                }
+
+                guildData.prefix = newPrefix;
+                await guildData.save();
+
+                const embed = new EmbedBuilder()
+                    .setColor(config.bot.embedColor.success as ColorResolvable)
+                    .setTitle('✅ Prefix Updated')
+                    .setDescription(`Text command prefix has been set to: \`${newPrefix}\``)
+                    .addFields(
+                        { name: 'Example', value: `\`${newPrefix}help\` - Shows the help menu`, inline: false }
+                    )
+                    .setFooter({ text: 'Slash commands are unaffected by this change.' });
+
+                return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+            }
+
             case 'admin_role': {
                 // Only owner can set admin role
                 if (!isOwner) {

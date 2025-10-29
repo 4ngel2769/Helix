@@ -28,6 +28,8 @@ import { getAllModuleKeys, getModuleConfig } from '../../config/modules';
 const COMMANDS_PER_PAGE = 5;
 
 interface ExtendedCommand extends Command<Args, CommandOptions> {
+    options: any;
+    name: any;
     category: string | null;
 }
 
@@ -36,23 +38,25 @@ interface CommandPermissions {
 }
 
 interface ExtendedModule extends Module {
+    container: any;
     name: string;
     IsEnabled: (context: IsEnabledContext) => Promise<Result<boolean, ModuleError>>;
     requiredPermissions?: bigint[];
 }
 
 @ApplyOptions<Command.Options>({
-    name: 'help',
+    // name: 'help',
     description: 'Shows all available commands',
-    enabled: true
+    // enabled: true
 })
 export class HelpCommand extends ModuleCommand<GeneralModule> {
+    container: any;
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
         super(context, {
             ...options,
             module: 'GeneralModule',
             description: 'Shows all available commands',
-            enabled: true
+            // enabled: true
         });
     }
 
@@ -142,6 +146,23 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
                 } catch (finalError) {
                     console.error('Failed to respond to interaction:', finalError);
                 }
+            }
+        }
+    }
+
+    // Message command (prefix command)
+    public override async messageRun(message: Message) {
+        try {
+            // Show main help menu with all modules
+            await this.handleHelp(message);
+        } catch (error) {
+            console.error('Error in help message command:', error);
+            try {
+                await message.reply({
+                    content: 'An error occurred while loading the help menu. Please try again later.'
+                });
+            } catch (e) {
+                console.error('Failed to send error message:', e);
             }
         }
     }
@@ -303,22 +324,14 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
 
         collector.on('end', async () => {
             try {
-                // Create a new embed indicating the menu has expired
-                const expiredEmbed = new EmbedBuilder()
-                    .setColor('#ff6b6b')
-                    .setTitle('Help Menu Expired')
-                    .setDescription('This help menu has expired. Use `/help` to open a new one.')
-                    .setTimestamp();
-
+                // Just disable the components without changing the embed
                 if (response instanceof Message) {
                     await response.edit({ 
-                        embeds: [expiredEmbed], 
                         components: [] 
                     }).catch(() => null);
                 } else if (isSlash) {
                     await (interaction as Command.ChatInputCommandInteraction)
                         .editReply({ 
-                            embeds: [expiredEmbed], 
                             components: [] 
                         })
                         .catch(() => null);
@@ -458,8 +471,8 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
     private async showCommandHelp(interaction: Command.ChatInputCommandInteraction, commandName: string) {
         // Find the command in the command store
         const commandStore = this.container.client.stores.get('commands');
-        const command = Array.from(commandStore.values()).find(
-            cmd => cmd.name.toLowerCase() === commandName.toLowerCase()
+        const command = (Array.from(commandStore.values()) as ExtendedCommand[]).find(
+            (cmd) => typeof (cmd as ExtendedCommand).name === 'string' && (cmd as ExtendedCommand).name.toLowerCase() === commandName.toLowerCase()
         ) as ExtendedCommand | undefined;
         
         if (!command) {
@@ -786,8 +799,8 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
             
             // Get commands for this module
             const commandStore = container.stores.get('commands');
-            const commands = Array.from(commandStore.values())
-                .filter(cmd => cmd.category?.toLowerCase() === selectedModule) as unknown as ExtendedCommand[];
+            const commands = (Array.from(commandStore.values()) as ExtendedCommand[])
+                .filter(cmd => cmd.category?.toLowerCase() === selectedModule);
 
             // Generate new embed with updated page
             const pages = this.generateCommandPages(commands);
