@@ -6,12 +6,12 @@ import { randomUUID } from 'crypto';
 
 // Formatted auction for API responses (different from database model)
 export interface FormattedAuction {
-    id: string;
-    quantity: number;
+    id?: string;
+    quantity?: number;
     item: { name: string };
-    currentBid: number;
+    currentBid?: number;
     startingBid?: number;
-    sellerId: string;
+    sellerId?: string;
     highestBidderId?: string;
     createdAt?: Date;
     endsAt: Date;
