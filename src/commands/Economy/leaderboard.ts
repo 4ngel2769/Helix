@@ -254,14 +254,14 @@ export class EconomyLeaderboardCommand extends ModuleCommand<EconomyModule> {
             
             const users = await User.aggregate(pipeline);
             
-            return users;
+            return users as LeaderboardUser[];
         } catch (error) {
             console.error('Error getting leaderboard:', error);
             return [];
         }
     }
 
-    private formatUserStats(currentUser: any, type: 'total' | 'wallet' | 'bank' | 'level'): string {
+    private formatUserStats(currentUser: IUser, type: 'total' | 'wallet' | 'bank' | 'level'): string {
         const typeEmojis = {
             total: '💰',
             wallet: '💵',
