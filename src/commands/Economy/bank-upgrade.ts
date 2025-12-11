@@ -4,6 +4,7 @@ import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { EconomyModule } from '../../modules/Economy';
 import { EmbedBuilder, MessageFlags, ActionRowBuilder, ButtonBuilder, ButtonStyle, ColorResolvable } from 'discord.js';
 import { EconomyService } from '../../lib/services/EconomyService';
+import type { IUser, EconomyItem as InventoryItem } from '../../models/User';
 import config from '../../config';
 
 @ApplyOptions<Command.Options>({

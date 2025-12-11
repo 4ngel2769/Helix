@@ -4,6 +4,7 @@ import { ModuleCommand } from '@kbotdev/plugin-modules';
 import type { EconomyModule } from '../../modules/Economy';
 import { EmbedBuilder, MessageFlags, Message } from 'discord.js';
 import { EconomyService } from '../../lib/services/EconomyService';
+import type { IUser, EconomyItem as InventoryItem } from '../../models/User';
 import config from '../../config';
 
 @ApplyOptions<Command.Options>({
@@ -166,9 +167,9 @@ export class BalanceCommand extends ModuleCommand<EconomyModule> {
     }
 
     // Add this helper method to the class
-    private getUserDiamonds(user: any): number {
+    private getUserDiamonds(user: IUser): number {
         // Look for diamonds in user's inventory
-        const diamondItem = user.economy.inventory.find((item: any) => 
+        const diamondItem = user.economy.inventory.find((item: InventoryItem) => 
             item.itemId === 'diamond' || item.name.toLowerCase().includes('diamond')
         );
         return diamondItem ? diamondItem.quantity : 0;
