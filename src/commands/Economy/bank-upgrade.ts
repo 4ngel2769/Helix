@@ -7,6 +7,12 @@ import { EconomyService } from '../../lib/services/EconomyService';
 import type { IUser, EconomyItem as InventoryItem } from '../../models/User';
 import config from '../../config';
 
+interface UpgradeTier {
+    limit: number;
+    coinCost: number;
+    diamondCost: number;
+}
+
 @ApplyOptions<Command.Options>({
     name: 'bank-upgrade',
     description: 'Upgrade your bank storage capacity',
