@@ -4,6 +4,7 @@ import * as pkgJson from '../package.json';
 const config = {
 	bot: {
 		token: process.env.TOKEN || '',
+		defaultPrefix: process.env.DEFAULT_PREFIX || '!',
 		client: {
 			id: process.env.DISCORD_CLIENT_ID || '',
 			secret: process.env.DISCORD_CLIENT_SECRET || ''
@@ -25,9 +26,9 @@ const config = {
 		apiNinjas: 'YOUR_API_NINJAS_KEY'
 	},
 	dashboard: {
-		port: 8080,
-		domain: 'http://localhost',
-		redirectUri: '/auth/callback',
+		port: parseInt(process.env.DASHBOARD_PORT || '8080'),
+		domain: process.env.DASHBOARD_ORIGIN || 'http://localhost:3000',
+		redirectUri: process.env.DASHBOARD_REDIRECT_URI || '/auth/callback',
 		license: '', // not needed
 		ownerIDs: ['', ''],
 		mongoUri: process.env.MONGO || '',
@@ -40,7 +41,7 @@ const config = {
 		oauth: {
 			clientId: process.env.DISCORD_CLIENT_ID || '',
 			clientSecret: process.env.DISCORD_CLIENT_SECRET || '',
-			scopes: ['identify', 'guilds', 'guilds.join'],
+			scopes: ['identify', 'guilds'],
 			prompt: 'consent'
 		},
 		session: {
@@ -55,11 +56,11 @@ const config = {
 		}
 	},
 	api: {
-		port: 80,
-		origin: process.env.NODE_ENV === 'production' ? 'https://your-domain.com' : 'http://localhost:80',
-		prefix: '/api',
+		port: parseInt(process.env.API_PORT || '8080'),
+		origin: process.env.ALLOWED_ORIGIN || 'http://localhost:3000',
+		prefix: process.env.API_PREFIX || '/api',
 		auth: {
-			domain: process.env.NODE_ENV === 'production' ? 'https://your-domain.com' : 'http://localhost:80',
+			domain: process.env.NODE_ENV === 'production' ? 'https://your-domain.com' : 'http://localhost:3000',
 			secret: process.env.SESSION_SECRET || 'your-secure-session-secret',
 			cookie: 'SAPPHIRE_AUTH',
 			redirect: '/auth/callback',

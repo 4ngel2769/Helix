@@ -5,6 +5,7 @@ declare const config: {
             id: string;
             secret: string;
         };
+        defaultPrefix?: string;
         embedColor: {
             err: string;
             warn: string;
@@ -16,6 +17,7 @@ declare const config: {
         ownerIDs: string[];
         port: number;
         mongoUri: string;
+        version?: string;
     };
     dashboard: {
         port: number;
@@ -45,6 +47,18 @@ declare const config: {
                 maxAge: number;
                 secure: boolean;
             };
+        };
+    };
+    api: {
+        port: number;
+        origin: string;
+        prefix: string;
+        auth: {
+            domain: string;
+            secret: string;
+            cookie: string;
+            redirect: string;
+            scopes: string[];
         };
     };
 };

@@ -116,6 +116,9 @@ export interface IUser extends Document {
   userId: string;
   username: string;
   discriminator: string;
+  displayName?: string;
+  pronouns?: string;
+  bio?: string;
   economy: UserEconomyData;
   joinedServers: string[];
   lastSeen: Date;
@@ -127,6 +130,9 @@ const userSchema = new Schema<IUser>({
   userId: { type: String, required: true, unique: true },
   username: { type: String, required: true },
   discriminator: { type: String, default: '0' },
+  displayName: { type: String, default: null },
+  pronouns: { type: String, default: null },
+  bio: { type: String, default: '' },
   
   economy: {
     wallet: { type: Number, default: 1000 },

@@ -1,55 +1,84 @@
-import { Route } from '@sapphire/plugin-api';
-import type { ApiRequest, ApiResponse } from '@sapphire/plugin-api';
-import type { OAuth2Guild } from 'discord.js';
+import { ApplyOptions } from '@sapphire/decorators';
+import { HttpCodes, type ApiRequest, type ApiResponse } from '@sapphire/plugin-api';
+import type { RouteOptions } from '@sapphire/plugin-api';
+import { Route } from '../../lib/structures/Route';
+import { Guild as GuildModel } from '../../models/Guild';
+import { getAllModuleKeys, getModuleConfig } from '../../config/modules';
+import { canManageGuild, getGuildForUser, withGuildIcon } from '../../lib/utils/discordApi';
+import { ErrorHandler } from '../../lib/structures/ErrorHandler';
 
+@ApplyOptions<RouteOptions>({
+	name: 'guild-details',
+	route: 'guilds/:guildId'
+})
 export class GuildsRoute extends Route {
-    public override async run(request: ApiRequest, response: ApiResponse) {
-        if (!request.auth?.token) {
-            return response.status(401).json({ error: 'Unauthorized' });
-        }
+	public override async run(request: ApiRequest, response: ApiResponse) {
+		if (request.method?.toUpperCase() !== 'GET') {
+			return response.status(HttpCodes.MethodNotAllowed).json({ error: 'Method not allowed' });
+		}
 
-        const { guildId } = request.params;
-        if (!guildId) {
-            return response.status(400).json({ error: 'Missing guildId parameter' });
-        }
+		if (!request.auth?.token) {
+			return response.status(HttpCodes.Unauthorized).json({ error: 'Unauthorized' });
+		}
 
-        try {
-            const userGuilds = await this.fetchUserGuilds(request.auth.token);
-            const guild = userGuilds.find((g: OAuth2Guild) => g.id === guildId);
+		const { guildId } = request.params;
+		if (!guildId) {
+			return response.status(HttpCodes.BadRequest).json({ error: 'Missing guildId parameter' });
+		}
 
-            if (!guild) {
-                return response.status(404).json({ error: 'Guild not found or not accessible by user' });
-            }
+		try {
+			const guild = await getGuildForUser(request.auth.token, guildId);
+			if (!guild) {
+				return response
+					.status(HttpCodes.NotFound)
+					.json({ error: 'Guild not found or not accessible by user' });
+			}
 
-            const enrichedGuild = {
-                ...guild,
-                hasBot: this.container.client.guilds.cache.has(guild.id),
-                icon: guild.icon
-                    ? `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png`
-                    : 'https://cdn.discordapp.com/embed/avatars/0.png'
-            };
+			const hasManagePermission = canManageGuild(guild);
+			const dbGuild =
+				(await GuildModel.findOne({ guildId })) ??
+				(new GuildModel({
+					guildId,
+					modules: this.buildDefaultModules()
+				}));
 
-            return response.json({ guild: enrichedGuild });
-        } catch (error) {
-            return response.status(500).json({ error: 'Failed to fetch guild' });
-        }
-    }
+			const payload = {
+				guild: {
+					...withGuildIcon(guild),
+					hasBot: this.container.client.guilds.cache.has(guild.id),
+					manageable: hasManagePermission
+				},
+				settings: {
+					prefix: dbGuild.prefix ?? this.container.client.options.defaultPrefix ?? '!',
+					adminRoleId: dbGuild.adminRoleId,
+					modRoleId: dbGuild.modRoleId,
+					modules: dbGuild.modules ?? this.buildDefaultModules(),
+					verification: {
+						channelId: dbGuild.verificationChannelId,
+						roleId: dbGuild.verificationRoleId,
+						message: dbGuild.verificationMessage,
+						disabledMessage: dbGuild.verificationDisabledMessage,
+						title: dbGuild.verificationTitle,
+						footer: dbGuild.verificationFooter,
+						thumbnail: dbGuild.verificationThumb
+					},
+					automodKeywords: dbGuild.automodKeywords
+				}
+			};
 
-    private async fetchUserGuilds(token: string): Promise<OAuth2Guild[]> {
-        const response = await fetch('https://discord.com/api/users/@me/guilds', {
-            headers: { Authorization: `Bearer ${token}` }
-        });
-        if (!response.ok) {
-            let errorMessage = `Failed to fetch guilds: ${response.status} ${response.statusText}`;
-            try {
-                const errorData = await response.json();
-                if (errorData && typeof errorData === 'object' && 'message' in errorData) {
-                    errorMessage = `Failed to fetch guilds: ${(errorData as { message: string }).message}`;
-                }
-            } catch (_) {}
-            throw new Error(errorMessage);
-        }
-        const data = await response.json();
-        return data as OAuth2Guild[];
-    }
+			return response.json(payload);
+		} catch (error) {
+			ErrorHandler.logError('Failed to fetch guild details', error);
+			return response.status(HttpCodes.InternalServerError).json({ error: 'Failed to fetch guild' });
+		}
+	}
+
+	private buildDefaultModules() {
+		const modules: Record<string, boolean> = {};
+		getAllModuleKeys().forEach((key) => {
+			const config = getModuleConfig(key);
+			if (config) modules[key] = config.defaultEnabled;
+		});
+		return modules;
+	}
 }
