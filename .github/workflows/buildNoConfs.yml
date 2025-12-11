@@ -1,0 +1,52 @@
+name: Build (No Config)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '21'
+          cache: 'yarn'
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Create dummy .env file
+        run: |
+          cat > src/.env << EOF
+          DISCORD_TOKEN=dummy_token_for_build
+          OWNERS=000000000000000000
+          PREFIX=x
+          MONGO=mongodb://localhost:27017/test
+          API_NINJAS_KEY=dummy_key
+          SESSION_SECRET=dummy_session_secret
+          CALLBACK_URL=http://localhost:3001/auth/callback
+          AUTH_COOKIE_NAME=dummy_cookie
+          DASHBOARD_PORT=8080
+          DASHBOARD_DOMAIN=http://localhost
+          DISCORD_CLIENT_ID=000000000000000000
+          DISCORD_CLIENT_SECRET=dummy_client_secret
+          MONGODB_URI=mongodb://localhost:27017/test
+          EOF
+
+      - name: Build TypeScript
+        run: yarn build
+
+      - name: Build successful
+        run: echo "✅ TypeScript compilation completed successfully!"
