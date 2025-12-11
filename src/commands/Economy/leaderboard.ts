@@ -187,7 +187,7 @@ export class EconomyLeaderboardCommand extends ModuleCommand<EconomyModule> {
         guildId: string | null
     ) {
         try {
-            let pipeline: any[] = [];
+            const pipeline: PipelineStage[] = [];
 
             // First, make sure we only get users that have economy data
             pipeline.push({
@@ -280,16 +280,16 @@ export class EconomyLeaderboardCommand extends ModuleCommand<EconomyModule> {
         }
     }
 
-    private findUserPosition(leaderboardData: any[], userId: string, type: 'total' | 'wallet' | 'bank' | 'level'): number {
+    private findUserPosition(leaderboardData: LeaderboardUser[], userId: string, type: 'total' | 'wallet' | 'bank' | 'level'): number {
         const userIndex = leaderboardData.findIndex(user => user.userId === userId);
         return userIndex === -1 ? -1 : userIndex + 1;
     }
 
     private async createLeaderboardEmbed(
-        users: any[], 
+        users: LeaderboardUser[], 
         type: 'total' | 'wallet' | 'bank' | 'level',
         isGlobal: boolean,
-        currentUser: any,
+        currentUser: IUser | null,
         userPosition: number,
         serverName: string
     ): Promise<EmbedBuilder> {
