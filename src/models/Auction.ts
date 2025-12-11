@@ -62,7 +62,6 @@ const auctionSchema = new Schema<IAuction>({
   timestamps: true
 });
 
-auctionSchema.index({ auctionId: 1 });
 auctionSchema.index({ sellerId: 1 });
 auctionSchema.index({ guildId: 1 });
 auctionSchema.index({ status: 1 });

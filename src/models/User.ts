@@ -247,7 +247,6 @@ const userSchema = new Schema<IUser>({
 });
 
 // Create indexes for better performance
-userSchema.index({ userId: 1 });
 userSchema.index({ 'economy.wallet': -1 });
 userSchema.index({ 'economy.bank': -1 });
 userSchema.index({ 'economy.level': -1 });
