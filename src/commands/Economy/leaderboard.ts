@@ -430,7 +430,7 @@ export class EconomyLeaderboardCommand extends ModuleCommand<EconomyModule> {
 
             // Get updated data
             const currentUser = await EconomyService.getUser(userId, interaction.user.username);
-            const leaderboardData = await this.getLeaderboard(currentType as any, newIsGlobal, guildId);
+            const leaderboardData = await this.getLeaderboard(currentType as LeaderboardType, newIsGlobal, guildId);
             
             if (!leaderboardData || leaderboardData.length === 0) {
                 // Handle empty leaderboard case
@@ -440,7 +440,7 @@ export class EconomyLeaderboardCommand extends ModuleCommand<EconomyModule> {
                     .setDescription('No users found with economy data.')
                     .addFields({
                         name: 'Your Current Stats',
-                        value: this.formatUserStats(currentUser, currentType as any),
+                        value: this.formatUserStats(currentUser, currentType as LeaderboardType),
                         inline: false
                     })
                     .setTimestamp();
@@ -449,12 +449,12 @@ export class EconomyLeaderboardCommand extends ModuleCommand<EconomyModule> {
                 return interaction.editReply({ embeds: [embed], components });
             }
             
-            const userPosition = this.findUserPosition(leaderboardData, userId, currentType as any);
+            const userPosition = this.findUserPosition(leaderboardData, userId, currentType as LeaderboardType);
 
             // Create updated embed
             const embed = await this.createLeaderboardEmbed(
                 leaderboardData.slice(0, 20),
-                currentType as any,
+                currentType as LeaderboardType,
                 newIsGlobal,
                 currentUser,
                 userPosition,
