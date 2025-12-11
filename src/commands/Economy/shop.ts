@@ -122,7 +122,7 @@ export class ShopCommand extends ModuleCommand<EconomyModule> {
     private async handleShopList(interaction: Command.ChatInputCommandInteraction) {
         const category = interaction.options.getString('category');
         
-        const filter: any = { 'shop.available': true };
+        const filter: FilterQuery<IEconomyItem> = { 'shop.available': true };
         if (category) {
             filter.category = category;
         }
@@ -280,7 +280,7 @@ export class ShopCommand extends ModuleCommand<EconomyModule> {
     private async handleTextShopList(message: Message, args: string[]) {
         const category = args[0];
         
-        const filter: any = { 'shop.available': true };
+        const filter: FilterQuery<IEconomyItem> = { 'shop.available': true };
         if (category) {
             filter.category = category.toLowerCase();
         }
