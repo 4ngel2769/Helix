@@ -4,11 +4,29 @@ import { EconomyService } from './EconomyService';
 import { EconomyItem } from '../../models/EconomyItem';
 import { randomUUID } from 'crypto';
 
+// Formatted auction for API responses (different from database model)
+export interface FormattedAuction {
+    id: string;
+    quantity: number;
+    item: { name: string };
+    currentBid: number;
+    startingBid?: number;
+    sellerId: string;
+    highestBidderId?: string;
+    createdAt?: Date;
+    endsAt: Date;
+    bids?: {
+        bidderId: string;
+        amount: number;
+        timestamp: Date;
+    }[];
+}
+
 export interface AuctionResult {
     success: boolean;
     message: string;
-    auction?: IAuction;
-    auctions?: IAuction[];
+    auction?: FormattedAuction;
+    auctions?: FormattedAuction[];
     previousBid?: number;
 }
 
