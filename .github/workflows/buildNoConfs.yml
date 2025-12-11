@@ -44,6 +44,9 @@ jobs:
           MONGODB_URI=mongodb://localhost:27017/test
           EOF
 
+      - name: Copy example config to config.ts
+        run: cp src/config.example.ts src/config.ts
+
       - name: Build TypeScript
         run: npm run build
 

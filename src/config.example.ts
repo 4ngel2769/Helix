@@ -1,37 +1,41 @@
 import { stripIndent } from 'common-tags';
+import type { ColorResolvable } from 'discord.js';
 import * as pkgJson from '../package.json';
 
-const config = {
+export const config = {
+	// Bot runtime values pulled from env
 	bot: {
-		token: process.env.TOKEN || '',
+		token: process.env.DISCORD_TOKEN || '',
 		client: {
 			id: process.env.DISCORD_CLIENT_ID || '',
 			secret: process.env.DISCORD_CLIENT_SECRET || ''
 		},
 		embedColor: {
-			err: '#ff0000',
-			warn: '#ffff00',
-			success: '#00ff00',
-			magic: '#9400D3',
-			helix: '#3b66ff',
-			default: '#3b66ff'
+			err: '#ff0000' as ColorResolvable,
+			warn: '#ffff00' as ColorResolvable,
+			success: '#00ff00' as ColorResolvable,
+			magic: '#9400D3' as ColorResolvable,
+			helix: '#3b66ff' as ColorResolvable,
+			default: '#3b66ff' as ColorResolvable,
+			verification: '#4CAF50' as ColorResolvable
 		},
-		ownerIDs: ['', ''],
+		ownerIDs: [] as string[],
 		port: parseInt(process.env.PORT || '3000'),
-		mongoUri: process.env.MONGO || '',
-		version: pkgJson.version
+		mongoUri: process.env.MONGO || process.env.MONGO_URI || '',
+		version: pkgJson.version,
+		defaultPrefix: process.env.PREFIX || 'x'
 	},
 	secrets: {
-		apiNinjas: 'YOUR_API_NINJAS_KEY'
+		apiNinjas: process.env.API_NINJAS_KEY || ''
 	},
 	dashboard: {
-		port: 8080,
-		domain: 'http://localhost',
-		redirectUri: '/auth/callback',
-		license: '', // not needed
-		ownerIDs: ['', ''],
-		mongoUri: process.env.MONGO || '',
-		supportMail: 'support@yourwebsite.com',
+		port: parseInt(process.env.DASHBOARD_PORT || '8080', 10),
+		domain: process.env.DASHBOARD_DOMAIN || 'http://localhost',
+		redirectUri: process.env.DISCORD_REDIRECT_URI || process.env.CALLBACK_URL || '/auth/callback',
+		license: '',
+		ownerIDs: [] as string[],
+		mongoUri: process.env.MONGO || process.env.MONGO_URI || '',
+		supportMail: '',
 		ui: {
 			darkLogo: './src/db/assets/branding/Helix 000.png',
 			lightLogo: './src/db/assets/branding/Helix 000.png',
@@ -59,24 +63,28 @@ const config = {
 		origin: process.env.NODE_ENV === 'production' ? 'https://your-domain.com' : 'http://localhost:80',
 		prefix: '/api',
 		auth: {
-			domain: process.env.NODE_ENV === 'production' ? 'https://your-domain.com' : 'http://localhost:80',
-			secret: process.env.SESSION_SECRET || 'your-secure-session-secret',
-			cookie: 'SAPPHIRE_AUTH',
-			redirect: '/auth/callback',
+			domain:
+				process.env.NODE_ENV === 'production'
+					? process.env.DASHBOARD_DOMAIN || 'https://your-domain.com'
+					: process.env.DASHBOARD_DOMAIN || 'http://localhost:80',
+			secret: process.env.SESSION_SECRET || '',
+			cookie: process.env.AUTH_COOKIE_NAME || 'discord_token',
+			redirect: process.env.DISCORD_REDIRECT_URI || '/auth/callback',
 			scopes: ['identify', 'guilds']
 		}
 	},
 	ollama: {
-		url: process.env.OLLAMA_URL || 'http(s)://ollama-api-hostname:port/api/generate',
-		defaultModel: process.env.OLLAMA_DEFAULT_MODEL || 'ollama-model-name',
-		availableModels: ['model1', 'model2', 'model3', 'model4'],
-		systemPrompt: stripIndent`
-        This is your ollama system prompt.
+		url: process.env.OLLAMA_URL || process.env.OLLAMA_API_URL || 'http://localhost:11434/api/generate',
+		defaultModel: process.env.OLLAMA_DEFAULT_MODEL || 'tinyllama:1.1b',
+		availableModels: ['tinyllama:1.1b'],
+		systemPrompt: 
+		stripIndent`
+			You are an advanced AI assistant integrated into a Discord bot named Helix.
+			Your purpose is to help users with their inquiries in a friendly and efficient manner.
+			Always aim to provide accurate and concise information, and maintain a helpful tone throughout the conversation.
         `
 	}
-};
+} as const;
 
-export default config;
-
-module.exports = config;
 export type Config = typeof config;
+export default config;
