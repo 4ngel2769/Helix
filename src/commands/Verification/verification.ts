@@ -407,7 +407,7 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
         }
     }
 
-    private async checkAndSendVerificationMessage(guildData: any) {
+    private async checkAndSendVerificationMessage(guildData: IGuild) {
         // Check if we have all required settings
         if (guildData.verificationChannelId && 
             guildData.verificationRoleId && 
@@ -477,7 +477,7 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
         }
     }
 
-    private async updateVerificationMessage(guildData: any) {
+    private async updateVerificationMessage(guildData: IGuild) {
         if (!guildData.verificationChannelId || !guildData.verificationMessageId) return;
 
         try {
@@ -525,7 +525,7 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
         }
     }
 
-    private async updateVerificationMessageState(guildData: any, enabled: boolean) {
+    private async updateVerificationMessageState(guildData: IGuild, enabled: boolean) {
         if (!guildData.verificationChannelId || !guildData.verificationMessageId) return;
 
         try {
