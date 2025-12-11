@@ -103,13 +103,9 @@ export class EmojiCommand extends ModuleCommand<ModerationModule> {
                 
                 // Handle specific error cases
                 if ((error as { code: number }).code === 50035) {
-                    return interaction.editReply({
-                        embeds: [await ErrorHandler.sendEmojiError(interaction, 'size')]
-                    });
+                    return ErrorHandler.sendEmojiError(interaction, 'size');
                 } else if ((error as { code: number }).code === 30008) {
-                    return interaction.editReply({
-                        embeds: [await ErrorHandler.sendEmojiError(interaction, 'limit')]
-                    });
+                    return ErrorHandler.sendEmojiError(interaction, 'limit');
                 }
 
                 return ErrorHandler.sendCommandError(

@@ -134,9 +134,9 @@ export class ErrorHandler {
     }
     
     // Add a method to handle API errors
-    static async handleApiError(response: ApiResponse, error: unknown, statusCode = 500): Promise<ApiResponse> {
+    static handleApiError(response: ApiResponse, error: unknown, statusCode = 500): void {
         this.logError('API Error', error);
-        return response.status(statusCode).json({
+        response.status(statusCode).json({
             error: 'An error occurred while processing your request',
             timestamp: new Date().toISOString()
         });
