@@ -6,8 +6,8 @@ import { randomUUID } from 'crypto';
 export interface AuctionResult {
     success: boolean;
     message: string;
-    auction?: any;
-    auctions?: any[];
+    auction?: IAuction;
+    auctions?: IAuction[];
     previousBid?: number;
 }
 
