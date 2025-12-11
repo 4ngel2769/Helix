@@ -6,7 +6,7 @@
   "license": "GNU",
   "type": "commonjs",
   "engines": {
-    "node": ">=21.7.3"
+    "node": ">=22.0.0"
   },
   "dependencies": {
     "@kaname-png/plugin-subcommands-advanced": "^2.5.0",
@@ -96,6 +96,5 @@
     "delete-module": "node scripts/delete-module.js",
     "remove:module": "node scripts/delete-module.js"
   },
-  "prettier": "@sapphire/prettier-config",
-  "packageManager": "yarn@4.2.1"
+  "prettier": "@sapphire/prettier-config"
 }

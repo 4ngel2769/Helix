@@ -8,7 +8,6 @@
 		"rootDir": "src",
 		"outDir": "dist",
 		"tsBuildInfoFile": "dist/.tsbuildinfo",
-		"baseUrl": ".",
 		"skipLibCheck": true,
 		"lib": ["ES2021"],
 		"types": ["node"],

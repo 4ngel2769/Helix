@@ -240,30 +240,8 @@ export class EconomyLeaderboardCommand extends ModuleCommand<EconomyModule> {
 
             // Get more users to find user position
             pipeline.push({ $limit: 1000 });
-
-            console.log('Leaderboard pipeline:', JSON.stringify(pipeline, null, 2));
             
             const users = await User.aggregate(pipeline);
-            console.log(`Found ${users.length} users for leaderboard`);
-            
-            // If no users found, try a simpler query for debugging
-            if (users.length === 0) {
-                console.log('No users found, checking total users with economy...');
-                const totalEconomyUsers = await User.countDocuments({ 'economy': { $exists: true } });
-                console.log(`Total users with economy field: ${totalEconomyUsers}`);
-                
-                // Get a sample user to see the structure
-                const sampleUser = await User.findOne({ 'economy': { $exists: true } });
-                if (sampleUser) {
-                    console.log('Sample user economy structure:', {
-                        userId: sampleUser.userId,
-                        wallet: sampleUser.economy?.wallet,
-                        bank: sampleUser.economy?.bank,
-                        level: sampleUser.economy?.level,
-                        joinedServers: sampleUser.joinedServers
-                    });
-                }
-            }
             
             return users;
         } catch (error) {
