@@ -11,11 +11,22 @@ import {
     StringSelectMenuInteraction,
     StringSelectMenuOptionBuilder
 } from 'discord.js';
+import type { PipelineStage } from 'mongoose';
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { EconomyModule } from '../../modules/Economy';
 import { EconomyService } from '../../lib/services/EconomyService';
-import { User } from '../../models/User';
+import { User, type IUser } from '../../models/User';
 import config from '../../config';
+
+interface LeaderboardUser {
+    userId: string;
+    economy?: {
+        wallet?: number;
+        bank?: number;
+        level?: number;
+        experience?: number;
+    };
+}
 
 @ApplyOptions<Command.Options>({
     name: 'leaderboard-bank',
