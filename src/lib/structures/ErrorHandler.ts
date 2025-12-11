@@ -3,13 +3,20 @@ import {
     ColorResolvable,
     TextChannel,
     PermissionsBitField,
-    MessageFlags
+    MessageFlags,
+    ChatInputCommandInteraction,
+    ButtonInteraction,
+    StringSelectMenuInteraction,
+    ModalSubmitInteraction
 } from 'discord.js';
+import type { ApiResponse } from '@sapphire/plugin-api';
 import config from '../../config';
+
+type RepliableInteraction = ChatInputCommandInteraction | ButtonInteraction | StringSelectMenuInteraction | ModalSubmitInteraction;
 
 export class ErrorHandler {
     // Permission error messages
-    static async sendPermissionError(interaction: any, permission: keyof typeof PermissionsBitField.Flags) {
+    static async sendPermissionError(interaction: RepliableInteraction, permission: keyof typeof PermissionsBitField.Flags) {
         const embed = new EmbedBuilder()
             .setColor(config.bot.embedColor.err as ColorResolvable)
             .setTitle('❌ Permission Error')
@@ -20,7 +27,7 @@ export class ErrorHandler {
     }
 
     // Moderator only error
-    static async sendModeratorError(interaction: any) {
+    static async sendModeratorError(interaction: RepliableInteraction) {
         const embed = new EmbedBuilder()
             .setColor(config.bot.embedColor.err as ColorResolvable)
             .setTitle('❌ Access Denied')
@@ -31,7 +38,7 @@ export class ErrorHandler {
     }
 
     // Channel type error
-    static async sendChannelTypeError(interaction: any, requiredType: string) {
+    static async sendChannelTypeError(interaction: RepliableInteraction, requiredType: string) {
         const embed = new EmbedBuilder()
             .setColor(config.bot.embedColor.err as ColorResolvable)
             .setTitle('❌ Invalid Channel')
@@ -42,7 +49,7 @@ export class ErrorHandler {
     }
 
     // Module disabled error
-    static async sendModuleDisabledError(interaction: any, moduleName: string) {
+    static async sendModuleDisabledError(interaction: RepliableInteraction, moduleName: string) {
         const embed = new EmbedBuilder()
             .setColor(config.bot.embedColor.err as ColorResolvable)
             .setTitle('❌ Module Disabled')
@@ -53,7 +60,7 @@ export class ErrorHandler {
     }
 
     // Generic command error
-    static async sendCommandError(interaction: any, error: string) {
+    static async sendCommandError(interaction: RepliableInteraction, error: string) {
         const embed = new EmbedBuilder()
             .setColor(config.bot.embedColor.err as ColorResolvable)
             .setTitle('❌ Error')
@@ -64,7 +71,7 @@ export class ErrorHandler {
     }
 
     // Missing setup error
-    static async sendMissingSetupError(interaction: any, missingItems: string[]) {
+    static async sendMissingSetupError(interaction: RepliableInteraction, missingItems: string[]) {
         const embed = new EmbedBuilder()
             .setColor(config.bot.embedColor.err as ColorResolvable)
             .setTitle('⚠️ Setup Required')
@@ -96,7 +103,7 @@ export class ErrorHandler {
     }
 
     // Emoji error messages
-    static async sendEmojiError(interaction: any, errorType: 'size' | 'limit' | 'url' | 'name') {
+    static async sendEmojiError(interaction: RepliableInteraction, errorType: 'size' | 'limit' | 'url' | 'name') {
         try {
             const errorMessages = {
                 size: 'The image file is too large. Maximum size is 256KB.',
@@ -127,7 +134,7 @@ export class ErrorHandler {
     }
     
     // Add a method to handle API errors
-    static async handleApiError(response: any, error: unknown, statusCode = 500): Promise<any> {
+    static async handleApiError(response: ApiResponse, error: unknown, statusCode = 500): Promise<ApiResponse> {
         this.logError('API Error', error);
         return response.status(statusCode).json({
             error: 'An error occurred while processing your request',

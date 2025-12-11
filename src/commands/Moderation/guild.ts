@@ -1,7 +1,7 @@
 import { Command } from '@sapphire/framework';
 import type { Message } from 'discord.js';
 import { Args } from '@sapphire/framework';
-import { Guild } from '../../models/Guild';
+import { Guild, type IGuild } from '../../models/Guild';
 import { 
   PermissionFlagsBits, 
   EmbedBuilder, 
@@ -238,7 +238,7 @@ export class GuildCommand extends Command {
   }
 
   // Helper method to format module status
-  private formatModuleStatus(guildData: any): string {
+  private formatModuleStatus(guildData: IGuild): string {
     const moduleEntries = Object.entries(guildData.toObject())
       .filter(([key]) => key.startsWith('is') && key.endsWith('Module'));
     
