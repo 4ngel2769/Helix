@@ -3,8 +3,9 @@ import { Command } from '@sapphire/framework';
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import type { EconomyModule } from '../../modules/Economy';
 import { EmbedBuilder, MessageFlags, Message, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } from 'discord.js';
+import type { FilterQuery } from 'mongoose';
 import { EconomyService } from '../../lib/services/EconomyService';
-import { EconomyItem } from '../../models/EconomyItem';
+import { EconomyItem, type IEconomyItem } from '../../models/EconomyItem';
 import config from '../../config';
 
 @ApplyOptions<Command.Options>({
