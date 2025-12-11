@@ -13,7 +13,7 @@ import {
     TextChannel,
     ColorResolvable
 } from 'discord.js';
-import { Guild } from '../../models/Guild';
+import { Guild, type IGuild } from '../../models/Guild';
 import { ErrorHandler } from '../../lib/structures/ErrorHandler';
 import config from '../../config';
 
