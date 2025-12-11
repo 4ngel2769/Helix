@@ -1,4 +1,5 @@
 import { Auction, type IAuction } from '../../models/Auction';
+import type { FilterQuery } from 'mongoose';
 import { EconomyService } from './EconomyService';
 import { EconomyItem } from '../../models/EconomyItem';
 import { randomUUID } from 'crypto';
@@ -163,7 +164,7 @@ export class AuctionService {
      */
     static async getAuctions(userId: string, filter: string): Promise<AuctionResult> {
         try {
-            let query: any = { status: 'active' };
+            const query: FilterQuery<IAuction> = { status: 'active' };
 
             switch (filter) {
                 case 'mine':
