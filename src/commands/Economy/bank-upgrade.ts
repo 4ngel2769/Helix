@@ -383,15 +383,15 @@ export class BankUpgradeCommand extends ModuleCommand<EconomyModule> {
         return 0; // Default to tier 0 if not found
     }
 
-    private getUserDiamonds(user: any): number {
+    private getUserDiamonds(user: IUser): number {
         // Look for diamonds in user's inventory
-        const diamondItem = user.economy.inventory.find((item: any) => 
+        const diamondItem = user.economy.inventory.find((item: InventoryItem) => 
             item.itemId === 'diamond' || item.name.toLowerCase().includes('diamond')
         );
         return diamondItem ? diamondItem.quantity : 0;
     }
 
-    private canAffordUpgrade(user: any, upgrade: any, diamonds: number): boolean {
+    private canAffordUpgrade(user: IUser, upgrade: UpgradeTier, diamonds: number): boolean {
         const hasEnoughCoins = user.economy.wallet >= upgrade.coinCost;
         const hasEnoughDiamonds = diamonds >= upgrade.diamondCost;
         return hasEnoughCoins && hasEnoughDiamonds;
