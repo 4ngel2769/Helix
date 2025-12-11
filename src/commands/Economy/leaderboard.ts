@@ -28,6 +28,8 @@ interface LeaderboardUser {
     };
 }
 
+type LeaderboardType = 'total' | 'wallet' | 'bank' | 'level';
+
 @ApplyOptions<Command.Options>({
     name: 'leaderboard-bank',
     description: 'View the economy leaderboard',
