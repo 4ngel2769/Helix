@@ -13,7 +13,7 @@ import {
     TextChannel,
     ColorResolvable
 } from 'discord.js';
-import { Guild } from '../../models/Guild';
+import { Guild, type IGuild } from '../../models/Guild';
 import { ErrorHandler } from '../../lib/structures/ErrorHandler';
 import config from '../../config';
 
@@ -158,7 +158,7 @@ export class SetupVerificationCommand extends ModuleCommand<VerificationModule> 
         }
     }
 
-    private async sendVerificationMessage(channel: TextChannel, guildData: any) {
+    private async sendVerificationMessage(channel: TextChannel, guildData: IGuild) {
         const embed = new EmbedBuilder()
             .setColor(config.bot.embedColor.default as ColorResolvable)
             .setTitle(guildData.verificationTitle || 'Server Verification')
