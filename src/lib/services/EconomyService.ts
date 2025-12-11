@@ -1,6 +1,7 @@
 import { User, type IUser, type EconomyItem, type Transaction } from '../../models/User';
 import { EconomyItem as EconomyItemModel, type IEconomyItem } from '../../models/EconomyItem';
 import { Auction, type IAuction } from '../../models/Auction';
+import type { PipelineStage } from 'mongoose';
 import { randomUUID } from 'crypto';
 
 export class EconomyService {
@@ -597,10 +598,10 @@ export class EconomyService {
   /**
    * Get leaderboard
    */
-  static async getLeaderboard(type: 'wallet' | 'bank' | 'total' | 'level', limit: number = 10): Promise<any[]> {
+  static async getLeaderboard(type: 'wallet' | 'bank' | 'total' | 'level', limit: number = 10): Promise<IUser[]> {
     try {
-      let sortField: any;
-      let pipeline: any[] = [];
+      let sortField: Record<string, 1 | -1> | undefined;
+      let pipeline: PipelineStage[] = [];
 
       if (type === 'total') {
         pipeline = [
