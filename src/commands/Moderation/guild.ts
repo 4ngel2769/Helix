@@ -1,4 +1,5 @@
 import { Command } from '@sapphire/framework';
+import { ApplyOptions } from '@sapphire/decorators';
 import type { Message } from 'discord.js';
 import { Args } from '@sapphire/framework';
 import { Guild, type IGuild } from '../../models/Guild';
@@ -13,6 +14,11 @@ import {
 } from 'discord.js';
 import config from '../../config';
 
+@ApplyOptions<Command.Options>({
+  name: 'guild',
+  description: 'Manages guild settings and information',
+  preconditions: ['GuildOnly', 'ModeratorOnly']
+})
 export class GuildCommand extends Command {
   constructor(context: Command.LoaderContext, options: Command.Options) {
     super(context, {
