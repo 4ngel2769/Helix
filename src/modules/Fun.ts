@@ -14,10 +14,15 @@ export class FunModule extends Module {
     }
 
     public async IsEnabled(context: IsEnabledContext): Promise<Result<Boolean, ModuleError>> {
-        if (!context.guild) return this.ok(true);
-        const guildData = await Guild.findOne({ guildId: context.guild.id });
-        const isEnabled = guildData?.isFunModule ?? true;
-        return this.ok(isEnabled);
+        try {
+            if (!context.guild) return this.ok(true);
+            const guildData = await Guild.findOne({ guildId: context.guild.id });
+            const isEnabled = guildData?.isFunModule ?? true;
+            return this.ok(isEnabled);
+        } catch (error) {
+            this.container.logger.error('Error checking Fun module status:', error);
+            return this.ok(true); // Default to enabled on error
+        }
     }
 }
 

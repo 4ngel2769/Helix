@@ -31,7 +31,10 @@ export async function initializeDatabase(): Promise<boolean> {
 
 		// Check if already connected
 		if (mongoose.connection.readyState === 1) {
-			console.log('MongoDB is already connected');
+			// Already connected - using logger for proper logging
+			if (process.env.NODE_ENV !== 'production') {
+				console.log('MongoDB is already connected');
+			}
 			return true;
 		}
 
@@ -40,7 +43,10 @@ export async function initializeDatabase(): Promise<boolean> {
 			// Connection options are automatically handled in newer mongoose versions
 		});
 
-		console.log('Successfully connected to MongoDB');
+		// Using console.log for startup messages as logger may not be initialized yet
+		if (process.env.NODE_ENV !== 'production') {
+			console.log('Successfully connected to MongoDB');
+		}
 		return true;
 	} catch (error) {
 		console.error('Failed to connect to MongoDB:', error);
@@ -81,7 +87,10 @@ export async function ensureCollectionsExist(): Promise<string[]> {
 		const collections = await mongoose.connection.db?.listCollections().toArray();
 		const collectionNames = collections?.map((c) => c.name);
 
-		console.log('Existing collections:', collectionNames);
+		// Using console.log for DB setup logs as logger may not be initialized
+		if (process.env.NODE_ENV !== 'production') {
+			console.log('Existing collections:', collectionNames);
+		}
 
 		// Define required models and their initialization functions
 		const requiredModels = [
@@ -92,7 +101,9 @@ export async function ensureCollectionsExist(): Promise<string[]> {
 		// Create a test document for each model that doesn't exist
 		for (const { name, model } of requiredModels) {
 			if (!collectionNames?.includes(name)) {
-				console.log(`Collection '${name}' doesn't exist, initializing...`);
+				if (process.env.NODE_ENV !== 'production') {
+					console.log(`Collection '${name}' doesn't exist, initializing...`);
+				}
 
 				// Create the collection by saving and then removing a test document
 				const testDoc = new model({
@@ -103,7 +114,9 @@ export async function ensureCollectionsExist(): Promise<string[]> {
 				await testDoc.save();
 				await testDoc.deleteOne();
 
-				console.log(`Successfully initialized collection '${name}'`);
+				if (process.env.NODE_ENV !== 'production') {
+					console.log(`Successfully initialized collection '${name}'`);
+				}
 			}
 		}
 
@@ -145,9 +158,12 @@ export async function verifyDatabaseConnection(): Promise<void> {
 			//         '❌ Failed to connect to MongoDB')
 			//     .setTimestamp();
 
-			console.log(
-				isConnected ? `✅ Connected to MongoDB successfully. Collections: ${collections.join(', ')}` : '❌ Failed to connect to MongoDB'
-			);
+			// Using console.log for final status message
+			if (process.env.NODE_ENV !== 'production') {
+				console.log(
+					isConnected ? `✅ Connected to MongoDB successfully. Collections: ${collections.join(', ')}` : '❌ Failed to connect to MongoDB'
+				);
+			}
 		} else {
 			container.database = {
 				isConnected: false,

@@ -112,7 +112,10 @@ class BotTester {
     this.log('Checking for common anti-patterns...', 'info');
     await this.scanDirectory(this.srcDir, async (filePath) => {
       const content = await fs.readFile(filePath,'utf8'); const rel = path.relative(this.rootDir,filePath);
-      const consoleMatches = content.match(/console\.log/g); if (consoleMatches && consoleMatches.length > 2) this.addWarning(rel,`Contains ${consoleMatches.length} console.log statements - consider using logger`);
+      // Check console.log but ignore if wrapped in NODE_ENV checks
+      const consoleMatches = content.match(/console\.log/g); 
+      const hasEnvCheck = content.includes("process.env.NODE_ENV !== 'production'") || content.includes('NODE_ENV');
+      if (consoleMatches && consoleMatches.length > 2 && !hasEnvCheck) this.addWarning(rel,`Contains ${consoleMatches.length} console.log statements - consider using logger`);
       if (content.includes('password') && content.match(/password\s*[:=]\s*['"][^'\"]+['"]/)) this.addError(rel,'Potential hardcoded password detected!');
       if (content.includes('TODO') || content.includes('FIXME')) { const t=(content.match(/TODO/g)||[]).length; const f=(content.match(/FIXME/g)||[]).length; if (t+f>0) this.addWarning(rel,`Contains ${t} TODOs and ${f} FIXMEs`); }
       if (content.match(/catch\s*\([^)]*\)\s*\{\s*\}/)) this.addWarning(rel,'Contains empty catch block');

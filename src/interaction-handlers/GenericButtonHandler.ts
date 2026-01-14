@@ -15,19 +15,23 @@ export class GenericButtonHandler extends InteractionHandler {
     }
 
     public async run(interaction: ButtonInteraction) {
-        switch (interaction.customId) {
-            case 'my-awesome-button':
-                await interaction.reply({
-                    content: 'Hello from a button interaction handler!',
-                    flags: MessageFlags.Ephemeral
-                });
-                break;
-                
-            default:
-                await interaction.reply({
-                    content: 'Unknown button interaction.',
-                    flags: MessageFlags.Ephemeral
-                });
+        try {
+            switch (interaction.customId) {
+                case 'my-awesome-button':
+                    await interaction.reply({
+                        content: 'Hello from a button interaction handler!',
+                        flags: MessageFlags.Ephemeral
+                    });
+                    break;
+                    
+                default:
+                    await interaction.reply({
+                        content: 'Unknown button interaction.',
+                        flags: MessageFlags.Ephemeral
+                    });
+            }
+        } catch (error) {
+            this.container.logger.error('Error in GenericButtonHandler:', error);
         }
     }
 }

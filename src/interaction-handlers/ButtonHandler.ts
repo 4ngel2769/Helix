@@ -42,9 +42,13 @@ export class ButtonHandler extends InteractionHandler {
     }
 
     public async run(interaction: ButtonInteraction) {
-        await interaction.reply({
-            content: 'Unknown button interaction.',
-            flags: MessageFlags.Ephemeral
-        });
+        try {
+            await interaction.reply({
+                content: 'Unknown button interaction.',
+                flags: MessageFlags.Ephemeral
+            });
+        } catch (error) {
+            this.container.logger.error('Error in ButtonHandler:', error);
+        }
     }
 }

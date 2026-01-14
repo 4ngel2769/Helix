@@ -14,10 +14,15 @@ export class WelcomingModule extends Module {
     }
 
     public async IsEnabled(context: IsEnabledContext): Promise<Result<Boolean, ModuleError>> {
-        if (!context.guild) return this.ok(false);
-        const guildData = await Guild.findOne({ guildId: context.guild.id });
-        const isEnabled = guildData?.isWelcomingModule ?? false;
-        return this.ok(isEnabled);
+        try {
+            if (!context.guild) return this.ok(false);
+            const guildData = await Guild.findOne({ guildId: context.guild.id });
+            const isEnabled = guildData?.isWelcomingModule ?? false;
+            return this.ok(isEnabled);
+        } catch (error) {
+            this.container.logger.error('Error checking Welcoming module status:', error);
+            return this.ok(false); // Default to disabled on error
+        }
     }
 }
 

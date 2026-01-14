@@ -21,12 +21,7 @@ import config from '../../config';
 })
 export class GuildCommand extends Command {
   constructor(context: Command.LoaderContext, options: Command.Options) {
-    super(context, {
-      ...options,
-      name: 'guild',
-      description: 'Manages guild settings and information',
-      preconditions: ['GuildOnly', 'ModeratorOnly'], // Only moderators in a guild can use this
-    });
+    super(context, options);
   }
 
   public override registerApplicationCommands(registry: Command.Registry) {

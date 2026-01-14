@@ -14,10 +14,15 @@ export class AdministrationModule extends Module {
     }
 
     public async IsEnabled(context: IsEnabledContext): Promise<Result<Boolean, ModuleError>> {
-        if (!context.guild) return this.ok(false);
-        const guildData = await Guild.findOne({ guildId: context.guild.id });
-        const isEnabled = guildData?.isAdministration ?? true;
-        return this.ok(isEnabled);
+        try {
+            if (!context.guild) return this.ok(false);
+            const guildData = await Guild.findOne({ guildId: context.guild.id });
+            const isEnabled = guildData?.isAdministration ?? true;
+            return this.ok(isEnabled);
+        } catch (error) {
+            this.container.logger.error('Error checking Administration module status:', error);
+            return this.ok(true); // Default to enabled on error
+        }
     }
 }
 

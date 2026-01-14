@@ -38,6 +38,7 @@ function createBotNotInServerEmbed(): EmbedBuilder {
 }
 
 export async function startSinglePlayerGame(interaction: ModuleCommand.ChatInputCommandInteraction | ButtonInteraction, player: User, bot: User) {
+    try {
     const gameStatsModel = getGameStatsModel('userdb');
     const playerId = player.id;
 
@@ -393,9 +394,23 @@ export async function startSinglePlayerGame(interaction: ModuleCommand.ChatInput
 			}
 		});
 	});
+    } catch (error) {
+        console.error('Error in startSinglePlayerGame:', error);
+        try {
+            await interaction.reply({
+                content: 'An error occurred while starting the game. Please try again later.',
+                ephemeral: true
+            }).catch(() => interaction.editReply({
+                content: 'An error occurred while starting the game. Please try again later.',
+            }));
+        } catch {
+            // Ignore if we can't send error message
+        }
+    }
 }
 
 export async function startMultiplayerGame(interaction: ModuleCommand.ChatInputCommandInteraction, player1: User, player2: User) {
+    try {
     // Check if bot is properly in guild for multiplayer functionality
     if (interaction.guild && !isBotProperlyInGuild(interaction)) {
         return interaction.reply({
@@ -731,4 +746,17 @@ export async function startMultiplayerGame(interaction: ModuleCommand.ChatInputC
             }
         }
     });
+    } catch (error) {
+        console.error('Error in startMultiplayerGame:', error);
+        try {
+            await interaction.reply({
+                content: 'An error occurred while starting the game. Please try again later.',
+                ephemeral: true
+            }).catch(() => interaction.editReply({
+                content: 'An error occurred while starting the game. Please try again later.',
+            }));
+        } catch {
+            // Ignore if we can't send error message
+        }
+    }
 }

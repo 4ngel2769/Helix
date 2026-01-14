@@ -13,13 +13,17 @@ const developerUsernames: string[] = [];
 
 // Async function to fetch developer usernames (call this during setup or in a command)
 export async function fetchDeveloperUsernames(client: { users: { fetch: (id: string) => Promise<{ username: string }> } }) {
-    developerUsernames.length = 0; // Clear the array
-    for (const id of config.bot.ownerIDs) {
-        // Example of fetching user asynchronously:
-        // const user = await client.users.fetch(id);
-        // developerUsernames.push(user.username);
-        // For now, just push the ID as a placeholder:
-        developerUsernames.push(id);
+    try {
+        developerUsernames.length = 0; // Clear the array
+        for (const id of config.bot.ownerIDs) {
+            // Example of fetching user asynchronously:
+            // const user = await client.users.fetch(id);
+            // developerUsernames.push(user.username);
+            // For now, just push the ID as a placeholder:
+            developerUsernames.push(id);
+        }
+    } catch (error) {
+        console.error('Error fetching developer usernames:', error);
     }
 }
 export class UserPrecondition extends AllFlowsPrecondition {

@@ -14,10 +14,15 @@ export class EconomyModule extends Module {
     }
 
     public async IsEnabled(context: IsEnabledContext): Promise<Result<Boolean, ModuleError>> {
-        if (!context.guild) return this.ok(false);
-        const guildData = await Guild.findOne({ guildId: context.guild.id });
-        const isEnabled = guildData?.modules?.economy ?? true;
-        return this.ok(isEnabled);
+        try {
+            if (!context.guild) return this.ok(false);
+            const guildData = await Guild.findOne({ guildId: context.guild.id });
+            const isEnabled = guildData?.modules?.economy ?? true;
+            return this.ok(isEnabled);
+        } catch (error) {
+            this.container.logger.error('Error checking Economy module status:', error);
+            return this.ok(true); // Default to enabled on error
+        }
     }
 }
 

@@ -46,7 +46,9 @@ export class GuildsRoute extends Route {
                 if (errorData && typeof errorData === 'object' && 'message' in errorData) {
                     errorMessage = `Failed to fetch guilds: ${(errorData as { message: string }).message}`;
                 }
-            } catch (_) {}
+            } catch {
+                // Ignore JSON parsing errors, use default error message
+            }
             throw new Error(errorMessage);
         }
         const data = await response.json();

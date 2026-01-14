@@ -180,9 +180,9 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
             try {
                 const newGuildData = new GuildModel(guildData);
                 await newGuildData.save();
-                console.log(`Created default guild data for guild ${guildId}`);
+                this.container.logger.info(`Created default guild data for guild ${guildId}`);
             } catch (saveError) {
-                console.error(`Failed to save default guild data for guild ${guildId}:`, saveError);
+                this.container.logger.error(`Failed to save default guild data for guild ${guildId}:`, saveError);
                 // Continue with the temporary data even if save fails
             }
         }
@@ -294,7 +294,7 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
                 // More robust error handling
                 if (error.code === 10062) { // Unknown interaction
                     // Interaction expired - just log it, don't try to respond
-                    console.log('Interaction expired, ignoring...');
+                    this.container.logger.debug('Interaction expired, ignoring...');
                 } else {
                     await this.sendErrorMessage(i as ButtonInteraction, 'An error occurred while processing your request.');
                 }
@@ -433,7 +433,7 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
                 console.error('Error handling DM help pagination:', error);
                 // Handle expired interaction
                 if (error.code === 10062) {
-                    console.log('DM help interaction expired, ignoring...');
+                    this.container.logger.debug('DM help interaction expired, ignoring...');
                 }
             }
         });
@@ -723,7 +723,7 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
             
             // Handle expired interaction
             if (error.code === 10062) {
-                console.log('Module select interaction expired, ignoring...');
+                this.container.logger.debug('Module select interaction expired, ignoring...');
                 return;
             }
             
@@ -743,7 +743,7 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
             // Check if interaction is still valid (not expired)
             if (Date.now() - interaction.createdTimestamp > 14 * 60 * 1000) { // 14 minutes
                 // Interaction is close to expiring, just ignore
-                console.log('Pagination interaction expired, ignoring...');
+                this.container.logger.debug('Pagination interaction expired, ignoring...');
                 return;
             }
 
@@ -815,7 +815,7 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
             
             // Handle expired interaction
             if (error.code === 10062) {
-                console.log('Pagination interaction expired, ignoring...');
+                this.container.logger.debug('Pagination interaction expired, ignoring...');
                 return;
             }
             
@@ -844,7 +844,7 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
         } catch (error) {
             console.error('Failed to send error message:', error);
             // Just log the error if we can't send a response
-            console.log('Unable to send error message to user, interaction may have expired');
+            this.container.logger.debug('Unable to send error message to user, interaction may have expired');
         }
     }
 

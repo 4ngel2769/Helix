@@ -13,13 +13,18 @@ export class ModerationModule extends Module {
     }
 
     public async IsEnabled(context: IsEnabledContext): Promise<Result<Boolean, ModuleError>> {
-        // Check if moderation is enabled for this guild
-        if (!context.guild) return this.ok(true); // Default to enabled if no guild
-        
-        const guildData = await Guild.findOne({ guildId: context.guild.id });
-        const isEnabled = guildData?.isModeration ?? true; // Default to true if not set
-        
-        return this.ok(isEnabled);
+        try {
+            // Check if moderation is enabled for this guild
+            if (!context.guild) return this.ok(true); // Default to enabled if no guild
+            
+            const guildData = await Guild.findOne({ guildId: context.guild.id });
+            const isEnabled = guildData?.isModeration ?? true; // Default to true if not set
+            
+            return this.ok(isEnabled);
+        } catch (error) {
+            this.container.logger.error('Error checking Moderation module status:', error);
+            return this.ok(true); // Default to enabled on error
+        }
     }
 }
 
