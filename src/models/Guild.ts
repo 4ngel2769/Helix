@@ -87,6 +87,12 @@ export interface IGuild extends Document, LegacyModuleFlags, VerificationSetting
   prefix?: string;
   adminRoleId?: string;
   modRoleId?: string;
+  muteRoleId?: string;
+  disabledCommands?: string[];
+  modLogChannelId?: string;
+  memberLogChannelId?: string;
+  messageEditLogChannelId?: string;
+  messageDeleteLogChannelId?: string;
   lockedChannels?: LockedChannel[];
   modules: ModuleSettings;
   automodKeywords?: AutoModKeywords;
@@ -98,6 +104,14 @@ const guildSchema = new Schema<IGuild>({
   prefix: { type: String, default: null },
   adminRoleId: { type: String, default: null },
   modRoleId: { type: String, default: null },
+  muteRoleId: { type: String, default: null },
+  disabledCommands: { type: [String], default: [] },
+  
+  // Logging channels
+  modLogChannelId: { type: String, default: null },
+  memberLogChannelId: { type: String, default: null },
+  messageEditLogChannelId: { type: String, default: null },
+  messageDeleteLogChannelId: { type: String, default: null },
   
   // Legacy module flags (for backward compatibility)
   isAdministration: { type: Boolean, default: true },
