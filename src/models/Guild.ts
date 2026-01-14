@@ -222,7 +222,7 @@ guildSchema.pre('save', function(next) {
   }
   if (this.isModified('modules.economy')) {
     this.isEconomyModule = this.modules.economy;
-  }next();
+  }
 });
 
 export const Guild = model<IGuild>('Guild', guildSchema);

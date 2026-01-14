@@ -3,7 +3,6 @@ import { Command } from '@sapphire/framework';
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import type { EconomyModule } from '../../modules/Economy';
 import { EmbedBuilder, MessageFlags, Message, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } from 'discord.js';
-import type { FilterQuery } from 'mongoose';
 import { EconomyService } from '../../lib/services/EconomyService';
 import { EconomyItem, type IEconomyItem } from '../../models/EconomyItem';
 import config from '../../config';
@@ -122,7 +121,7 @@ export class ShopCommand extends ModuleCommand<EconomyModule> {
     private async handleShopList(interaction: Command.ChatInputCommandInteraction) {
         const category = interaction.options.getString('category');
         
-        const filter: FilterQuery<IEconomyItem> = { 'shop.available': true };
+        const filter: Record<string, any> = { 'shop.available': true };
         if (category) {
             filter.category = category;
         }
@@ -280,7 +279,7 @@ export class ShopCommand extends ModuleCommand<EconomyModule> {
     private async handleTextShopList(message: Message, args: string[]) {
         const category = args[0];
         
-        const filter: FilterQuery<IEconomyItem> = { 'shop.available': true };
+        const filter: Record<string, any> = { 'shop.available': true };
         if (category) {
             filter.category = category.toLowerCase();
         }

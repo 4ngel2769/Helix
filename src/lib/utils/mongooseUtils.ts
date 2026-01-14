@@ -37,7 +37,7 @@ export async function findById<T extends Document>(
 
 export async function findOne<T extends Document>(
   model: Model<T>,
-  filter: mongoose.FilterQuery<T>
+  filter: Record<string, any>
 ): Promise<T | null> {
   return model.findOne(filter).exec();
 }

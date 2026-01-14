@@ -29,9 +29,8 @@ const DevNoteSchema = new Schema<IDevNote>({
 });
 
 // Update the updatedAt field before saving
-DevNoteSchema.pre('save', function(next) {
+DevNoteSchema.pre('save', function() {
     this.updatedAt = new Date();
-    next();
 });
 
 // Make sure we export the typed model
