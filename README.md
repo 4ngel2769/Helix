@@ -38,17 +38,17 @@
     </a>
 </div>
 
----
+<h1 align="center" style="color:#00ff00; font-family:monospace;"></h1>
 
 <p align="center"><b>The official repository for Helix, a multipurpose Discord bot.</b></p>
 
----
+<h1 align="center" style="color:#00ff00; font-family:monospace;"></h1>
 
-## 📖 About Helix
+## About Helix
 
 Helix is a multipurpose Discord bot designed to help you manage, moderate, and enhance your server with ease. Created as a personal project to deepen my understanding of JavaScript, TypeScript, APIs, and modern programming concepts, Helix now offers a robust set of features for communities of all sizes.
 
----
+<h1 align="center" style="color:#00ff00; font-family:monospace;"></h1>
 
 ## ✨ Features
 
@@ -58,31 +58,31 @@ Helix is a multipurpose Discord bot designed to help you manage, moderate, and e
 - **AI Integration**: Ollama-powered conversations (coming soon)
 - **Image Manipulation**: Fun and useful image tools (coming soon)
 
----
+<h1 align="center" style="color:#00ff00; font-family:monospace;"></h1>
 
-## 🗂️ Modules
+## Modules
 
 <details>
   <summary><b>Click to expand module details</b></summary>
 
-  - 🎵 **Music**: coming soon
-  - ⚒️ **Moderation**: coming soon
-  - 🦾 **AI (Ollama)**: coming soon
-  - 🖼️ **Image Manipulation**: coming soon
+  - **Music**: coming soon
+  - **Moderation**: coming soon
+  - **AI (Ollama)**: coming soon
+  - **Image Manipulation**: coming soon
 
 </details>
 
----
+<h1 align="center" style="color:#00ff00; font-family:monospace;"></h1>
 
-## 📝 To-Do List
+## To-Do List
 
 | Module           | Status |
 |------------------|:------:|
 | More coming soon |   -    |
 
----
+<h1 align="center" style="color:#00ff00; font-family:monospace;"></h1>
 
-## 🏷️ Version Legend
+## Version Legend
 
 | Symbol | Meaning              |
 |:------:|----------------------|
@@ -99,9 +99,9 @@ Helix is a multipurpose Discord bot designed to help you manage, moderate, and e
 | ⚗️     | In Progress          |
 | 🛟     | Life Support         |
 
----
+<h1 align="center" style="color:#00ff00; font-family:monospace;"></h1>
 
-## 🗃️ Versions
+## Versions
 
 | Core      | Version(s)         | Codename        | Status | API | Engine           | AI      | Notes                |
 |-----------|--------------------|-----------------|:------:|:---:|------------------|:-------:|----------------------|
@@ -120,28 +120,28 @@ Helix is a multipurpose Discord bot designed to help you manage, moderate, and e
 
 > v9.0+ runs on [Paperplane](https://github.com/Helix-Labs/framework), a custom fork of [Sapphire](https://github.com/sapphiredev/framework).
 
----
+<h1 align="center" style="color:#00ff00; font-family:monospace;"></h1>
 
-## 📚 Documentation & Support
+## Documentation & Support
 
 - **[Website](https://helix.angellabs.xyz/)**
 - **[Add Helix to your server](https://discord.com/oauth2/authorize?client_id=723697439638290482&scope=bot&permissions=481684598)**
 - **[Discord Support Server](https://discord.gg/GapmaCt)**
 
----
+<h1 align="center" style="color:#00ff00; font-family:monospace;"></h1>
 
-## 🙏 Credits
+## Credits
 
 - [Sapphire](https://github.com/sapphiredev/framework)
 - [Paperplane](https://github.com/Helix-Labs/framework) (fork of Sapphire)
 
----
+<h1 align="center" style="color:#00ff00; font-family:monospace;"></h1>
 
-## 📜 License
+## License
 
 ```coming soon```
 
----
+<h1 align="center" style="color:#00ff00; font-family:monospace;"></h1>
 
 <!--
 <img src="https://media.discordapp.net/attachments/771476325356797963/788160344522620958/helixbanner.png" alt="Old Banner" />
