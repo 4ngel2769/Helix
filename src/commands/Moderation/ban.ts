@@ -13,6 +13,7 @@ import config from '../../config';
 import { getReply } from '../../lib/utils/replies';
 
 @ApplyOptions<ModuleCommand.Options>({
+    name: 'ban',
     module: 'Moderation',
     description: 'Ban a member from the server',
     enabled: true

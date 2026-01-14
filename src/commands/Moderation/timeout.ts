@@ -1,4 +1,5 @@
 import { ModuleCommand } from '@kbotdev/plugin-modules';
+import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { ModerationModule } from '../../modules/Moderation';
 import {
@@ -11,6 +12,12 @@ import {
 import config from '../../config';
 import { getReply } from '../../lib/utils/replies';
 
+@ApplyOptions<ModuleCommand.Options>({
+    name: 'timeout',
+    module: 'Moderation',
+    description: 'Timeout a member in the server',
+    enabled: true
+})
 export class TimeoutCommand extends ModuleCommand<ModerationModule> {
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
         super(context, {
