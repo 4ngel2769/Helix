@@ -30,7 +30,7 @@
     </a>
     <br>
     <a href="https://discord.gg/GapmaCt">
-        <img src="https://dcbadge.vercel.app/api/server/GapmaCt" alt="Discord" />
+        <img src="https://dcbadge.limes.pink/api/server/GapmaCt" alt="Discord" />
     </a>
     <br>
     <a href="/LICENSE.md">
