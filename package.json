@@ -94,7 +94,11 @@
     "create-module": "node scripts/create-module.js",
     "generate:module": "node scripts/create-module.js",
     "delete-module": "node scripts/delete-module.js",
-    "remove:module": "node scripts/delete-module.js"
+    "remove:module": "node scripts/delete-module.js",
+    "test": "node scripts/test-all.js",
+    "test:quick": "npm run build",
+    "test:all": "node scripts/test-all.js",
+    "validate": "node scripts/validate.js"
   },
   "prettier": "@sapphire/prettier-config"
 }
