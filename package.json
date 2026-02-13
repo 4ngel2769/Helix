@@ -27,7 +27,7 @@
     "@sapphire/utilities": "^3.18.2",
     "@skyra/env-utilities": "^2.0.1",
     "@types/mongoose": "^5.11.97",
-    "axios": "^1.13.2",
+    "axios": "^1.13.5",
     "colorette": "^2.0.20",
     "common-tags": "^1.8.2",
     "connect-mongo": "^6.0.0",
