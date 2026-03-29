@@ -16,11 +16,17 @@ import config from '../../config';
 import { Guild } from '../../models/Guild';
 import { 
     loadAutomodFilters,
-    getKeywordsForGuild,
     addCustomKeywords,
     removeCustomKeywords,
     clearCustomKeywords
 } from '../../lib/utils/automodUtils';
+import {
+    capitalizeFirstLetter,
+    getPresetName,
+    getPresetRules,
+    getTriggerTypeName,
+    isLimitedTriggerType
+} from './automod.helpers';
 
 @ApplyOptions<Command.Options>({
     name: 'automod',
@@ -318,7 +324,7 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
 
                 embed.addFields({
                     name: `${rule.name} (${rule.id})`,
-                    value: `**Type:** ${this.getTriggerTypeName(rule.triggerType)}\n**Details:** ${triggerInfo}\n**Actions:** ${actions}\n**Enabled:** ${rule.enabled ? '✅' : '❌'}`,
+                    value: `**Type:** ${getTriggerTypeName(rule.triggerType)}\n**Details:** ${triggerInfo}\n**Actions:** ${actions}\n**Enabled:** ${rule.enabled ? '✅' : '❌'}`,
                     inline: false
                 });
             });
@@ -423,7 +429,7 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
                 .setDescription(`Successfully created AutoMod rule "${name}"`)
                 .addFields(
                     { name: 'Rule ID', value: rule.id, inline: true },
-                    { name: 'Type', value: this.getTriggerTypeName(triggerType), inline: true }
+                    { name: 'Type', value: getTriggerTypeName(triggerType), inline: true }
                 )
                 .setFooter({ text: `Created by ${interaction.user.tag}` })
                 .setTimestamp();
@@ -476,16 +482,16 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
             const createdRules = [];
             const failedRules = [];
             // Pass guildId to get both default and custom keywords
-            const presetRules = await this.getPresetRules(preset, guildId);
+            const presetRules = await getPresetRules(preset, guildId);
             
             // Create each rule in the preset
             for (const ruleConfig of presetRules) {
                 // Skip if we already have a rule of this type and it's a limited type
-                if (this.isLimitedTriggerType(ruleConfig.triggerType) && 
+                if (isLimitedTriggerType(ruleConfig.triggerType) && 
                     existingTriggerTypes.has(ruleConfig.triggerType)) {
                     failedRules.push({
                         name: ruleConfig.name, 
-                        reason: `Server already has a rule of type ${this.getTriggerTypeName(ruleConfig.triggerType)} (limited to 1 per server)`
+                        reason: `Server already has a rule of type ${getTriggerTypeName(ruleConfig.triggerType)} (limited to 1 per server)`
                     });
                     continue;
                 }
@@ -541,7 +547,7 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.success as ColorResolvable)
                 .setTitle('✅ AutoMod Preset Installation')
-                .setDescription(`Installed the **${this.getPresetName(preset)}** preset with ${createdRules.length} rules.`);
+                .setDescription(`Installed the **${getPresetName(preset)}** preset with ${createdRules.length} rules.`);
             
             if (createdRules.length > 0) {
                 embed.addFields({
@@ -571,177 +577,6 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
         }
     }
 
-    private getPresetName(preset: string): string {
-        switch (preset) {
-            case 'low':
-                return 'Low Protection';
-            case 'medium':
-                return 'Medium Protection';
-            case 'high':
-                return 'High Protection';
-            default:
-                return 'Custom';
-        }
-    }
-
-    // Fix this method to use the imported utility functions
-    private async getPresetRules(preset: string, guildId: string): Promise<Array<{
-        name: string;
-        triggerType: AutoModerationRuleTriggerType;
-        triggerMetadata: any;
-        timeout: boolean;
-        timeoutDuration?: number;
-    }>> {
-        const rules = [];
-
-        // Common rules for all presets
-        rules.push({
-            name: 'Anti-Spam Protection',
-            triggerType: AutoModerationRuleTriggerType.Spam,
-            triggerMetadata: {},
-            timeout: preset !== 'low'
-        });
-
-        try {
-            // Load keyword filters
-            const profanityKeywords = await getKeywordsForGuild(guildId, 'profanity', preset);
-            const scamKeywords = await getKeywordsForGuild(guildId, 'scams', preset);
-            const phishingKeywords = await getKeywordsForGuild(guildId, 'phishing', preset);
-            const customKeywords = await getKeywordsForGuild(guildId, 'custom', preset);
-
-            // Add preset-specific rules
-            switch (preset) {
-                case 'low':
-                    // Basic protection
-                    rules.push({
-                        name: 'Mention Spam Protection',
-                        triggerType: AutoModerationRuleTriggerType.MentionSpam,
-                        triggerMetadata: { mentionTotalLimit: 10 },
-                        timeout: false
-                    });
-                    
-                    // Add profanity filter if there are keywords
-                    if (profanityKeywords.length > 0) {
-                        rules.push({
-                            name: 'Basic Profanity Filter',
-                            triggerType: AutoModerationRuleTriggerType.Keyword,
-                            triggerMetadata: { keywordFilter: profanityKeywords },
-                            timeout: false
-                        });
-                    }
-                    break;
-
-                case 'medium':
-                    // Standard protection
-                    rules.push({
-                        name: 'Mention Spam Protection',
-                        triggerType: AutoModerationRuleTriggerType.MentionSpam,
-                        triggerMetadata: { mentionTotalLimit: 6 },
-                        timeout: true,
-                        timeoutDuration: 600 // 10 minutes
-                    });
-                    
-                    // Add profanity filter if there are keywords
-                    if (profanityKeywords.length > 0) {
-                        rules.push({
-                            name: 'Profanity Filter',
-                            triggerType: AutoModerationRuleTriggerType.Keyword,
-                            triggerMetadata: { keywordFilter: profanityKeywords },
-                            timeout: false
-                        });
-                    }
-                    
-                    // Add scam filter if there are keywords
-                    if (scamKeywords.length > 0) {
-                        rules.push({
-                            name: 'Scam Filter',
-                            triggerType: AutoModerationRuleTriggerType.Keyword,
-                            triggerMetadata: { keywordFilter: scamKeywords },
-                            timeout: true,
-                            timeoutDuration: 1800 // 30 minutes
-                        });
-                    }
-                    break;
-
-                case 'high':
-                    // Strict protection
-                    rules.push({
-                        name: 'Strict Mention Spam Protection',
-                        triggerType: AutoModerationRuleTriggerType.MentionSpam,
-                        triggerMetadata: { mentionTotalLimit: 4 },
-                        timeout: true,
-                        timeoutDuration: 1800 // 30 minutes
-                    });
-                    
-                    // Add profanity filter if there are keywords
-                    if (profanityKeywords.length > 0) {
-                        rules.push({
-                            name: 'Strict Profanity Filter',
-                            triggerType: AutoModerationRuleTriggerType.Keyword,
-                            triggerMetadata: { keywordFilter: profanityKeywords },
-                            timeout: true,
-                            timeoutDuration: 600 // 10 minutes
-                        });
-                    }
-                    
-                    // Add scam filter if there are keywords
-                    if (scamKeywords.length > 0) {
-                        rules.push({
-                            name: 'Strict Scam Filter',
-                            triggerType: AutoModerationRuleTriggerType.Keyword,
-                            triggerMetadata: { keywordFilter: scamKeywords },
-                            timeout: true,
-                            timeoutDuration: 3600 // 1 hour
-                        });
-                    }
-                    
-                    // Add phishing filter if there are keywords
-                    if (phishingKeywords.length > 0) {
-                        rules.push({
-                            name: 'Phishing Link Filter',
-                            triggerType: AutoModerationRuleTriggerType.Keyword,
-                            triggerMetadata: { keywordFilter: phishingKeywords },
-                            timeout: true,
-                            timeoutDuration: 3600 // 1 hour
-                        });
-                    }
-                    break;
-            }
-
-            // Add custom keywords filter for all presets if available
-            if (customKeywords.length > 0) {
-                rules.push({
-                    name: 'Custom Keyword Filter',
-                    triggerType: AutoModerationRuleTriggerType.Keyword,
-                    triggerMetadata: { keywordFilter: customKeywords },
-                    timeout: preset === 'high', // Only timeout for high preset
-                    timeoutDuration: preset === 'high' ? 600 : undefined // 10 minutes for high preset
-                });
-            }
-
-            return rules;
-        } catch (error) {
-            console.error('Error loading keyword filters:', error);
-            return rules;
-        }
-    }
-
-    // Helper method to get human-readable trigger type name
-    private getTriggerTypeName(triggerType: AutoModerationRuleTriggerType): string {
-        switch (triggerType) {
-            case AutoModerationRuleTriggerType.Keyword:
-                return 'Keyword Filter';
-            case AutoModerationRuleTriggerType.Spam:
-                return 'Spam Filter';
-            case AutoModerationRuleTriggerType.MentionSpam:
-                return 'Mention Spam';
-            case AutoModerationRuleTriggerType.KeywordPreset:
-                return 'Keyword Preset';
-            default:
-                return 'Unknown';
-        }
-    }
-
     // For autocomplete on rule IDs
     public override async autocompleteRun(interaction: Command.AutocompleteInteraction) {
         if (interaction.commandName === 'automod' && interaction.options.getSubcommand() === 'delete') {
@@ -758,15 +593,6 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
                 return interaction.respond([]);
             }
         }
-    }
-
-    // Helper method to check if a trigger type is limited to one per guild
-    private isLimitedTriggerType(triggerType: AutoModerationRuleTriggerType): boolean {
-        // Both SPAM and MENTION_SPAM are limited to 1 per guild
-        return (
-            triggerType === AutoModerationRuleTriggerType.Spam || 
-            triggerType === AutoModerationRuleTriggerType.MentionSpam
-        );
     }
 
     private async handleListKeywords(interaction: Command.ChatInputCommandInteraction) {
@@ -789,7 +615,7 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
             
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.default as ColorResolvable)
-                .setTitle(`🔍 AutoMod Keywords: ${this.capitalizeFirstLetter(category)}`)
+                .setTitle(`🔍 AutoMod Keywords: ${capitalizeFirstLetter(category)}`)
                 .setDescription(`Keywords configured for the ${category} filter`)
                 .setFooter({ text: `Requested by ${interaction.user.tag}` })
                 .setTimestamp();
@@ -813,7 +639,7 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
             defaultKeywords.forEach(({ preset, keywords }) => {
                 if (keywords.length > 0) {
                     embed.addFields({
-                        name: `🔧 Default ${this.capitalizeFirstLetter(preset)} Preset`,
+                        name: `🔧 Default ${capitalizeFirstLetter(preset)} Preset`,
                         value: keywords.join(', '),
                         inline: false
                     });
@@ -943,7 +769,4 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
         }
     }
 
-    private capitalizeFirstLetter(string: string): string {
-        return string.charAt(0).toUpperCase() + string.slice(1);
-    }
 }

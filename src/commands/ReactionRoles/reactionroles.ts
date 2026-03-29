@@ -16,6 +16,7 @@ import {
 import { Guild, type ReactionRole } from '../../models/Guild';
 import config from '../../config';
 import { ErrorHandler } from '../../lib/structures/ErrorHandler';
+import { parseReactionRoleEmoji, updateReactionRoleMenuMessage } from './reactionroles.helpers';
 
 @ApplyOptions<Command.Options>({
     name: 'reactionroles',
@@ -481,7 +482,7 @@ export class ReactionRolesCommand extends ModuleCommand<ReactionRolesModule> {
                 }
                 
                 // Parse emoji if provided
-                const emoji = this.parseEmoji(emojiInput);
+                const emoji = parseReactionRoleEmoji(emojiInput);
                 
                 roles.push({
                     roleId: role.id,
@@ -688,16 +689,16 @@ export class ReactionRolesCommand extends ModuleCommand<ReactionRolesModule> {
                 let failedCount = 0;
                 
                 for (const menu of activeMenus) {
-                    const updated = await this.updateMenuMessage(
+                    const updated = await updateReactionRoleMenuMessage({
                         interaction,
-                        menu.channelId,
-                        menu.messageId,
-                        menu.title,
-                        menu.description,
-                        menu.roles,
-                        menu.maxSelections,
-                        false // set as inactive
-                    );
+                        channelId: menu.channelId,
+                        messageId: menu.messageId,
+                        title: menu.title,
+                        description: menu.description,
+                        roles: menu.roles,
+                        maxSelections: menu.maxSelections,
+                        isActive: false
+                    });
                     
                     if (updated) {
                         updatedCount++;
@@ -740,16 +741,16 @@ export class ReactionRolesCommand extends ModuleCommand<ReactionRolesModule> {
                 }
                 
                 // Update the message with disabled select menu
-                const updated = await this.updateMenuMessage(
+                const updated = await updateReactionRoleMenuMessage({
                     interaction,
-                    menu.channelId,
-                    menu.messageId,
-                    menu.title,
-                    menu.description,
-                    menu.roles,
-                    menu.maxSelections,
-                    false // set as inactive
-                );
+                    channelId: menu.channelId,
+                    messageId: menu.messageId,
+                    title: menu.title,
+                    description: menu.description,
+                    roles: menu.roles,
+                    maxSelections: menu.maxSelections,
+                    isActive: false
+                });
                 
                 // Update the database
                 await Guild.updateOne(
@@ -798,16 +799,16 @@ export class ReactionRolesCommand extends ModuleCommand<ReactionRolesModule> {
                 let failedCount = 0;
                 
                 for (const menu of inactiveMenus) {
-                    const updated = await this.updateMenuMessage(
+                    const updated = await updateReactionRoleMenuMessage({
                         interaction,
-                        menu.channelId,
-                        menu.messageId,
-                        menu.title,
-                        menu.description,
-                        menu.roles,
-                        menu.maxSelections,
-                        true // set as active
-                    );
+                        channelId: menu.channelId,
+                        messageId: menu.messageId,
+                        title: menu.title,
+                        description: menu.description,
+                        roles: menu.roles,
+                        maxSelections: menu.maxSelections,
+                        isActive: true
+                    });
                     
                     if (updated) {
                         updatedCount++;
@@ -850,16 +851,16 @@ export class ReactionRolesCommand extends ModuleCommand<ReactionRolesModule> {
                 }
                 
                 // Update the message with enabled select menu
-                const updated = await this.updateMenuMessage(
+                const updated = await updateReactionRoleMenuMessage({
                     interaction,
-                    menu.channelId,
-                    menu.messageId,
-                    menu.title,
-                    menu.description,
-                    menu.roles,
-                    menu.maxSelections,
-                    true // set as active
-                );
+                    channelId: menu.channelId,
+                    messageId: menu.messageId,
+                    title: menu.title,
+                    description: menu.description,
+                    roles: menu.roles,
+                    maxSelections: menu.maxSelections,
+                    isActive: true
+                });
                 
                 // Update the database
                 await Guild.updateOne(
@@ -983,7 +984,7 @@ export class ReactionRolesCommand extends ModuleCommand<ReactionRolesModule> {
             if (addRole && addLabel) {
                 // Parse emoji if provided with new role
                 if (addEmoji) {
-                    const emoji = this.parseEmoji(addEmoji);
+                    const emoji = parseReactionRoleEmoji(addEmoji);
                     if (emoji) {
                         // Update the last added role with emoji
                         updatedRoles[updatedRoles.length - 1].emoji = emoji;
@@ -998,7 +999,7 @@ export class ReactionRolesCommand extends ModuleCommand<ReactionRolesModule> {
                     return interaction.editReply(`Could not find role with ID ${updateEmojiRoleId} in this menu.`);
                 }
                 
-                const emoji = this.parseEmoji(updateEmoji);
+                const emoji = parseReactionRoleEmoji(updateEmoji);
                 if (emoji) {
                     updatedRoles[roleIndex].emoji = emoji;
                     rolesChanged = true;
@@ -1053,16 +1054,17 @@ export class ReactionRolesCommand extends ModuleCommand<ReactionRolesModule> {
             
             // Find and update the message
             try {
-                const updated = await this.updateMenuMessage(
+                const updated = await updateReactionRoleMenuMessage({
                     interaction,
-                    menu.channelId,
-                    menu.messageId,
-                    newTitle || menu.title,
-                    newDescription || menu.description,
-                    rolesChanged ? updatedRoles : menu.roles,
-                    newMaxSelections !== null && newMaxSelections !== undefined ? newMaxSelections : menu.maxSelections,
-                    menu.active // preserve active state
-                );
+                    channelId: menu.channelId,
+                    messageId: menu.messageId,
+                    title: newTitle || menu.title,
+                    description: newDescription || menu.description,
+                    roles: rolesChanged ? updatedRoles : menu.roles,
+                    maxSelections:
+                        newMaxSelections !== null && newMaxSelections !== undefined ? newMaxSelections : menu.maxSelections,
+                    isActive: menu.active
+                });
                 
                 if (!updated) {
                     return interaction.editReply(`Menu updated in database, but couldn't update the message. It might have been deleted.`);
@@ -1077,93 +1079,6 @@ export class ReactionRolesCommand extends ModuleCommand<ReactionRolesModule> {
         } catch (error) {
             console.error('Error editing reaction roles menu:', error);
             return interaction.editReply('An error occurred while editing the reaction roles menu.');
-        }
-    }
-
-    private async updateMenuMessage(
-        interaction: Command.ChatInputCommandInteraction,
-        channelId: string, 
-        messageId: string, 
-        title: string, 
-        description: string, 
-        roles: ReactionRole[], 
-        maxSelections: number, 
-        isActive: boolean
-    ): Promise<boolean> {
-        try {
-            const channel = await interaction.guild?.channels.fetch(channelId) as TextChannel;
-            if (!channel) {
-                return false;
-            }
-            
-            const message = await channel.messages.fetch(messageId);
-            if (!message) {
-                return false;
-            }
-            
-            // Create updated embed
-            const embed = new EmbedBuilder()
-                .setColor(config.bot.embedColor.default as ColorResolvable)
-                .setTitle(title)
-                .setDescription(description)
-                .setFooter({ 
-                    text: isActive ? 
-                        `Select roles from the dropdown menu below` : 
-                        `This role selection menu is currently paused`
-                });
-            
-            // Create updated select menu options
-            const options = roles.map(role => {
-                const option = new StringSelectMenuOptionBuilder()
-                    .setLabel(role.label)
-                    .setValue(role.roleId)
-                    .setDescription(`Get the ${interaction.guild?.roles.cache.get(role.roleId)?.name || 'Unknown'} role`);
-                
-                // Add emoji if available
-                if (role.emoji) {
-                    // Check if it's a Discord custom emoji (<:name:id> or <a:name:id>)
-                    const discordEmojiRegex = /<(a)?:(\w+):(\d+)>/;
-                    const match = role.emoji.match(discordEmojiRegex);
-                    
-                    if (match) {
-                        // Discord custom emoji
-                        const name = match[2];
-                        const id = match[3];
-                        option.setEmoji({ name, id });
-                    } else {
-                        // Unicode emoji
-                        option.setEmoji({ name: role.emoji });
-                    }
-                }
-                
-                return option;
-            });
-            
-            // Create updated select menu
-            const selectMenu = new StringSelectMenuBuilder()
-                .setCustomId('reaction-roles-select')
-                .setPlaceholder(isActive ? 'Select roles...' : 'Menu is currently paused')
-                .addOptions(options)
-                .setDisabled(!isActive) // Here's the key part - disable when not active
-                .setMinValues(0)
-                .setMaxValues(maxSelections > 0 ? 
-                    Math.min(maxSelections, roles.length) : 
-                    roles.length
-                );
-            
-            const row = new ActionRowBuilder<StringSelectMenuBuilder>()
-                .addComponents(selectMenu);
-            
-            // Edit the message
-            await message.edit({
-                embeds: [embed],
-                components: [row]
-            });
-            
-            return true;
-        } catch (error) {
-            console.error('Error updating menu message:', error);
-            return false;
         }
     }
 
@@ -1198,23 +1113,4 @@ export class ReactionRolesCommand extends ModuleCommand<ReactionRolesModule> {
         return false;
     }
 
-    /**
-     * Parses emoji input into a string format that can be stored in the database
-     * Returns undefined if no valid emoji, otherwise returns a string representation
-     */
-    private parseEmoji(emojiInput: string | null): string | undefined {
-        if (!emojiInput) return undefined;
-        
-        // Check if it's a Discord emoji mention like <:name:id> or <a:name:id>
-        const discordEmojiRegex = /<(a)?:(\w+):(\d+)>/;
-        const match = emojiInput.match(discordEmojiRegex);
-        
-        if (match) {
-            // It's a Discord custom emoji - store it in the same format it was provided
-            return emojiInput;
-        } else {
-            // Assume it's a Unicode emoji or plain text
-            return emojiInput;
-        }
-    }
 }
