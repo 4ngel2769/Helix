@@ -1,9 +1,12 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { InteractionHandler, InteractionHandlerTypes } from '@sapphire/framework';
-import type { ButtonInteraction } from 'discord.js';
+import type { ButtonInteraction, User } from 'discord.js';
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ColorResolvable } from 'discord.js';
 import { EconomyService } from '../lib/services/EconomyService';
 import config from '../config';
+import type { EconomyItem } from '../models/User';
+
+type InventoryItem = EconomyItem & { sellPrice: number };
 
 @ApplyOptions<InteractionHandler.Options>({
     interactionHandlerType: InteractionHandlerTypes.Button
@@ -21,7 +24,14 @@ export class InventoryButtonHandler extends InteractionHandler {
             const customIdParts = interaction.customId.split('_');
             const category = customIdParts[1];
             const userId = customIdParts[2];
-            const expirationTime = parseInt(customIdParts[3]);
+            const expirationTime = Number(customIdParts[3]);
+
+            if (!category || !userId || Number.isNaN(expirationTime)) {
+                return interaction.followUp({
+                    content: '❌ Invalid inventory interaction data. Please run `/inventory` again.',
+                    ephemeral: true
+                });
+            }
 
             // Check if buttons have expired (5 minutes)
             if (Date.now() > expirationTime) {
@@ -61,7 +71,7 @@ export class InventoryButtonHandler extends InteractionHandler {
                 return interaction.editReply({ embeds: [embed], components: originalComponents });
             }
 
-            const inventory = result.inventory;
+            const inventory = result.inventory as InventoryItem[];
             
             // Fix NaN calculation by ensuring proper number handling
             const totalValue = inventory.reduce((sum, item) => {
@@ -84,7 +94,7 @@ export class InventoryButtonHandler extends InteractionHandler {
 
             if (category === 'all') {
                 // Group items by category for 'all' view
-                const categorizedItems = new Map<string, any[]>();
+                const categorizedItems = new Map<string, InventoryItem[]>();
                 
                 for (const item of inventory) {
                     const cat = item.category || 'misc';
@@ -251,7 +261,7 @@ export class InventoryButtonHandler extends InteractionHandler {
         });
     }
 
-    private async handleRefresh(interaction: ButtonInteraction, targetUser: any) {
+    private async handleRefresh(interaction: ButtonInteraction, targetUser: User) {
         try {
             // Fetch fresh inventory data
             const result = await EconomyService.getUserInventory(targetUser.id, 'all');
@@ -267,7 +277,7 @@ export class InventoryButtonHandler extends InteractionHandler {
                 return interaction.editReply({ embeds: [embed], components: [] });
             }
 
-            const inventory = result.inventory;
+            const inventory = result.inventory as InventoryItem[];
             
             // Fix NaN calculation by ensuring proper number handling
             const totalValue = inventory.reduce((sum, item) => {
@@ -289,7 +299,7 @@ export class InventoryButtonHandler extends InteractionHandler {
                 .setTimestamp();
 
             // Group items by category
-            const categorizedItems = new Map<string, any[]>();
+            const categorizedItems = new Map<string, InventoryItem[]>();
             
             for (const item of inventory) {
                 const cat = item.category || 'misc';

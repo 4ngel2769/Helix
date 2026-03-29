@@ -5,6 +5,7 @@ export class GeneralModule extends Module {
     public constructor(context: Module.LoaderContext, options: Piece.Options) {
         super(context, {
             ...options,
+            name: 'General',
             fullName: 'General',
             description: 'Commands used by everyone',
             enabled: true
@@ -18,6 +19,6 @@ export class GeneralModule extends Module {
 
 declare module '@kbotdev/plugin-modules' {
     interface Modules {
-        GeneralModule: true;
+        General: true;
     }
 }

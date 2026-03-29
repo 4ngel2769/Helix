@@ -5,6 +5,9 @@ import type { EconomyModule } from '../../modules/Economy';
 import { EmbedBuilder, MessageFlags, Message, ActionRowBuilder, ButtonBuilder, ButtonStyle, ColorResolvable } from 'discord.js';
 import config from '../../config';
 import { EconomyService } from '../../lib/services/EconomyService';
+import type { EconomyItem } from '../../models/User';
+
+type InventoryItem = EconomyItem & { sellPrice: number };
 
 @ApplyOptions<Command.Options>({
     name: 'inventory',
@@ -71,7 +74,7 @@ export class InventoryCommand extends ModuleCommand<EconomyModule> {
                 return interaction.editReply({ embeds: [embed] });
             }
 
-            const inventory = result.inventory;
+            const inventory = result.inventory as InventoryItem[];
             
             // Fix NaN calculation with extra safety checks
             const totalValue = inventory.reduce((sum, item) => {
@@ -94,7 +97,7 @@ export class InventoryCommand extends ModuleCommand<EconomyModule> {
                 .setTimestamp();
 
             // Group items by category
-            const categorizedItems = new Map<string, any[]>();
+            const categorizedItems = new Map<string, InventoryItem[]>();
             
             for (const item of inventory) {
                 const cat = item.category || 'misc';
@@ -228,7 +231,7 @@ export class InventoryCommand extends ModuleCommand<EconomyModule> {
                 return message.reply({ embeds: [embed] });
             }
 
-            const inventory = result.inventory;
+            const inventory = result.inventory as InventoryItem[];
             
             // Fix NaN calculation for message command too
             const totalValue = inventory.reduce((sum, item) => {
@@ -250,7 +253,7 @@ export class InventoryCommand extends ModuleCommand<EconomyModule> {
                 .setTimestamp();
 
             // Group items by category (simplified for text command)
-            const categorizedItems = new Map<string, any[]>();
+            const categorizedItems = new Map<string, InventoryItem[]>();
             
             for (const item of inventory) {
                 const cat = item.category || 'misc';

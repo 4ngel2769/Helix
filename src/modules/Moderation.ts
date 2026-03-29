@@ -6,6 +6,7 @@ export class ModerationModule extends Module {
     public constructor(context: Module.LoaderContext, options: Piece.Options) {
         super(context, {
             ...options,
+            name: 'Moderation',
             fullName: 'Moderation Commands',
             description: 'Commands for server moderation',
             enabled: true
@@ -18,7 +19,7 @@ export class ModerationModule extends Module {
             if (!context.guild) return this.ok(true); // Default to enabled if no guild
             
             const guildData = await Guild.findOne({ guildId: context.guild.id });
-            const isEnabled = guildData?.isModeration ?? true; // Default to true if not set
+            const isEnabled = guildData?.modules?.moderation ?? true; // Default to true if not set
             
             return this.ok(isEnabled);
         } catch (error) {

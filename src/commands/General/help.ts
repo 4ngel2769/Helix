@@ -50,10 +50,19 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
         super(context, {
             ...options,
-            module: 'GeneralModule',
+            module: 'General',
             description: 'Shows all available commands',
             enabled: true
         });
+    }
+
+    private getErrorCode(error: unknown): number | undefined {
+        if (typeof error === 'object' && error !== null && 'code' in error) {
+            const code = (error as { code?: unknown }).code;
+            return typeof code === 'number' ? code : undefined;
+        }
+
+        return undefined;
     }
 
     // Define required permissions for each module
@@ -292,7 +301,7 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
                 console.error('Error handling interaction in collector:', error);
                 
                 // More robust error handling
-                if (error.code === 10062) { // Unknown interaction
+                if (this.getErrorCode(error) === 10062) { // Unknown interaction
                     // Interaction expired - just log it, don't try to respond
                     this.container.logger.debug('Interaction expired, ignoring...');
                 } else {
@@ -432,7 +441,7 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
             } catch (error) {
                 console.error('Error handling DM help pagination:', error);
                 // Handle expired interaction
-                if (error.code === 10062) {
+                if (this.getErrorCode(error) === 10062) {
                     this.container.logger.debug('DM help interaction expired, ignoring...');
                 }
             }
@@ -722,7 +731,7 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
             console.error('Error in handleModuleSelect:', error);
             
             // Handle expired interaction
-            if (error.code === 10062) {
+            if (this.getErrorCode(error) === 10062) {
                 this.container.logger.debug('Module select interaction expired, ignoring...');
                 return;
             }
@@ -814,7 +823,7 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
             console.error('Error in handlePaginationButton:', error);
             
             // Handle expired interaction
-            if (error.code === 10062) {
+            if (this.getErrorCode(error) === 10062) {
                 this.container.logger.debug('Pagination interaction expired, ignoring...');
                 return;
             }

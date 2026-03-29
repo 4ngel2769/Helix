@@ -1,6 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
-import { EmbedBuilder } from 'discord.js';
+import { EmbedBuilder, type ColorResolvable } from 'discord.js';
 import { Script, createContext } from 'node:vm';
 import { inspect } from 'node:util';
 
@@ -24,7 +24,7 @@ const BLOCKED_PATTERNS: Array<{ pattern: RegExp; reason: string }> = [
 	preconditions: ['OwnerOnly']
 })
 export class EvalCommand extends Command {
-	private createEmbed(title: string, color: string, content: string) {
+	private createEmbed(title: string, color: ColorResolvable, content: string) {
 		return new EmbedBuilder().setTitle(title).setDescription(`\`\`\`js\n${content}\n\`\`\``).setColor(color);
 	}
 

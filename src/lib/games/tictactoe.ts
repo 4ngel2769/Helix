@@ -21,7 +21,7 @@ function isBotProperlyInGuild(interaction: ModuleCommand.ChatInputCommandInterac
     return !!botMember;
 }
 
-function createBotNotInServerEmbed(): EmbedBuilder {
+function createBotNotInServerEmbed(botUserId: string): EmbedBuilder {
     return new EmbedBuilder()
         .setTitle('⚠️ Bot Not Properly Added')
         .setDescription(
@@ -30,7 +30,7 @@ function createBotNotInServerEmbed(): EmbedBuilder {
             '**How to fix:**\n' +
             '1. Ask a server admin to invite the bot properly\n' +
             '2. Use this invite link: [Invite Bot](https://discord.com/oauth2/authorize?client_id=' + 
-            `${this.client.user!.id}&permissions=2048&scope=bot)\n` +
+            `${botUserId}&permissions=2048&scope=bot)\n` +
             '3. Grant the bot "Send Messages" permissions\n\n' +
             '*Singleplayer games will still work, but messages will be ephemeral.*'
         )
@@ -41,11 +41,12 @@ export async function startSinglePlayerGame(interaction: ModuleCommand.ChatInput
     try {
     const gameStatsModel = getGameStatsModel('userdb');
     const playerId = player.id;
+    const botUserId = interaction.client.user?.id ?? bot.id;
 
     // Check if bot is properly in guild for multiplayer functionality
     if (interaction.guild && !isBotProperlyInGuild(interaction)) {
         await interaction.reply({
-            embeds: [createBotNotInServerEmbed()],
+            embeds: [createBotNotInServerEmbed(botUserId)],
             ephemeral: true
         });
         
@@ -62,7 +63,7 @@ export async function startSinglePlayerGame(interaction: ModuleCommand.ChatInput
         );
 
         const msg = await interaction.editReply({
-            embeds: [createBotNotInServerEmbed()],
+            embeds: [createBotNotInServerEmbed(botUserId)],
             components: [confirmButtons]
         });
 
@@ -413,11 +414,12 @@ export async function startMultiplayerGame(interaction: ModuleCommand.ChatInputC
     try {
     // Check if bot is properly in guild for multiplayer functionality
     if (interaction.guild && !isBotProperlyInGuild(interaction)) {
+        const botUserId = interaction.client.user?.id ?? '0';
         return interaction.reply({
             embeds: [
-                createBotNotInServerEmbed()
+                createBotNotInServerEmbed(botUserId)
                     .setDescription(
-                        createBotNotInServerEmbed().data.description + 
+                        createBotNotInServerEmbed(botUserId).data.description + 
                         '\n\n**Multiplayer games require the bot to be properly invited to the server.**'
                     )
             ],

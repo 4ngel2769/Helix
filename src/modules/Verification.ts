@@ -24,7 +24,7 @@ export class VerificationModule extends Module {
         try {
             if (!context.guild) return this.ok(false);
             const guildData = await Guild.findOne({ guildId: context.guild.id });
-            const isEnabled = guildData?.isVerificationModule ?? false;
+            const isEnabled = guildData?.modules?.verification ?? false;
             return this.ok(isEnabled);
         } catch (error) {
             this.container.logger.error('Error checking Verification module status:', error);

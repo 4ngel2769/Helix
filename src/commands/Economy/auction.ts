@@ -293,10 +293,13 @@ export class AuctionCommand extends ModuleCommand<EconomyModule> {
                 const timeLeft = auction.endsAt.getTime() - Date.now();
                 const hoursLeft = Math.max(0, Math.floor(timeLeft / (1000 * 60 * 60)));
                 const minutesLeft = Math.max(0, Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60)));
+                const auctionId = auction.id ?? 'unknown';
+                const currentBid = auction.currentBid ?? 0;
+                const quantity = auction.quantity ?? 0;
 
                 embed.addFields({
-                    name: `${auction.quantity}x ${auction.item.name} (ID: ${auction.id.slice(-8)})`,
-                    value: `💰 Current Bid: **${auction.currentBid.toLocaleString()}** coins\n` +
+                    name: `${quantity}x ${auction.item.name} (ID: ${auctionId.slice(-8)})`,
+                    value: `💰 Current Bid: **${currentBid.toLocaleString()}** coins\n` +
                            `👤 Seller: <@${auction.sellerId}>\n` +
                            `⏰ Time Left: ${hoursLeft}h ${minutesLeft}m`,
                     inline: true
@@ -358,6 +361,10 @@ export class AuctionCommand extends ModuleCommand<EconomyModule> {
             const auction = result.auction;
             const timeLeft = auction.endsAt.getTime() - Date.now();
             const isActive = timeLeft > 0;
+            const resolvedAuctionId = auction.id ?? 'unknown';
+            const startingBid = auction.startingBid ?? 0;
+            const currentBid = auction.currentBid ?? 0;
+            const createdAt = auction.createdAt ?? auction.endsAt;
 
             const embed = new EmbedBuilder()
                 .setColor(isActive ? config.bot.embedColor.default : config.bot.embedColor.warn)
@@ -366,7 +373,7 @@ export class AuctionCommand extends ModuleCommand<EconomyModule> {
                 .addFields(
                     {
                         name: 'Auction ID',
-                        value: `\`${auction.id}\``,
+                        value: `\`${resolvedAuctionId}\``,
                         inline: true
                     },
                     {
@@ -381,12 +388,12 @@ export class AuctionCommand extends ModuleCommand<EconomyModule> {
                     },
                     {
                         name: 'Starting Bid',
-                        value: `💸 **${auction.startingBid.toLocaleString()}** coins`,
+                        value: `💸 **${startingBid.toLocaleString()}** coins`,
                         inline: true
                     },
                     {
                         name: 'Current Bid',
-                        value: `💰 **${auction.currentBid.toLocaleString()}** coins`,
+                        value: `💰 **${currentBid.toLocaleString()}** coins`,
                         inline: true
                     },
                     {
@@ -396,7 +403,7 @@ export class AuctionCommand extends ModuleCommand<EconomyModule> {
                     },
                     {
                         name: 'Created',
-                        value: `<t:${Math.floor(auction.createdAt.getTime() / 1000)}:F>`,
+                        value: `<t:${Math.floor(createdAt.getTime() / 1000)}:F>`,
                         inline: true
                     },
                     {
@@ -426,7 +433,7 @@ export class AuctionCommand extends ModuleCommand<EconomyModule> {
             if (isActive && auction.sellerId !== interaction.user.id) {
                 row.addComponents(
                     new ButtonBuilder()
-                        .setCustomId(`auction_bid_${auction.id}`)
+                        .setCustomId(`auction_bid_${resolvedAuctionId}`)
                         .setLabel('Place Bid')
                         .setStyle(ButtonStyle.Success)
                         .setEmoji('💰')

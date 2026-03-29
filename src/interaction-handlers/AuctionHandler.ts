@@ -43,7 +43,7 @@ export class AuctionHandler extends InteractionHandler {
                 return interaction.reply({ embeds: [embed], ephemeral: true });
             }
 
-            const minBid = auction.auction.currentBid + 1;
+            const minBid = (auction.auction.currentBid ?? auction.auction.startingBid ?? 0) + 1;
 
             const modal = new ModalBuilder()
                 .setCustomId(`auction_place_bid_${auctionId}`)
@@ -100,10 +100,13 @@ export class AuctionHandler extends InteractionHandler {
                 const timeLeft = auction.endsAt.getTime() - Date.now();
                 const hoursLeft = Math.max(0, Math.floor(timeLeft / (1000 * 60 * 60)));
                 const minutesLeft = Math.max(0, Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60)));
+                const auctionId = auction.id ?? 'unknown';
+                const quantity = auction.quantity ?? 0;
+                const currentBid = auction.currentBid ?? 0;
 
                 embed.addFields({
-                    name: `${auction.quantity}x ${auction.item.name} (ID: ${auction.id.slice(-8)})`,
-                    value: `💰 Current Bid: **${auction.currentBid.toLocaleString()}** coins\n` +
+                    name: `${quantity}x ${auction.item.name} (ID: ${auctionId.slice(-8)})`,
+                    value: `💰 Current Bid: **${currentBid.toLocaleString()}** coins\n` +
                            `👤 Seller: <@${auction.sellerId}>\n` +
                            `⏰ Time Left: ${hoursLeft}h ${minutesLeft}m`,
                     inline: true
@@ -158,10 +161,13 @@ export class AuctionHandler extends InteractionHandler {
                 const timeLeft = auction.endsAt.getTime() - Date.now();
                 const hoursLeft = Math.max(0, Math.floor(timeLeft / (1000 * 60 * 60)));
                 const minutesLeft = Math.max(0, Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60)));
+                const auctionId = auction.id ?? 'unknown';
+                const quantity = auction.quantity ?? 0;
+                const currentBid = auction.currentBid ?? 0;
 
                 embed.addFields({
-                    name: `${auction.quantity}x ${auction.item.name} (ID: ${auction.id.slice(-8)})`,
-                    value: `💰 Current Bid: **${auction.currentBid.toLocaleString()}** coins\n` +
+                    name: `${quantity}x ${auction.item.name} (ID: ${auctionId.slice(-8)})`,
+                    value: `💰 Current Bid: **${currentBid.toLocaleString()}** coins\n` +
                            `👤 Seller: <@${auction.sellerId}>\n` +
                            `⏰ Time Left: ${hoursLeft}h ${minutesLeft}m`,
                     inline: true

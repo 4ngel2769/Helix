@@ -3,6 +3,19 @@ import { InteractionHandler, InteractionHandlerTypes } from '@sapphire/framework
 import type { ButtonInteraction } from 'discord.js';
 import { MessageFlags } from 'discord.js';
 
+interface HelpPaginationCommand {
+    handlePaginationButton(interaction: ButtonInteraction): Promise<unknown> | unknown;
+}
+
+function isHelpPaginationCommand(command: unknown): command is HelpPaginationCommand {
+    return (
+        typeof command === 'object' &&
+        command !== null &&
+        'handlePaginationButton' in command &&
+        typeof (command as HelpPaginationCommand).handlePaginationButton === 'function'
+    );
+}
+
 @ApplyOptions<InteractionHandler.Options>({
     interactionHandlerType: InteractionHandlerTypes.Button
 })
@@ -27,13 +40,18 @@ export class HelpButtonHandler extends InteractionHandler {
 
         // Get the help command instance and delegate to it
         const helpCommand = this.container.stores.get('commands').get('help');
-        if (helpCommand && 'handlePaginationButton' in helpCommand) {
+        if (isHelpPaginationCommand(helpCommand)) {
             try {
-                await (helpCommand as any).handlePaginationButton(interaction);
-            } catch (error) {
+                await helpCommand.handlePaginationButton(interaction);
+            } catch (error: unknown) {
                 console.error('Error in help pagination:', error);
+
+                const errorCode =
+                    typeof error === 'object' && error !== null && 'code' in error
+                        ? (error as { code?: number }).code
+                        : undefined;
                 
-                if (error.code === 10062) {
+                if (errorCode === 10062) {
                     // Interaction expired - send a new message instead
                     await interaction.reply({
                         content: 'This interaction has expired. Please use the help command again.',

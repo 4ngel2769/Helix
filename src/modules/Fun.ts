@@ -17,7 +17,7 @@ export class FunModule extends Module {
         try {
             if (!context.guild) return this.ok(true);
             const guildData = await Guild.findOne({ guildId: context.guild.id });
-            const isEnabled = guildData?.isFunModule ?? true;
+            const isEnabled = guildData?.modules?.fun ?? true;
             return this.ok(isEnabled);
         } catch (error) {
             this.container.logger.error('Error checking Fun module status:', error);

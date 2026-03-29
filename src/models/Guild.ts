@@ -63,14 +63,14 @@ interface LegacyModuleFlags {
   isEconomyModule?: boolean;}
 
 // Interface for reaction roles
-interface ReactionRole {
+export interface ReactionRole {
   roleId: string;
   label: string;
   description?: string;
   emoji?: string;
 }
 
-interface ReactionRolesMenu {
+export interface ReactionRolesMenu {
   messageId: string;
   channelId: string;
   title: string;

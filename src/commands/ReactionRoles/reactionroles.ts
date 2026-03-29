@@ -13,7 +13,7 @@ import {
     StringSelectMenuOptionBuilder,
     TextChannel
 } from 'discord.js';
-import { Guild } from '../../models/Guild';
+import { Guild, type ReactionRole } from '../../models/Guild';
 import config from '../../config';
 import { ErrorHandler } from '../../lib/structures/ErrorHandler';
 
@@ -462,7 +462,7 @@ export class ReactionRolesCommand extends ModuleCommand<ReactionRolesModule> {
         }
         
         // Collect roles
-        const roles = [];
+        const roles: ReactionRole[] = [];
         for (let i = 1; i <= 5; i++) {
             const role = interaction.options.getRole(`role${i}`);
             const label = interaction.options.getString(`label${i}`);
@@ -915,11 +915,11 @@ export class ReactionRolesCommand extends ModuleCommand<ReactionRolesModule> {
             const menu = guildData.reactionRolesMenus[menuIndex];
             
             // Create an update object with only the fields we want to change
-            const updateData: any = {};
+            const updateData: Record<string, string | number | ReactionRole[]> = {};
             const changes: string[] = [];
             
             // For role changes, we need to get the current roles first
-            let updatedRoles = [...menu.roles];
+            let updatedRoles: ReactionRole[] = [...menu.roles];
             let rolesChanged = false;
             
             // Update title if provided
@@ -1086,7 +1086,7 @@ export class ReactionRolesCommand extends ModuleCommand<ReactionRolesModule> {
         messageId: string, 
         title: string, 
         description: string, 
-        roles: any[], 
+        roles: ReactionRole[], 
         maxSelections: number, 
         isActive: boolean
     ): Promise<boolean> {
