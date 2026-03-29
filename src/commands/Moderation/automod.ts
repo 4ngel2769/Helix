@@ -26,7 +26,15 @@ import {
     getPresetRules,
     getTriggerTypeName,
     isLimitedTriggerType
-} from './automod.helpers';
+} from '../../lib/utils/automodHelpers';
+
+type KeywordSubcommand = 'list' | 'add' | 'remove' | 'clear';
+type MainSubcommand = 'list' | 'create' | 'delete' | 'install';
+
+interface TriggerConfigResult {
+    triggerType: AutoModerationRuleTriggerType;
+    triggerMetadata: Record<string, unknown>;
+}
 
 @ApplyOptions<Command.Options>({
     name: 'automod',
@@ -232,7 +240,6 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
     }
 
     public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-        // Check if user has required permissions
         if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
             return ErrorHandler.sendPermissionError(interaction, 'ManageGuild');
         }
@@ -240,21 +247,38 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
         const subcommandGroup = interaction.options.getSubcommandGroup(false);
         const subcommand = interaction.options.getSubcommand();
 
-        // Handle keyword management subcommands
         if (subcommandGroup === 'keywords') {
-            switch (subcommand) {
-                case 'list':
-                    return this.handleListKeywords(interaction);
-                case 'add':
-                    return this.handleAddKeywords(interaction);
-                case 'remove':
-                    return this.handleRemoveKeywords(interaction);
-                case 'clear':
-                    return this.handleClearKeywords(interaction);
-            }
+            return this.handleKeywordSubcommand(interaction, subcommand as KeywordSubcommand);
         }
 
-        // Handle main subcommands
+        return this.handleMainSubcommand(interaction, subcommand as MainSubcommand);
+    }
+
+    private async handleKeywordSubcommand(
+        interaction: Command.ChatInputCommandInteraction,
+        subcommand: KeywordSubcommand
+    ) {
+        switch (subcommand) {
+            case 'list':
+                return this.handleListKeywords(interaction);
+            case 'add':
+                return this.handleAddKeywords(interaction);
+            case 'remove':
+                return this.handleRemoveKeywords(interaction);
+            case 'clear':
+                return this.handleClearKeywords(interaction);
+            default:
+                return interaction.reply({
+                    content: 'Invalid subcommand.',
+                    flags: MessageFlags.Ephemeral
+                });
+        }
+    }
+
+    private async handleMainSubcommand(
+        interaction: Command.ChatInputCommandInteraction,
+        subcommand: MainSubcommand
+    ) {
         switch (subcommand) {
             case 'list':
                 return this.handleListRules(interaction);
@@ -269,6 +293,92 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
                     content: 'Invalid subcommand.',
                     flags: MessageFlags.Ephemeral
                 });
+        }
+    }
+
+    private parseKeywordsInput(keywordsInput: string): string[] {
+        return keywordsInput
+            .split(',')
+            .map((keyword) => keyword.trim())
+            .filter(Boolean);
+    }
+
+    private buildRuleActions(
+        ruleName: string,
+        logChannelId?: string,
+        enableTimeout: boolean = false,
+        timeoutDuration: number = 300
+    ): any[] {
+        const actions: any[] = [
+            {
+                type: AutoModerationActionType.BlockMessage,
+                metadata: { customMessage: `This message was blocked by AutoMod: Violation of rule "${ruleName}"` }
+            }
+        ];
+
+        if (logChannelId) {
+            actions.push({
+                type: AutoModerationActionType.SendAlertMessage,
+                metadata: { channelId: logChannelId }
+            });
+        }
+
+        if (enableTimeout) {
+            actions.push({
+                type: AutoModerationActionType.Timeout,
+                metadata: { durationSeconds: timeoutDuration }
+            });
+        }
+
+        return actions;
+    }
+
+    private getTriggerConfig(
+        type: string,
+        keywords: string | null,
+        mentionLimit: number | null
+    ): { error?: string; config?: TriggerConfigResult } {
+        switch (type) {
+            case 'keyword': {
+                if (!keywords) {
+                    return { error: 'Keywords are required for keyword filter rules.' };
+                }
+
+                return {
+                    config: {
+                        triggerType: AutoModerationRuleTriggerType.Keyword,
+                        triggerMetadata: { keywordFilter: this.parseKeywordsInput(keywords) }
+                    }
+                };
+            }
+            case 'spam':
+                return {
+                    config: {
+                        triggerType: AutoModerationRuleTriggerType.Spam,
+                        triggerMetadata: {}
+                    }
+                };
+            case 'mention_spam': {
+                if (!mentionLimit) {
+                    return { error: 'Mention limit is required for mention spam rules.' };
+                }
+
+                return {
+                    config: {
+                        triggerType: AutoModerationRuleTriggerType.MentionSpam,
+                        triggerMetadata: { mentionTotalLimit: mentionLimit }
+                    }
+                };
+            }
+            case 'link':
+                return {
+                    config: {
+                        triggerType: AutoModerationRuleTriggerType.Keyword,
+                        triggerMetadata: { keywordFilter: ['http://', 'https://'] }
+                    }
+                };
+            default:
+                return { error: 'Invalid rule type.' };
         }
     }
 
@@ -349,75 +459,19 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
         const enableTimeout = interaction.options.getBoolean('timeout') || false;
 
         try {
-            // Set up rule creation options
-            let triggerType: AutoModerationRuleTriggerType;
-            const triggerMetadata: any = {};
-            
-            switch (type) {
-                case 'keyword':
-                    triggerType = AutoModerationRuleTriggerType.Keyword;
-                    if (keywords) {
-                        triggerMetadata.keywordFilter = keywords.split(',').map(k => k.trim());
-                    } else {
-                        return interaction.editReply({
-                            content: 'Keywords are required for keyword filter rules.'
-                        });
-                    }
-                    break;
-                case 'spam':
-                    triggerType = AutoModerationRuleTriggerType.Spam;
-                    break;
-                case 'mention_spam':
-                    triggerType = AutoModerationRuleTriggerType.MentionSpam;
-                    if (mentionLimit) {
-                        triggerMetadata.mentionTotalLimit = mentionLimit;
-                    } else {
-                        return interaction.editReply({
-                            content: 'Mention limit is required for mention spam rules.'
-                        });
-                    }
-                    break;
-                case 'link':
-                    triggerType = AutoModerationRuleTriggerType.Keyword;
-                    triggerMetadata.keywordFilter = ['http://', 'https://'];
-                    break;
-                default:
-                    return interaction.editReply({
-                        content: 'Invalid rule type.'
-                    });
+            const triggerConfig = this.getTriggerConfig(type, keywords, mentionLimit);
+            if (triggerConfig.error || !triggerConfig.config) {
+                return interaction.editReply({ content: triggerConfig.error ?? 'Invalid rule type.' });
             }
 
-            // Set up actions
-            const actions: any[] = [];
-            
-            // Block message action
-            actions.push({
-                type: AutoModerationActionType.BlockMessage,
-                metadata: { customMessage: `This message was blocked by AutoMod: Violation of rule "${name}"` }
-            });
-            
-            // Log to channel if specified
-            if (logChannel) {
-                actions.push({
-                    type: AutoModerationActionType.SendAlertMessage,
-                    metadata: { channelId: logChannel.id }
-                });
-            }
-            
-            // Add timeout action if enabled
-            if (enableTimeout) {
-                actions.push({
-                    type: AutoModerationActionType.Timeout,
-                    metadata: { durationSeconds: 300 } // 5 minute timeout
-                });
-            }
+            const actions = this.buildRuleActions(name, logChannel?.id, enableTimeout);
 
             // Create the rule
             const rule = await interaction.guild!.autoModerationRules.create({
                 name,
                 eventType: AutoModerationRuleEventType.MessageSend,
-                triggerType,
-                triggerMetadata,
+                triggerType: triggerConfig.config.triggerType,
+                triggerMetadata: triggerConfig.config.triggerMetadata,
                 actions,
                 enabled: true,
                 reason: `Created by ${interaction.user.tag} via bot command`
@@ -429,7 +483,7 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
                 .setDescription(`Successfully created AutoMod rule "${name}"`)
                 .addFields(
                     { name: 'Rule ID', value: rule.id, inline: true },
-                    { name: 'Type', value: getTriggerTypeName(triggerType), inline: true }
+                    { name: 'Type', value: getTriggerTypeName(triggerConfig.config.triggerType), inline: true }
                 )
                 .setFooter({ text: `Created by ${interaction.user.tag}` })
                 .setTimestamp();
@@ -496,30 +550,12 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
                     continue;
                 }
 
-                // Set up actions
-                const actions: any[] = [];
-                
-                // Block message action
-                actions.push({
-                    type: AutoModerationActionType.BlockMessage,
-                    metadata: { customMessage: `This message was blocked by AutoMod: Violation of rule "${ruleConfig.name}"` }
-                });
-                
-                // Log to channel if specified
-                if (logChannel) {
-                    actions.push({
-                        type: AutoModerationActionType.SendAlertMessage,
-                        metadata: { channelId: logChannel.id }
-                    });
-                }
-                
-                // Add timeout action if enabled in the preset rule
-                if (ruleConfig.timeout) {
-                    actions.push({
-                        type: AutoModerationActionType.Timeout,
-                        metadata: { durationSeconds: ruleConfig.timeoutDuration || 300 } // Default 5 minute timeout
-                    });
-                }
+                const actions = this.buildRuleActions(
+                    ruleConfig.name,
+                    logChannel?.id,
+                    ruleConfig.timeout,
+                    ruleConfig.timeoutDuration || 300
+                );
 
                 try {
                     // Create the rule
@@ -663,11 +699,7 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
         const guildId = interaction.guildId!;
         
         try {
-            // Parse keywords from comma-separated input
-            const keywords = keywordsInput
-                .split(',')
-                .map(kw => kw.trim())
-                .filter(kw => kw); // Remove empty strings
+            const keywords = this.parseKeywordsInput(keywordsInput);
             
             if (keywords.length === 0) {
                 return interaction.editReply({
@@ -703,11 +735,7 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
         const guildId = interaction.guildId!;
         
         try {
-            // Parse keywords from comma-separated input
-            const keywords = keywordsInput
-                .split(',')
-                .map(kw => kw.trim())
-                .filter(kw => kw); // Remove empty strings
+            const keywords = this.parseKeywordsInput(keywordsInput);
             
             if (keywords.length === 0) {
                 return interaction.editReply({

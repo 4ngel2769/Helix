@@ -9,6 +9,13 @@ import config from '../config';
     interactionHandlerType: InteractionHandlerTypes.Button
 })
 export class AuctionHandler extends InteractionHandler {
+    private readonly filterNames: Record<string, string> = {
+        mine: 'My Auctions',
+        bids: 'My Bids',
+        ending: 'Ending Soon',
+        all: 'All Auctions'
+    };
+
     public override parse(interaction: ButtonInteraction) {
         if (!interaction.customId.startsWith('auction_')) return this.none();
         return this.some();
@@ -75,114 +82,78 @@ export class AuctionHandler extends InteractionHandler {
     }
 
     private async handleRefresh(interaction: ButtonInteraction) {
-        await interaction.deferUpdate();
-        
-        try {
-            const result = await AuctionService.getAuctions(interaction.user.id, 'all');
-
-            if (!result.success || !result.auctions || result.auctions.length === 0) {
-                const embed = new EmbedBuilder()
-                    .setColor(config.bot.embedColor.warn)
-                    .setTitle('📋 No Auctions Found')
-                    .setDescription('There are no active auctions at this time.')
-                    .setTimestamp();
-
-                return interaction.editReply({ embeds: [embed], components: [] });
-            }
-
-            const embed = new EmbedBuilder()
-                .setColor(config.bot.embedColor.default)
-                .setTitle('🔨 Active Auctions (Refreshed)')
-                .setDescription(`Showing ${result.auctions.length} auction(s)`)
-                .setTimestamp();
-
-            for (const auction of result.auctions.slice(0, 10)) {
-                const timeLeft = auction.endsAt.getTime() - Date.now();
-                const hoursLeft = Math.max(0, Math.floor(timeLeft / (1000 * 60 * 60)));
-                const minutesLeft = Math.max(0, Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60)));
-                const auctionId = auction.id ?? 'unknown';
-                const quantity = auction.quantity ?? 0;
-                const currentBid = auction.currentBid ?? 0;
-
-                embed.addFields({
-                    name: `${quantity}x ${auction.item.name} (ID: ${auctionId.slice(-8)})`,
-                    value: `💰 Current Bid: **${currentBid.toLocaleString()}** coins\n` +
-                           `👤 Seller: <@${auction.sellerId}>\n` +
-                           `⏰ Time Left: ${hoursLeft}h ${minutesLeft}m`,
-                    inline: true
-                });
-            }
-
-            return interaction.editReply({ embeds: [embed] });
-
-        } catch (error) {
-            console.error('Error refreshing auctions:', error);
-
-            const embed = new EmbedBuilder()
-                .setColor(config.bot.embedColor.err)
-                .setTitle('❌ Error')
-                .setDescription('An error occurred while refreshing. Please try again.')
-                .setTimestamp();
-
-            return interaction.editReply({ embeds: [embed] });
-        }
+        return this.renderAuctionList(interaction, 'all', true);
     }
 
     private async handleFilter(interaction: ButtonInteraction, filter: string) {
+        return this.renderAuctionList(interaction, filter, false);
+    }
+
+    private createAuctionListEmbed(title: string, description: string) {
+        return new EmbedBuilder()
+            .setColor(config.bot.embedColor.default)
+            .setTitle(title)
+            .setDescription(description)
+            .setTimestamp();
+    }
+
+    private appendAuctionFields(embed: EmbedBuilder, auctions: Awaited<ReturnType<typeof AuctionService.getAuctions>>['auctions']) {
+        for (const auction of (auctions ?? []).slice(0, 10)) {
+            const timeLeft = auction.endsAt.getTime() - Date.now();
+            const hoursLeft = Math.max(0, Math.floor(timeLeft / (1000 * 60 * 60)));
+            const minutesLeft = Math.max(0, Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60)));
+            const auctionId = auction.id ?? 'unknown';
+            const quantity = auction.quantity ?? 0;
+            const currentBid = auction.currentBid ?? 0;
+
+            embed.addFields({
+                name: `${quantity}x ${auction.item.name} (ID: ${auctionId.slice(-8)})`,
+                value: `💰 Current Bid: **${currentBid.toLocaleString()}** coins\n` +
+                    `👤 Seller: <@${auction.sellerId}>\n` +
+                    `⏰ Time Left: ${hoursLeft}h ${minutesLeft}m`,
+                inline: true
+            });
+        }
+    }
+
+    private getFilterDisplayName(filter: string): string {
+        return this.filterNames[filter] || 'Filtered Auctions';
+    }
+
+    private async renderAuctionList(interaction: ButtonInteraction, filter: string, isRefresh: boolean) {
         await interaction.deferUpdate();
 
         try {
             const result = await AuctionService.getAuctions(interaction.user.id, filter);
-
-            const filterNames: Record<string, string> = {
-                'mine': 'My Auctions',
-                'bids': 'My Bids',
-                'ending': 'Ending Soon',
-                'all': 'All Auctions'
-            };
+            const filterName = this.getFilterDisplayName(filter);
 
             if (!result.success || !result.auctions || result.auctions.length === 0) {
                 const embed = new EmbedBuilder()
                     .setColor(config.bot.embedColor.warn)
                     .setTitle('📋 No Auctions Found')
-                    .setDescription(`No auctions found for filter: ${filterNames[filter] || filter}`)
+                    .setDescription(isRefresh ? 'There are no active auctions at this time.' : `No auctions found for filter: ${filterName}`)
                     .setTimestamp();
 
-                return interaction.editReply({ embeds: [embed] });
+                return interaction.editReply({ embeds: [embed], components: isRefresh ? [] : undefined });
             }
 
-            const embed = new EmbedBuilder()
-                .setColor(config.bot.embedColor.default)
-                .setTitle(`🔨 ${filterNames[filter] || 'Filtered Auctions'}`)
-                .setDescription(`Showing ${result.auctions.length} auction(s)`)
-                .setTimestamp();
-
-            for (const auction of result.auctions.slice(0, 10)) {
-                const timeLeft = auction.endsAt.getTime() - Date.now();
-                const hoursLeft = Math.max(0, Math.floor(timeLeft / (1000 * 60 * 60)));
-                const minutesLeft = Math.max(0, Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60)));
-                const auctionId = auction.id ?? 'unknown';
-                const quantity = auction.quantity ?? 0;
-                const currentBid = auction.currentBid ?? 0;
-
-                embed.addFields({
-                    name: `${quantity}x ${auction.item.name} (ID: ${auctionId.slice(-8)})`,
-                    value: `💰 Current Bid: **${currentBid.toLocaleString()}** coins\n` +
-                           `👤 Seller: <@${auction.sellerId}>\n` +
-                           `⏰ Time Left: ${hoursLeft}h ${minutesLeft}m`,
-                    inline: true
-                });
-            }
+            const title = isRefresh ? '🔨 Active Auctions (Refreshed)' : `🔨 ${filterName}`;
+            const embed = this.createAuctionListEmbed(title, `Showing ${result.auctions.length} auction(s)`);
+            this.appendAuctionFields(embed, result.auctions);
 
             return interaction.editReply({ embeds: [embed] });
 
         } catch (error) {
-            console.error('Error filtering auctions:', error);
+            console.error(isRefresh ? 'Error refreshing auctions:' : 'Error filtering auctions:', error);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err)
                 .setTitle('❌ Error')
-                .setDescription('An error occurred while filtering. Please try again.')
+                .setDescription(
+                    isRefresh
+                        ? 'An error occurred while refreshing. Please try again.'
+                        : 'An error occurred while filtering. Please try again.'
+                )
                 .setTimestamp();
 
             return interaction.editReply({ embeds: [embed] });

@@ -1,12 +1,18 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { InteractionHandler, InteractionHandlerTypes } from '@sapphire/framework';
 import type { ButtonInteraction, User } from 'discord.js';
-import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ColorResolvable } from 'discord.js';
+import { EmbedBuilder, ColorResolvable } from 'discord.js';
 import { EconomyService } from '../lib/services/EconomyService';
 import config from '../config';
-import type { EconomyItem } from '../models/User';
-
-type InventoryItem = EconomyItem & { sellPrice: number };
+import {
+    addGroupedInventoryFields,
+    addSingleCategoryField,
+    buildInventoryFilterButtonRows,
+    calculateInventoryStats,
+    getCategoryDisplayName,
+    groupInventoryByCategory,
+    type InventoryDisplayItem
+} from '../lib/utils/inventoryDisplay';
 
 @ApplyOptions<InteractionHandler.Options>({
     interactionHandlerType: InteractionHandlerTypes.Button
@@ -71,108 +77,30 @@ export class InventoryButtonHandler extends InteractionHandler {
                 return interaction.editReply({ embeds: [embed], components: originalComponents });
             }
 
-            const inventory = result.inventory as InventoryItem[];
-            
-            // Fix NaN calculation by ensuring proper number handling
-            const totalValue = inventory.reduce((sum, item) => {
-                const sellPrice = Number(item.sellPrice) || 0;
-                const quantity = Number(item.quantity) || 0;
-                return sum + (sellPrice * quantity);
-            }, 0);
-            
-            const itemCount = inventory.reduce((sum, item) => {
-                const quantity = Number(item.quantity) || 0;
-                return sum + quantity;
-            }, 0);
+            const inventory = result.inventory as InventoryDisplayItem[];
+            const { totalValue, itemCount } = calculateInventoryStats(inventory);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.default as ColorResolvable)
-                .setTitle(`📦 ${targetUser.displayName}'s Inventory - ${this.getCategoryDisplayName(category)}`)
+                .setTitle(`📦 ${targetUser.displayName}'s Inventory - ${getCategoryDisplayName(category)}`)
                 .setDescription(`**${itemCount.toLocaleString()}** items • Total Value: **${totalValue.toLocaleString()}** coins`)
                 .setThumbnail(targetUser.displayAvatarURL())
                 .setTimestamp();
 
             if (category === 'all') {
-                // Group items by category for 'all' view
-                const categorizedItems = new Map<string, InventoryItem[]>();
-                
-                for (const item of inventory) {
-                    const cat = item.category || 'misc';
-                    if (!categorizedItems.has(cat)) {
-                        categorizedItems.set(cat, []);
-                    }
-                    categorizedItems.get(cat)!.push(item);
-                }
-
-                // Add fields for each category
-                for (const [cat, items] of categorizedItems) {
-                    if (items.length === 0) continue;
-
-                    const itemList = items.slice(0, 8).map(item => {
-                        const rarity = this.getRarityEmoji(item.rarity);
-                        const sellPrice = Number(item.sellPrice) || 0;
-                        const quantity = Number(item.quantity) || 0;
-                        const sellable = item.sellable !== false;
-                        
-                        let priceText = '';
-                        if (sellable && sellPrice > 0) {
-                            priceText = `(${sellPrice.toLocaleString()}c each)`;
-                        } else if (!sellable) {
-                            priceText = '(Not Sellable)';
-                        } else {
-                            priceText = '(No Value)';
-                        }
-                        
-                        return `${rarity} **${quantity.toLocaleString()}x** ${item.name || 'Unknown Item'} ${priceText}`;
-                    }).join('\n');
-
-                    const moreItems = items.length > 8 ? `\n*...and ${items.length - 8} more*` : '';
-
-                    embed.addFields({
-                        name: `${this.getCategoryEmoji(cat)} ${cat.charAt(0).toUpperCase() + cat.slice(1)} (${items.length})`,
-                        value: itemList + moreItems || 'No items',
-                        inline: false
-                    });
-                }
+                addGroupedInventoryFields(embed, groupInventoryByCategory(inventory), 8, {
+                    includeEachSuffix: true,
+                    showNoValue: true
+                });
             } else {
-                // Show items for specific category
                 const categoryItems = inventory.filter(item => 
                     (item.category || 'misc').toLowerCase() === category.toLowerCase()
                 );
 
-                if (categoryItems.length > 0) {
-                    const itemList = categoryItems.slice(0, 15).map(item => {
-                        const rarity = this.getRarityEmoji(item.rarity);
-                        const sellPrice = Number(item.sellPrice) || 0;
-                        const quantity = Number(item.quantity) || 0;
-                        const sellable = item.sellable !== false;
-                        
-                        let priceText = '';
-                        if (sellable && sellPrice > 0) {
-                            priceText = `(${sellPrice.toLocaleString()}c each)`;
-                        } else if (!sellable) {
-                            priceText = '(Not Sellable)';
-                        } else {
-                            priceText = '(No Value)';
-                        }
-                        
-                        return `${rarity} **${quantity.toLocaleString()}x** ${item.name || 'Unknown Item'} ${priceText}`;
-                    }).join('\n');
-
-                    const moreItems = categoryItems.length > 15 ? `\n*...and ${categoryItems.length - 15} more*` : '';
-
-                    embed.addFields({
-                        name: `${this.getCategoryEmoji(category)} Items in this category`,
-                        value: itemList + moreItems || 'No items',
-                        inline: false
-                    });
-                } else {
-                    embed.addFields({
-                        name: `${this.getCategoryEmoji(category)} Items in this category`,
-                        value: 'No items found in this category.',
-                        inline: false
-                    });
-                }
+                addSingleCategoryField(embed, category, categoryItems, 15, {
+                    includeEachSuffix: true,
+                    showNoValue: true
+                });
             }
 
             // Keep the original buttons
@@ -193,56 +121,7 @@ export class InventoryButtonHandler extends InteractionHandler {
     }
 
     private async handleExpiredButtons(interaction: ButtonInteraction) {
-        // Create disabled buttons
-        const disabledRow1 = new ActionRowBuilder<ButtonBuilder>()
-            .addComponents(
-                new ButtonBuilder()
-                    .setCustomId('expired_tools')
-                    .setLabel('Tools')
-                    .setStyle(ButtonStyle.Secondary)
-                    .setEmoji('🔧')
-                    .setDisabled(true),
-                new ButtonBuilder()
-                    .setCustomId('expired_weapons')
-                    .setLabel('Weapons')
-                    .setStyle(ButtonStyle.Secondary)
-                    .setEmoji('⚔️')
-                    .setDisabled(true),
-                new ButtonBuilder()
-                    .setCustomId('expired_consumables')
-                    .setLabel('Consumables')
-                    .setStyle(ButtonStyle.Secondary)
-                    .setEmoji('🧪')
-                    .setDisabled(true),
-                new ButtonBuilder()
-                    .setCustomId('expired_materials')
-                    .setLabel('Materials')
-                    .setStyle(ButtonStyle.Secondary)
-                    .setEmoji('🔩')
-                    .setDisabled(true)
-            );
-
-        const disabledRow2 = new ActionRowBuilder<ButtonBuilder>()
-            .addComponents(
-                new ButtonBuilder()
-                    .setCustomId('expired_collectibles')
-                    .setLabel('Collectibles')
-                    .setStyle(ButtonStyle.Secondary)
-                    .setEmoji('💎')
-                    .setDisabled(true),
-                new ButtonBuilder()
-                    .setCustomId('expired_all')
-                    .setLabel('All Items')
-                    .setStyle(ButtonStyle.Primary)
-                    .setEmoji('📦')
-                    .setDisabled(true),
-                new ButtonBuilder()
-                    .setCustomId('expired_refresh')
-                    .setLabel('Expired')
-                    .setStyle(ButtonStyle.Danger)
-                    .setEmoji('⏰')
-                    .setDisabled(true)
-            );
+        const [disabledRow1, disabledRow2] = buildInventoryFilterButtonRows('', 0, 'expired');
 
         // Get current embed and add expiration notice
         const currentEmbed = interaction.message.embeds[0];
@@ -277,19 +156,8 @@ export class InventoryButtonHandler extends InteractionHandler {
                 return interaction.editReply({ embeds: [embed], components: [] });
             }
 
-            const inventory = result.inventory as InventoryItem[];
-            
-            // Fix NaN calculation by ensuring proper number handling
-            const totalValue = inventory.reduce((sum, item) => {
-                const sellPrice = Number(item.sellPrice) || 0;
-                const quantity = Number(item.quantity) || 0;
-                return sum + (sellPrice * quantity);
-            }, 0);
-            
-            const itemCount = inventory.reduce((sum, item) => {
-                const quantity = Number(item.quantity) || 0;
-                return sum + quantity;
-            }, 0);
+            const inventory = result.inventory as InventoryDisplayItem[];
+            const { totalValue, itemCount } = calculateInventoryStats(inventory);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.default as ColorResolvable)
@@ -298,92 +166,14 @@ export class InventoryButtonHandler extends InteractionHandler {
                 .setThumbnail(targetUser.displayAvatarURL())
                 .setTimestamp();
 
-            // Group items by category
-            const categorizedItems = new Map<string, InventoryItem[]>();
-            
-            for (const item of inventory) {
-                const cat = item.category || 'misc';
-                if (!categorizedItems.has(cat)) {
-                    categorizedItems.set(cat, []);
-                }
-                categorizedItems.get(cat)!.push(item);
-            }
-
-            // Add fields for each category
-            for (const [cat, items] of categorizedItems) {
-                if (items.length === 0) continue;
-
-                const itemList = items.slice(0, 10).map(item => {
-                    const rarity = this.getRarityEmoji(item.rarity);
-                    const sellPrice = Number(item.sellPrice) || 0;
-                    const quantity = Number(item.quantity) || 0;
-                    const sellable = item.sellable !== false;
-                    
-                    let priceText = '';
-                    if (sellable && sellPrice > 0) {
-                        priceText = `(${sellPrice.toLocaleString()}c each)`;
-                    } else if (!sellable) {
-                        priceText = '(Not Sellable)';
-                    } else {
-                        priceText = '(No Value)';
-                    }
-                    
-                    return `${rarity} **${quantity.toLocaleString()}x** ${item.name || 'Unknown Item'} ${priceText}`;
-                }).join('\n');
-
-                const moreItems = items.length > 10 ? `\n*...and ${items.length - 10} more*` : '';
-
-                embed.addFields({
-                    name: `${this.getCategoryEmoji(cat)} ${cat.charAt(0).toUpperCase() + cat.slice(1)} (${items.length})`,
-                    value: itemList + moreItems || 'No items',
-                    inline: false
-                });
-            }
+            addGroupedInventoryFields(embed, groupInventoryByCategory(inventory), 10, {
+                includeEachSuffix: true,
+                showNoValue: true
+            });
 
             // Create new buttons with fresh expiration time
             const newExpirationTime = Date.now() + 300000; // 5 minutes
-            const row1 = new ActionRowBuilder<ButtonBuilder>()
-                .addComponents(
-                    new ButtonBuilder()
-                        .setCustomId(`inventory_tools_${targetUser.id}_${newExpirationTime}`)
-                        .setLabel('Tools')
-                        .setStyle(ButtonStyle.Secondary)
-                        .setEmoji('🔧'),
-                    new ButtonBuilder()
-                        .setCustomId(`inventory_weapons_${targetUser.id}_${newExpirationTime}`)
-                        .setLabel('Weapons')
-                        .setStyle(ButtonStyle.Secondary)
-                        .setEmoji('⚔️'),
-                    new ButtonBuilder()
-                        .setCustomId(`inventory_consumables_${targetUser.id}_${newExpirationTime}`)
-                        .setLabel('Consumables')
-                        .setStyle(ButtonStyle.Secondary)
-                        .setEmoji('🧪'),
-                    new ButtonBuilder()
-                        .setCustomId(`inventory_materials_${targetUser.id}_${newExpirationTime}`)
-                        .setLabel('Materials')
-                        .setStyle(ButtonStyle.Secondary)
-                        .setEmoji('🔩')
-                );
-
-            const row2 = new ActionRowBuilder<ButtonBuilder>()
-                .addComponents(
-                    new ButtonBuilder()
-                        .setCustomId(`inventory_collectibles_${targetUser.id}_${newExpirationTime}`)
-                        .setLabel('Collectibles')
-                        .setStyle(ButtonStyle.Secondary)
-                        .setEmoji('💎'),
-                    new ButtonBuilder()
-                        .setCustomId(`inventory_all_${targetUser.id}_${newExpirationTime}`)
-                        .setLabel('All Items')
-                        .setStyle(ButtonStyle.Primary)
-                        .setEmoji('📦'),
-                    new ButtonBuilder()
-                        .setCustomId(`inventory_refresh_${targetUser.id}_${newExpirationTime}`)
-                        .setLabel('Refresh')
-                        .setStyle(ButtonStyle.Success)
-                        .setEmoji('🔄')
-                );
+            const [row1, row2] = buildInventoryFilterButtonRows(targetUser.id, newExpirationTime, 'active');
 
             return interaction.editReply({ 
                 embeds: [embed], 
@@ -403,48 +193,4 @@ export class InventoryButtonHandler extends InteractionHandler {
         }
     }
 
-    private getCategoryDisplayName(category: string): string {
-        switch (category.toLowerCase()) {
-            case 'all': return 'All Items';
-            case 'tools': return 'Tools';
-            case 'weapons': return 'Weapons';
-            case 'consumables': return 'Consumables';
-            case 'materials': return 'Materials';
-            case 'collectibles': return 'Collectibles';
-            default: return category.charAt(0).toUpperCase() + category.slice(1);
-        }
-    }
-
-    private getRarityEmoji(rarity: string): string {
-        switch (rarity?.toLowerCase()) {
-            case 'common': return '⚪';
-            case 'uncommon': return '🟢';
-            case 'rare': return '🔵';
-            case 'epic': return '🟣';
-            case 'legendary': return '🟡';
-            case 'mythical': return '🔴';
-            case 'divine': return '✨';
-            case 'cursed': return '💀';
-            default: return '⚪';
-        }
-    }
-
-    private getCategoryEmoji(category: string): string {
-        switch (category?.toLowerCase()) {
-            case 'tools': return '🔧';
-            case 'weapons': return '⚔️';
-            case 'armor': return '🛡️';
-            case 'consumables': return '🧪';
-            case 'materials': return '🔩';
-            case 'collectibles': return '💎';
-            case 'food': return '🍎';
-            case 'drinks': return '🥤';
-            case 'scrolls': return '📜';
-            case 'books': return '📚';
-            case 'potions': return '🧪';
-            case 'gems': return '💎';
-            case 'currencies': return '💰';
-            default: return '📦';
-        }
-    }
 }

@@ -28,7 +28,7 @@ import {
     getInteractionErrorCode,
     paginateItems,
     sendInteractionErrorMessage
-} from './help.helpers';
+} from '../../lib/utils/helpCommandHelpers';
 
 const COMMANDS_PER_PAGE = 5;
 
@@ -75,6 +75,120 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
             PermissionFlagsBits.ModerateMembers
         ]
     };
+
+    private getCommandCategories(): string[] {
+        const categories = new Set<string>();
+        for (const command of container.stores.get('commands').values()) {
+            if (command.category) {
+                categories.add(command.category);
+            }
+        }
+
+        return Array.from(categories);
+    }
+
+    private getMemberPermissions(member: unknown): bigint | Readonly<PermissionsBitField> | undefined {
+        if (!member || typeof member !== 'object' || !('permissions' in member)) {
+            return undefined;
+        }
+
+        const permissions = (member as { permissions?: unknown }).permissions;
+        if (typeof permissions === 'bigint' || permissions instanceof PermissionsBitField) {
+            return permissions as bigint | Readonly<PermissionsBitField>;
+        }
+
+        return undefined;
+    }
+
+    private hasPermission(
+        permissions: bigint | Readonly<PermissionsBitField> | undefined,
+        permission: bigint
+    ): boolean {
+        if (!permissions) {
+            return false;
+        }
+
+        return typeof permissions === 'bigint'
+            ? (permissions & permission) === permission
+            : permissions.has(permission);
+    }
+
+    private hasAnyPermission(
+        permissions: bigint | Readonly<PermissionsBitField> | undefined,
+        requiredPermissions: readonly bigint[]
+    ): boolean {
+        return requiredPermissions.some((permission) => this.hasPermission(permissions, permission));
+    }
+
+    private isLegacyModuleDisabled(guildData: Record<string, unknown> | null, category: string): boolean {
+        if (!guildData) {
+            return false;
+        }
+
+        const key = `is${category}Module`;
+        return guildData[key] === false;
+    }
+
+    private async isModuleEnabledForContext(
+        category: string,
+        guild: DiscordGuild | null,
+        interaction: Command.ChatInputCommandInteraction | StringSelectMenuInteraction | Message,
+        memberPermissions: bigint | Readonly<PermissionsBitField> | undefined
+    ): Promise<boolean> {
+        const moduleStore = container.stores.get('modules');
+        const module = moduleStore.get(category.toLowerCase() as keyof Modules) as ExtendedModule | undefined;
+
+        if (module?.requiredPermissions && !this.hasAnyPermission(memberPermissions, module.requiredPermissions)) {
+            return false;
+        }
+
+        if (module && typeof module.IsEnabled === 'function' && guild) {
+            const moduleCommand = module.container.stores.get('commands').get(module.name);
+            const isEnabled = await module.IsEnabled({
+                guild,
+                interaction: interaction as any,
+                command: moduleCommand as ModuleCommandUnion
+            });
+
+            if (isEnabled.isErr() || !isEnabled.unwrap()) {
+                return false;
+            }
+        }
+
+        const restrictedPermissions = this.modulePermissions[category];
+        if (restrictedPermissions && !this.hasAnyPermission(memberPermissions, restrictedPermissions)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private async getFilteredModules(
+        categories: string[],
+        guildData: Record<string, unknown> | null,
+        guild: DiscordGuild | null,
+        interaction: Command.ChatInputCommandInteraction | StringSelectMenuInteraction | Message,
+        memberPermissions: bigint | Readonly<PermissionsBitField> | undefined
+    ): Promise<string[]> {
+        const enabledModules = await Promise.all(
+            categories.map(async (category) => {
+                if (this.isLegacyModuleDisabled(guildData, category)) {
+                    return null;
+                }
+
+                const isEnabled = await this.isModuleEnabledForContext(
+                    category,
+                    guild,
+                    interaction,
+                    memberPermissions
+                );
+
+                return isEnabled ? category : null;
+            })
+        );
+
+        return enabledModules.filter((module): module is string => module !== null);
+    }
 
     public override async registerApplicationCommands(registry: Command.Registry): Promise<void> {
         await registry.registerChatInputCommand((builder) =>
@@ -137,6 +251,7 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
         const isSlash = 'options' in interaction;
         const guildId = isSlash ? interaction.guildId : interaction.guild?.id;
         const member = isSlash ? interaction.member : (interaction as Message).member;
+        const memberPermissions = this.getMemberPermissions(member);
         
         // Handle DM case - create simpler embed with available commands
         if (!guildId) {
@@ -144,7 +259,7 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
         }
         
         // Get guild settings with improved error handling
-        let guildData;
+        let guildData: Record<string, unknown> | null = null;
         try {
             // Try to get guild data with a timeout
             guildData = await Promise.race([
@@ -152,7 +267,7 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
                 new Promise((_, reject) => 
                     setTimeout(() => reject(new Error('Database timeout')), 10000)
                 )
-            ]);
+            ]) as Record<string, unknown> | null;
         } catch (error) {
             console.error('Database error in help command:', error);
             // Create default guild data as fallback for errors
@@ -174,63 +289,14 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
             }
         }
         
-        // Get all categories (modules)
-        const categories = new Set<string>();
-        for (const command of container.stores.get('commands').values()) {
-            if (command.category) categories.add(command.category);
-        }
-
-        // Filter modules based on user permissions and enabled status
-        const enabledModules = await Promise.all(
-            Array.from(categories).map(async (category: string) => {
-                // Check if module is enabled in guild
-                const moduleStatus = guildData[`is${category}Module` as keyof typeof guildData];
-                if (moduleStatus === false) return null;
-
-                // Check module's IsEnabled status
-                const moduleStore = container.stores.get('modules');
-                const module = moduleStore.get(category.toLowerCase() as keyof Modules) as ExtendedModule | undefined;
-                
-                if (module && typeof module.IsEnabled === 'function') {
-                    const moduleCommand = module.container.stores.get('commands').get(module.name);
-                    
-                    // Check for required module permissions
-                    if (module.requiredPermissions) {
-                        const hasPermission = module.requiredPermissions.some(perm => {
-                            if (!member?.permissions) return false;
-                            return typeof member.permissions === 'bigint'
-                                ? (member.permissions & perm) === perm
-                                : (member.permissions as Readonly<PermissionsBitField>).has(perm);
-                        });
-                        if (!hasPermission) return null;
-                    }
-
-                    const isEnabled = await module.IsEnabled({
-                        guild: interaction.guild! as DiscordGuild,
-                        interaction: interaction as any,
-                        command: moduleCommand as ModuleCommandUnion
-                    });
-                    if (isEnabled.isErr() || !isEnabled.unwrap()) return null;
-                }
-
-                // Check if user has required permissions for restricted modules
-                if (this.modulePermissions[category]) {
-                    // Allow if user has any of the required permissions
-                    const hasPermission = this.modulePermissions[category].some(perm => {
-                        if (!member?.permissions) return false;
-                        return typeof member.permissions === 'bigint' 
-                            ? member.permissions === perm
-                            : (member.permissions as Readonly<PermissionsBitField>).has(perm);
-                    });
-                    if (!hasPermission) return null;
-                }
-
-                return category;
-            })
+        const categories = this.getCommandCategories();
+        const filteredModules = await this.getFilteredModules(
+            categories,
+            guildData,
+            interaction.guild as DiscordGuild | null,
+            interaction,
+            memberPermissions
         );
-
-        // Filter out null values and create final array
-        const filteredModules = enabledModules.filter((module): module is string => module !== null);
 
         const moduleSelect = createHelpModuleSelect(filteredModules);
 
@@ -624,67 +690,18 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
                 return;
             }
 
-            // Get all enabled modules to recreate dropdown
             const guildId = interaction.guildId!;
-            const guildData = await GuildModel.findOne({ guildId });
-            
-            // Get all categories (modules) for the dropdown
-            const categories = new Set<string>();
-            for (const command of container.stores.get('commands').values()) {
-                if (command.category) categories.add(command.category);
-            }
+            const guildData = await GuildModel.findOne({ guildId }) as Record<string, unknown> | null;
+            const categories = this.getCommandCategories();
+            const memberPermissions = this.getMemberPermissions(interaction.member);
 
-            // Filter modules based on user permissions and enabled status
-            const enabledModules = await Promise.all(
-                Array.from(categories).map(async (category: string) => {
-                    // Check if module is enabled in guild
-                    const moduleStatus = guildData?.[`is${category}Module` as keyof typeof guildData];
-                    if (moduleStatus === false) return null;
-
-                    // Check module's IsEnabled status
-                    const moduleStore = container.stores.get('modules');
-                    const module = moduleStore.get(category.toLowerCase() as keyof Modules) as ExtendedModule | undefined;
-                    
-                    if (module && typeof module.IsEnabled === 'function') {
-                        const moduleCommand = module.container.stores.get('commands').get(module.name);
-                        
-                        // Check for required module permissions
-                        if (module.requiredPermissions) {
-                            const hasPermission = module.requiredPermissions.some(perm => {
-                                if (!interaction.member?.permissions) return false;
-                                return typeof interaction.member.permissions === 'bigint'
-                                    ? (interaction.member.permissions & perm) === perm
-                                    : (interaction.member.permissions as Readonly<PermissionsBitField>).has(perm);
-                            });
-                            if (!hasPermission) return null;
-                        }
-
-                        const isEnabled = await module.IsEnabled({
-                            guild: interaction.guild! as DiscordGuild,
-                            interaction: interaction as any,
-                            command: moduleCommand as ModuleCommandUnion
-                        });
-                        if (isEnabled.isErr() || !isEnabled.unwrap()) return null;
-                    }
-
-                    // Check if user has required permissions for restricted modules
-                    if (this.modulePermissions[category]) {
-                        // Allow if user has any of the required permissions
-                        const hasPermission = this.modulePermissions[category].some(perm => {
-                            if (!interaction.member?.permissions) return false;
-                            return typeof interaction.member.permissions === 'bigint' 
-                                ? interaction.member.permissions === perm
-                                : (interaction.member.permissions as Readonly<PermissionsBitField>).has(perm);
-                        });
-                        if (!hasPermission) return null;
-                    }
-
-                    return category;
-                })
+            const filteredModules = await this.getFilteredModules(
+                categories,
+                guildData,
+                interaction.guild as DiscordGuild | null,
+                interaction,
+                memberPermissions
             );
-
-            // Filter out null values
-            const filteredModules = enabledModules.filter((module): module is string => module !== null);
 
             const moduleSelect = createHelpModuleSelect(filteredModules);
             

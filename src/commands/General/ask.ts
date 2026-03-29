@@ -20,6 +20,7 @@ export class AskCommand extends ModuleCommand<GeneralModule> {
 	private readonly defaultModel = config.ollama.defaultModel;
 	private readonly availableModels = config.ollama.availableModels;
 	private readonly systemPrompt = config.ollama.systemPrompt;
+	private readonly streamUpdateIntervalMs = 1500;
 
 	public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
 		super(context, { ...options });
@@ -55,7 +56,7 @@ export class AskCommand extends ModuleCommand<GeneralModule> {
 		const userPrompt = interaction.options.getString('prompt', true);
 		const model = interaction.options.getString('model') || this.defaultModel;
 
-		if (!this.availableModels.includes(model as (typeof this.availableModels)[number])) {
+		if (!this.isModelAvailable(model)) {
 			return interaction.editReply({
 				embeds: [
 					new EmbedBuilder()
@@ -66,17 +67,7 @@ export class AskCommand extends ModuleCommand<GeneralModule> {
 			});
 		}
 
-		const embed = new EmbedBuilder()
-			.setColor(config.bot.embedColor.default as ColorResolvable)
-			.setAuthor({
-				name: 'AI Response',
-				iconURL: interaction.client.user?.displayAvatarURL()
-			})
-			.setDescription('*Thinking...*')
-			.setFooter({ text: `Asked by ${interaction.user.username} • Model: ${model}` })
-			.setTimestamp();
-
-		await interaction.editReply({ embeds: [embed] });
+		await interaction.editReply({ embeds: [this.createResponseEmbed(interaction, model, '*Thinking...*')] });
 
 		try {
 			const response = await axios.post(
@@ -89,102 +80,46 @@ export class AskCommand extends ModuleCommand<GeneralModule> {
 				},
 				{ responseType: 'stream' }
 			);
+			const stream = response.data as NodeJS.ReadableStream;
 
 			let fullResponse = '';
 			let lastUpdate = Date.now();
-			const UPDATE_INTERVAL = 1500;
 
-			response.data.on('data', async (chunk: Buffer) => {
+			stream.on('data', async (chunk: Buffer) => {
+				const chunkText = this.extractResponseTextFromChunk(chunk);
+				if (!chunkText) {
+					return;
+				}
+
+				fullResponse += chunkText;
+				const now = Date.now();
+				if (now - lastUpdate <= this.streamUpdateIntervalMs) {
+					return;
+				}
+
 				try {
-					const lines = chunk
-						.toString()
-						.split('\n')
-						.filter((line) => line.trim());
-
-					for (const line of lines) {
-						if (!line) continue;
-
-						// Parse the JSON response
-						const data = JSON.parse(line);
-
-						// Fixed: Look for response key instead of message.content
-						if (data.response) {
-							fullResponse += data.response;
-
-							const now = Date.now();
-							if (now - lastUpdate > UPDATE_INTERVAL) {
-								const updatedEmbed = new EmbedBuilder()
-									.setColor(config.bot.embedColor.default as ColorResolvable)
-									.setAuthor({
-										name: 'AI Response',
-										iconURL: interaction.client.user?.displayAvatarURL()
-									})
-									.setDescription(
-										fullResponse.trim().length > 0
-											? fullResponse.length > 4000
-												? fullResponse.substring(0, 4000) + '... (response truncated)'
-												: fullResponse + '▌' // Add cursor to show typing
-											: '*Still thinking...*'
-									)
-									.setFooter({ text: `Asked by ${interaction.user.username} • Model: ${model}` })
-									.setTimestamp();
-
-								await interaction.editReply({ embeds: [updatedEmbed] });
-								lastUpdate = now;
-							}
-						}
-					}
-				} catch (err) {
-					console.error('Error parsing stream chunk:', err);
+					await interaction.editReply({
+						embeds: [
+							this.createResponseEmbed(interaction, model, this.formatResponseText(fullResponse, true))
+						]
+					});
+					lastUpdate = now;
+				} catch (updateError) {
+					console.error('Error updating stream reply:', updateError);
 				}
 			});
 
-			return new Promise<void>((resolve, reject) => {
-				response.data.on('end', async () => {
-					try {
-						const finalText =
-							fullResponse.trim().length > 0
-								? fullResponse.length > 4000
-									? fullResponse.substring(0, 4000) + '... (response truncated)'
-									: fullResponse
-								: '*No response received.*';
+			await new Promise<void>((resolve, reject) => {
+				stream.on('end', () => resolve());
+				stream.on('error', (streamError: Error) => reject(streamError));
+			});
 
-						const finalEmbed = new EmbedBuilder()
-							.setColor(config.bot.embedColor.default as ColorResolvable)
-							.setAuthor({
-								name: 'AI Response',
-								iconURL: interaction.client.user?.displayAvatarURL()
-							})
-							.setDescription(finalText)
-							.setFooter({ text: `Asked by ${interaction.user.username} • Model: ${model}` })
-							.setTimestamp();
-
-						await interaction.editReply({ embeds: [finalEmbed] });
-						resolve();
-					} catch (error) {
-						console.error('Error finalizing stream:', error);
-						reject(error);
-					}
-				});
-
-				response.data.on('error', (error: Error) => {
-					console.error('Stream error:', error);
-					reject(error);
-				});
+			return interaction.editReply({
+				embeds: [this.createResponseEmbed(interaction, model, this.formatResponseText(fullResponse, false))]
 			});
 		} catch (error) {
 			console.error('Ollama API error:', error);
-
-			let errorMessage = 'An error occurred while processing your request.';
-			if (axios.isAxiosError(error)) {
-				if (error.code === 'ECONNREFUSED') {
-					errorMessage = 'Could not connect to the AI service.';
-				} else if (error.response?.status === 404) {
-					errorMessage = `Model '${model}' not found.`;
-				} else if (error.response) {
-					errorMessage = `Error ${error.response.status}: ${error.response.statusText}`;
-				}
-			}
+			const errorMessage = this.getOllamaErrorMessage(error, model);
 
 			const errorEmbed = new EmbedBuilder()
 				.setColor(config.bot.embedColor.err as ColorResolvable)
@@ -195,5 +130,76 @@ export class AskCommand extends ModuleCommand<GeneralModule> {
 
 			return interaction.editReply({ embeds: [errorEmbed] });
 		}
+	}
+
+	private isModelAvailable(model: string): boolean {
+		return this.availableModels.includes(model as (typeof this.availableModels)[number]);
+	}
+
+	private createResponseEmbed(
+		interaction: Command.ChatInputCommandInteraction,
+		model: string,
+		description: string
+	): EmbedBuilder {
+		return new EmbedBuilder()
+			.setColor(config.bot.embedColor.default as ColorResolvable)
+			.setAuthor({
+				name: 'AI Response',
+				iconURL: interaction.client.user?.displayAvatarURL()
+			})
+			.setDescription(description)
+			.setFooter({ text: `Asked by ${interaction.user.username} • Model: ${model}` })
+			.setTimestamp();
+	}
+
+	private formatResponseText(fullResponse: string, isStreaming: boolean): string {
+		if (fullResponse.trim().length === 0) {
+			return isStreaming ? '*Still thinking...*' : '*No response received.*';
+		}
+
+		const clamped = fullResponse.length > 4000 ? `${fullResponse.substring(0, 4000)}... (response truncated)` : fullResponse;
+		return isStreaming && fullResponse.length <= 4000 ? `${clamped}▌` : clamped;
+	}
+
+	private extractResponseTextFromChunk(chunk: Buffer): string {
+		let responseText = '';
+
+		for (const line of chunk.toString().split('\n')) {
+			const normalizedLine = line.trim();
+			if (!normalizedLine) {
+				continue;
+			}
+
+			try {
+				const data = JSON.parse(normalizedLine) as { response?: unknown };
+				if (typeof data.response === 'string') {
+					responseText += data.response;
+				}
+			} catch (parseError) {
+				console.error('Error parsing stream chunk:', parseError);
+			}
+		}
+
+		return responseText;
+	}
+
+	private getOllamaErrorMessage(error: unknown, model: string): string {
+		if (!axios.isAxiosError(error)) {
+			return 'An error occurred while processing your request.';
+		}
+
+		if (error.code === 'ECONNREFUSED') {
+			return 'Could not connect to the AI service.';
+		}
+
+		if (error.response?.status === 404) {
+			return `Model '${model}' not found.`;
+		}
+
+		if (error.response) {
+			return `Error ${error.response.status}: ${error.response.statusText}`;
+		}
+
+		return 'An error occurred while processing your request.';
 	}
 }

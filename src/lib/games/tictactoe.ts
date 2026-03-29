@@ -170,76 +170,72 @@ export async function startSinglePlayerGame(interaction: ModuleCommand.ChatInput
 		return null;
 	};
 
-	const isBoardFull = (): boolean => {
-		return board.every((row) => row.every((cell) => cell !== '⬜'));
-	};
+    const isBoardFull = (): boolean => {
+        return board.every((row) => row.every((cell) => cell !== '⬜'));
+    };
+
+    const getEmptyCells = (): [number, number][] => {
+        const emptyCells: [number, number][] = [];
+        for (let i = 0; i < 3; i++) {
+            for (let j = 0; j < 3; j++) {
+                if (board[i][j] === '⬜') {
+                    emptyCells.push([i, j]);
+                }
+            }
+        }
+
+        return emptyCells;
+    };
+
+    const playRandomBotMove = (): void => {
+        const emptyCells = getEmptyCells();
+        if (emptyCells.length === 0) {
+            return;
+        }
+
+        const [row, col] = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+        board[row][col] = '⭕';
+    };
+
+    const tryPlaceWinningOrBlockingMove = (targetSymbol: '⭕' | '❌'): boolean => {
+        for (let i = 0; i < 3; i++) {
+            for (let j = 0; j < 3; j++) {
+                if (board[i][j] !== '⬜') {
+                    continue;
+                }
+
+                board[i][j] = targetSymbol;
+                const isWinningSpot = checkWinner() === targetSymbol;
+                board[i][j] = '⬜';
+
+                if (!isWinningSpot) {
+                    continue;
+                }
+
+                board[i][j] = '⭕';
+                return true;
+            }
+        }
+
+        return false;
+    };
 
 	const botMove = (): void => {
 		const luck = Math.random();
 		if (luck < 0.15) {
-			// 15% chance: bot plays easy (random move)
-			const emptyCells: [number, number][] = [];
-			for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) if (board[i][j] === '⬜') emptyCells.push([i, j]);
-			const [row, col] = emptyCells[Math.floor(Math.random() * emptyCells.length)];
-			board[row][col] = '⭕';
+            playRandomBotMove();
 			return;
 		}
-		if (luck > 0.95) {
-			// 5% chance: bot plays perfectly (always blocks/wins)
-			// (current logic, but run both win and block in one pass)
-			for (let i = 0; i < 3; i++)
-				for (let j = 0; j < 3; j++) {
-					if (board[i][j] === '⬜') {
-						board[i][j] = '⭕';
-						if (checkWinner() === '⭕') return;
-						board[i][j] = '⬜';
-					}
-				}
-			for (let i = 0; i < 3; i++)
-				for (let j = 0; j < 3; j++) {
-					if (board[i][j] === '⬜') {
-						board[i][j] = '❌';
-						if (checkWinner() === '❌') {
-							board[i][j] = '⭕';
-							return;
-						}
-						board[i][j] = '⬜';
-					}
-				}
-			// If no win/block, random move
-			const emptyCells: [number, number][] = [];
-			for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) if (board[i][j] === '⬜') emptyCells.push([i, j]);
-			const [row, col] = emptyCells[Math.floor(Math.random() * emptyCells.length)];
-			board[row][col] = '⭕';
+
+        if (tryPlaceWinningOrBlockingMove('⭕')) {
 			return;
 		}
-		// 80% chance: normal logic (your current logic)
-		// Check if bot can win
-		for (let i = 0; i < 3; i++)
-			for (let j = 0; j < 3; j++) {
-				if (board[i][j] === '⬜') {
-					board[i][j] = '⭕';
-					if (checkWinner() === '⭕') return;
-					board[i][j] = '⬜';
-				}
-			}
-		// Check if bot needs to block player
-		for (let i = 0; i < 3; i++)
-			for (let j = 0; j < 3; j++) {
-				if (board[i][j] === '⬜') {
-					board[i][j] = '❌';
-					if (checkWinner() === '❌') {
-						board[i][j] = '⭕';
-						return;
-					}
-					board[i][j] = '⬜';
-				}
-			}
-		// Random move
-		const emptyCells: [number, number][] = [];
-		for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) if (board[i][j] === '⬜') emptyCells.push([i, j]);
-		const [row, col] = emptyCells[Math.floor(Math.random() * emptyCells.length)];
-		board[row][col] = '⭕';
+
+        if (tryPlaceWinningOrBlockingMove('❌')) {
+            return;
+        }
+
+        playRandomBotMove();
 	};
 
 	const embed = createGameEmbed();

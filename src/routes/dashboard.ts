@@ -5,7 +5,7 @@ import { HttpCodes } from '@sapphire/plugin-api';
 import type { RouteOptions } from '@sapphire/plugin-api';
 import type { Module } from '@kbotdev/plugin-modules';
 import { ErrorHandler } from '../lib/structures/ErrorHandler';
-import { fetchOAuth2Guilds, getDiscordGuildIconUrl } from './utils/discordGuilds';
+import { fetchOAuth2Guilds, getDiscordGuildIconUrl } from '../lib/utils/discordGuilds';
 
 @ApplyOptions<RouteOptions>({
     name: 'dashboard',

@@ -2,12 +2,16 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import type { EconomyModule } from '../../modules/Economy';
-import { EmbedBuilder, MessageFlags, Message, ActionRowBuilder, ButtonBuilder, ButtonStyle, ColorResolvable } from 'discord.js';
+import { EmbedBuilder, Message, ColorResolvable } from 'discord.js';
 import config from '../../config';
 import { EconomyService } from '../../lib/services/EconomyService';
-import type { EconomyItem } from '../../models/User';
-
-type InventoryItem = EconomyItem & { sellPrice: number };
+import {
+    addGroupedInventoryFields,
+    buildInventoryFilterButtonRows,
+    calculateInventoryStats,
+    groupInventoryByCategory,
+    type InventoryDisplayItem
+} from '../../lib/utils/inventoryDisplay';
 
 @ApplyOptions<Command.Options>({
     name: 'inventory',
@@ -74,20 +78,8 @@ export class InventoryCommand extends ModuleCommand<EconomyModule> {
                 return interaction.editReply({ embeds: [embed] });
             }
 
-            const inventory = result.inventory as InventoryItem[];
-            
-            // Fix NaN calculation with extra safety checks
-            const totalValue = inventory.reduce((sum, item) => {
-                const sellPrice = Number(item.sellPrice) || 0;
-                const quantity = Number(item.quantity) || 0;
-                const itemValue = sellPrice * quantity;
-                return sum + (isNaN(itemValue) ? 0 : itemValue);
-            }, 0);
-            
-            const itemCount = inventory.reduce((sum, item) => {
-                const quantity = Number(item.quantity) || 0;
-                return sum + (isNaN(quantity) ? 0 : quantity);
-            }, 0);
+            const inventory = result.inventory as InventoryDisplayItem[];
+            const { totalValue, itemCount } = calculateInventoryStats(inventory);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.default as ColorResolvable)
@@ -96,92 +88,14 @@ export class InventoryCommand extends ModuleCommand<EconomyModule> {
                 .setThumbnail(targetUser.displayAvatarURL())
                 .setTimestamp();
 
-            // Group items by category
-            const categorizedItems = new Map<string, InventoryItem[]>();
-            
-            for (const item of inventory) {
-                const cat = item.category || 'misc';
-                if (!categorizedItems.has(cat)) {
-                    categorizedItems.set(cat, []);
-                }
-                categorizedItems.get(cat)!.push(item);
-            }
-
-            // Add fields for each category
-            for (const [cat, items] of categorizedItems) {
-                if (items.length === 0) continue;
-
-                const itemList = items.slice(0, 10).map(item => {
-                    const rarity = this.getRarityEmoji(item.rarity);
-                    const sellPrice = Number(item.sellPrice) || 0;
-                    const quantity = Number(item.quantity) || 0;
-                    const sellable = item.sellable !== false;
-                    
-                    let priceText = '';
-                    if (sellable && sellPrice > 0) {
-                        priceText = `(${sellPrice.toLocaleString()}c each)`;
-                    } else if (!sellable) {
-                        priceText = '(Not Sellable)';
-                    } else {
-                        priceText = '(No Value)';
-                    }
-                    
-                    return `${rarity} **${quantity.toLocaleString()}x** ${item.name || 'Unknown Item'} ${priceText}`;
-                }).join('\n');
-
-                const moreItems = items.length > 10 ? `\n*...and ${items.length - 10} more*` : '';
-
-                embed.addFields({
-                    name: `${this.getCategoryEmoji(cat)} ${cat.charAt(0).toUpperCase() + cat.slice(1)} (${items.length})`,
-                    value: itemList + moreItems || 'No items',
-                    inline: false
-                });
-            }
+            addGroupedInventoryFields(embed, groupInventoryByCategory(inventory), 10, {
+                includeEachSuffix: true,
+                showNoValue: true
+            });
 
             // Create filter buttons with expiration timestamp
             const expirationTime = Date.now() + 300000; // 5 minutes
-            const row = new ActionRowBuilder<ButtonBuilder>()
-                .addComponents(
-                    new ButtonBuilder()
-                        .setCustomId(`inventory_tools_${targetUser.id}_${expirationTime}`)
-                        .setLabel('Tools')
-                        .setStyle(ButtonStyle.Secondary)
-                        .setEmoji('🔧'),
-                    new ButtonBuilder()
-                        .setCustomId(`inventory_weapons_${targetUser.id}_${expirationTime}`)
-                        .setLabel('Weapons')
-                        .setStyle(ButtonStyle.Secondary)
-                        .setEmoji('⚔️'),
-                    new ButtonBuilder()
-                        .setCustomId(`inventory_consumables_${targetUser.id}_${expirationTime}`)
-                        .setLabel('Consumables')
-                        .setStyle(ButtonStyle.Secondary)
-                        .setEmoji('🧪'),
-                    new ButtonBuilder()
-                        .setCustomId(`inventory_materials_${targetUser.id}_${expirationTime}`)
-                        .setLabel('Materials')
-                        .setStyle(ButtonStyle.Secondary)
-                        .setEmoji('🔩')
-                );
-
-            const row2 = new ActionRowBuilder<ButtonBuilder>()
-                .addComponents(
-                    new ButtonBuilder()
-                        .setCustomId(`inventory_collectibles_${targetUser.id}_${expirationTime}`)
-                        .setLabel('Collectibles')
-                        .setStyle(ButtonStyle.Secondary)
-                        .setEmoji('💎'),
-                    new ButtonBuilder()
-                        .setCustomId(`inventory_all_${targetUser.id}_${expirationTime}`)
-                        .setLabel('All Items')
-                        .setStyle(ButtonStyle.Primary)
-                        .setEmoji('📦'),
-                    new ButtonBuilder()
-                        .setCustomId(`inventory_refresh_${targetUser.id}_${expirationTime}`)
-                        .setLabel('Refresh')
-                        .setStyle(ButtonStyle.Success)
-                        .setEmoji('🔄')
-                );
+            const [row, row2] = buildInventoryFilterButtonRows(targetUser.id, expirationTime, 'active');
 
             return interaction.editReply({ 
                 embeds: [embed], 
@@ -231,19 +145,8 @@ export class InventoryCommand extends ModuleCommand<EconomyModule> {
                 return message.reply({ embeds: [embed] });
             }
 
-            const inventory = result.inventory as InventoryItem[];
-            
-            // Fix NaN calculation for message command too
-            const totalValue = inventory.reduce((sum, item) => {
-                const sellPrice = Number(item.sellPrice) || 0;
-                const quantity = Number(item.quantity) || 0;
-                return sum + (sellPrice * quantity);
-            }, 0);
-            
-            const itemCount = inventory.reduce((sum, item) => {
-                const quantity = Number(item.quantity) || 0;
-                return sum + quantity;
-            }, 0);
+            const inventory = result.inventory as InventoryDisplayItem[];
+            const { totalValue, itemCount } = calculateInventoryStats(inventory);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.default as ColorResolvable)
@@ -252,45 +155,10 @@ export class InventoryCommand extends ModuleCommand<EconomyModule> {
                 .setThumbnail(targetUser.displayAvatarURL())
                 .setTimestamp();
 
-            // Group items by category (simplified for text command)
-            const categorizedItems = new Map<string, InventoryItem[]>();
-            
-            for (const item of inventory) {
-                const cat = item.category || 'misc';
-                if (!categorizedItems.has(cat)) {
-                    categorizedItems.set(cat, []);
-                }
-                categorizedItems.get(cat)!.push(item);
-            }
-
-            // Add fields for each category
-            for (const [cat, items] of categorizedItems) {
-                if (items.length === 0) continue;
-
-                const itemList = items.slice(0, 5).map(item => {
-                    const rarity = this.getRarityEmoji(item.rarity);
-                    const sellPrice = Number(item.sellPrice) || 0;
-                    const quantity = Number(item.quantity) || 0;
-                    const sellable = item.sellable !== false;
-                    
-                    let priceText = '';
-                    if (sellable && sellPrice > 0) {
-                        priceText = `(${sellPrice.toLocaleString()}c)`;
-                    } else if (!sellable) {
-                        priceText = '(Not Sellable)';
-                    }
-                    
-                    return `${rarity} **${quantity.toLocaleString()}x** ${item.name || 'Unknown Item'} ${priceText}`;
-                }).join('\n');
-
-                const moreItems = items.length > 5 ? `\n*...and ${items.length - 5} more*` : '';
-
-                embed.addFields({
-                    name: `${this.getCategoryEmoji(cat)} ${cat.charAt(0).toUpperCase() + cat.slice(1)} (${items.length})`,
-                    value: itemList + moreItems || 'No items',
-                    inline: false
-                });
-            }
+            addGroupedInventoryFields(embed, groupInventoryByCategory(inventory), 5, {
+                includeEachSuffix: false,
+                showNoValue: false
+            });
 
             return message.reply({ embeds: [embed] });
 
@@ -307,36 +175,4 @@ export class InventoryCommand extends ModuleCommand<EconomyModule> {
         }
     }
 
-    private getRarityEmoji(rarity: string): string {
-        switch (rarity?.toLowerCase()) {
-            case 'common': return '⚪';
-            case 'uncommon': return '🟢';
-            case 'rare': return '🔵';
-            case 'epic': return '🟣';
-            case 'legendary': return '🟡';
-            case 'mythical': return '🔴';
-            case 'divine': return '✨';
-            case 'cursed': return '💀';
-            default: return '⚪';
-        }
-    }
-
-    private getCategoryEmoji(category: string): string {
-        switch (category?.toLowerCase()) {
-            case 'tools': return '🔧';
-            case 'weapons': return '⚔️';
-            case 'armor': return '🛡️';
-            case 'consumables': return '🧪';
-            case 'materials': return '🔩';
-            case 'collectibles': return '💎';
-            case 'food': return '🍎';
-            case 'drinks': return '🥤';
-            case 'scrolls': return '📜';
-            case 'books': return '📚';
-            case 'potions': return '🧪';
-            case 'gems': return '💎';
-            case 'currencies': return '💰';
-            default: return '📦';
-        }
-    }
 }

@@ -32,6 +32,89 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
         });
     }
 
+    private async getOrCreateGuildData(guildId: string): Promise<IGuild> {
+        const guildData = await Guild.findOne({ guildId });
+        if (guildData) {
+            return guildData;
+        }
+
+        return new Guild({ guildId });
+    }
+
+    private markVerificationModified(guildData: IGuild, interaction: Command.ChatInputCommandInteraction): void {
+        guildData.verificationLastModifiedBy = {
+            username: interaction.user.username,
+            id: interaction.user.id,
+            timestamp: new Date()
+        };
+    }
+
+    private async saveAndSyncVerificationMessage(
+        guildData: IGuild,
+        interaction: Command.ChatInputCommandInteraction
+    ): Promise<void> {
+        this.markVerificationModified(guildData, interaction);
+        await guildData.save();
+        await this.checkAndSendVerificationMessage(guildData);
+    }
+
+    private createVerificationEmbed(guildData: IGuild, enabled: boolean): EmbedBuilder {
+        const description = enabled
+            ? (guildData.verificationMessage || 'Click the button below to verify yourself and gain access to the server!')
+            : (guildData.verificationDisabledMessage || '⚠️ Verification is currently disabled. Please try again later.');
+
+        const embed = new EmbedBuilder()
+            .setColor(enabled ? config.bot.embedColor.default as ColorResolvable : 'Red')
+            .setTitle(guildData.verificationTitle || 'Server Verification')
+            .setDescription(description);
+
+        if (guildData.verificationThumb) {
+            embed.setThumbnail(guildData.verificationThumb);
+        }
+
+        if (guildData.verificationFooter) {
+            embed.setFooter({ text: guildData.verificationFooter });
+        }
+
+        return embed;
+    }
+
+    private createVerificationButton(disabled: boolean): ActionRowBuilder<ButtonBuilder> {
+        const button = new ButtonBuilder()
+            .setCustomId('verify-button')
+            .setLabel('Verify')
+            .setStyle(ButtonStyle.Primary)
+            .setEmoji('✅')
+            .setDisabled(disabled);
+
+        return new ActionRowBuilder<ButtonBuilder>().addComponents(button);
+    }
+
+    private async editVerificationMessageState(guildData: IGuild, enabled: boolean): Promise<void> {
+        if (!guildData.verificationChannelId || !guildData.verificationMessageId) {
+            return;
+        }
+
+        try {
+            const channel = await this.container.client.channels.fetch(guildData.verificationChannelId);
+            if (!channel?.isTextBased()) {
+                return;
+            }
+
+            const message = await (channel as TextChannel).messages.fetch(guildData.verificationMessageId);
+            if (!message) {
+                return;
+            }
+
+            await message.edit({
+                embeds: [this.createVerificationEmbed(guildData, enabled)],
+                components: [this.createVerificationButton(!enabled)]
+            });
+        } catch (error) {
+            console.error('Failed to update verification message:', error);
+        }
+    }
+
     public override registerApplicationCommands(registry: Command.Registry) {
         registry.registerChatInputCommand((builder) =>
             builder
@@ -142,11 +225,7 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
 
         const subcommand = interaction.options.getSubcommand();
         const guildId = interaction.guildId!;
-        let guildData = await Guild.findOne({ guildId });
-
-        if (!guildData) {
-            guildData = new Guild({ guildId });
-        }
+        const guildData = await this.getOrCreateGuildData(guildId);
 
         switch (subcommand) {
             case 'channel': {
@@ -236,14 +315,7 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
                     guildData.verificationDisabledMessage = message;
                 }
 
-                guildData.verificationLastModifiedBy = {
-                    username: interaction.user.username,
-                    id: interaction.user.id,
-                    timestamp: new Date()
-                };
-
-                await guildData.save();
-                await this.checkAndSendVerificationMessage(guildData);
+                await this.saveAndSyncVerificationMessage(guildData, interaction);
 
                 return interaction.reply({
                     content: `✅ ${type === 'enabled' ? 'Verification' : 'Disabled'} message updated`,
@@ -255,14 +327,7 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
                 const title = interaction.options.getString('title', true);
                 
                 guildData.verificationTitle = title;
-                guildData.verificationLastModifiedBy = {
-                    username: interaction.user.username,
-                    id: interaction.user.id,
-                    timestamp: new Date()
-                };
-
-                await guildData.save();
-                await this.checkAndSendVerificationMessage(guildData);
+                await this.saveAndSyncVerificationMessage(guildData, interaction);
 
                 return interaction.reply({
                     content: `✅ Verification title updated to: "${title}"`,
@@ -274,14 +339,7 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
                 const footer = interaction.options.getString('footer') ?? undefined;
                 
                 guildData.verificationFooter = footer;
-                guildData.verificationLastModifiedBy = {
-                    username: interaction.user.username,
-                    id: interaction.user.id,
-                    timestamp: new Date()
-                };
-
-                await guildData.save();
-                await this.checkAndSendVerificationMessage(guildData);
+                await this.saveAndSyncVerificationMessage(guildData, interaction);
 
                 return interaction.reply({
                     content: footer ? `✅ Verification footer updated` : `✅ Verification footer removed`,
@@ -298,14 +356,7 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
                 }
 
                 guildData.verificationThumb = url;
-                guildData.verificationLastModifiedBy = {
-                    username: interaction.user.username,
-                    id: interaction.user.id,
-                    timestamp: new Date()
-                };
-
-                await guildData.save();
-                await this.checkAndSendVerificationMessage(guildData);
+                await this.saveAndSyncVerificationMessage(guildData, interaction);
 
                 return interaction.reply({
                     content: url ? `✅ Verification thumbnail updated` : `✅ Verification thumbnail removed`,
@@ -420,15 +471,11 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
             }
 
             // Send new verification message
-            await this.sendVerificationMessage(
-                guildData.verificationChannelId,
-                guildData.verificationMessage || "Click the button below to verify yourself and gain access to the server!",
-                guildData.guildId
-            );
+            await this.sendVerificationMessage(guildData.verificationChannelId, guildData.guildId);
         }
     }
 
-    private async sendVerificationMessage(channelId: string, message: string, guildId: string) {
+    private async sendVerificationMessage(channelId: string, guildId: string) {
         try {
             const channel = await this.container.client.channels.fetch(channelId);
             const guildData = await Guild.findOne({ guildId });
@@ -437,33 +484,13 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
                 throw new Error('Invalid channel type. Expected text channel.');
             }
 
-            const embed = new EmbedBuilder()
-                .setColor(config.bot.embedColor.default as ColorResolvable)
-                .setTitle(guildData?.verificationTitle || 'Server Verification')
-                .setDescription(message);
-
-            // Add thumbnail if set
-            if (guildData?.verificationThumb) {
-                embed.setThumbnail(guildData.verificationThumb);
+            if (!guildData) {
+                throw new Error('Guild data not found.');
             }
-
-            // Add footer if set
-            if (guildData?.verificationFooter) {
-                embed.setFooter({ text: guildData.verificationFooter });
-            }
-
-            const button = new ButtonBuilder()
-                .setCustomId('verify-button')
-                .setLabel('Verify')
-                .setStyle(ButtonStyle.Primary)
-                .setEmoji('✅');
-
-            const row = new ActionRowBuilder<ButtonBuilder>()
-                .addComponents(button);
 
             const sentMessage = await (channel as TextChannel).send({
-                embeds: [embed],
-                components: [row]
+                embeds: [this.createVerificationEmbed(guildData, true)],
+                components: [this.createVerificationButton(false)]
             });
 
             // Save the message ID
@@ -478,97 +505,12 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
     }
 
     private async updateVerificationMessage(guildData: IGuild) {
-        if (!guildData.verificationChannelId || !guildData.verificationMessageId) return;
-
-        try {
-            const channel = await this.container.client.channels.fetch(guildData.verificationChannelId);
-            if (!channel?.isTextBased()) return;
-
-            const message = await (channel as TextChannel).messages.fetch(guildData.verificationMessageId);
-            if (!message) return;
-
-            const isEnabled = guildData.isVerificationModule !== false;
-
-            const embed = new EmbedBuilder()
-                .setColor(isEnabled ? config.bot.embedColor.default as ColorResolvable : 'Red')
-                .setTitle(guildData.verificationTitle || 'Server Verification')
-                .setDescription(isEnabled 
-                    ? (guildData.verificationMessage || "Click the button below to verify yourself and gain access to the server!")
-                    : (guildData.verificationDisabledMessage || "⚠️ Verification is currently disabled. Please try again later."));
-
-            // Add thumbnail if set
-            if (guildData.verificationThumb) {
-                embed.setThumbnail(guildData.verificationThumb);
-            }
-
-            // Add footer if set
-            if (guildData.verificationFooter) {
-                embed.setFooter({ text: guildData.verificationFooter });
-            }
-
-            const button = new ButtonBuilder()
-                .setCustomId('verify-button')
-                .setLabel('Verify')
-                .setStyle(ButtonStyle.Primary)
-                .setEmoji('✅')
-                .setDisabled(!isEnabled);
-
-            const row = new ActionRowBuilder<ButtonBuilder>()
-                .addComponents(button);
-
-            await message.edit({
-                embeds: [embed],
-                components: [row]
-            });
-        } catch (error) {
-            console.error('Failed to update verification message:', error);
-        }
+        const isEnabled = guildData.isVerificationModule !== false;
+        await this.editVerificationMessageState(guildData, isEnabled);
     }
 
     private async updateVerificationMessageState(guildData: IGuild, enabled: boolean) {
-        if (!guildData.verificationChannelId || !guildData.verificationMessageId) return;
-
-        try {
-            const channel = await this.container.client.channels.fetch(guildData.verificationChannelId);
-            if (!channel?.isTextBased()) return;
-
-            const message = await (channel as TextChannel).messages.fetch(guildData.verificationMessageId);
-            if (!message) return;
-
-            const embed = new EmbedBuilder()
-                .setColor(enabled ? config.bot.embedColor.default as ColorResolvable : 'Red')
-                .setTitle(guildData.verificationTitle || 'Server Verification')
-                .setDescription(enabled 
-                    ? (guildData.verificationMessage || "Click the button below to verify yourself and gain access to the server!")
-                    : (guildData.verificationDisabledMessage || "⚠️ Verification is currently disabled. Please try again later."));
-
-            // Add thumbnail if set
-            if (guildData.verificationThumb) {
-                embed.setThumbnail(guildData.verificationThumb);
-            }
-
-            // Add footer if set
-            if (guildData.verificationFooter) {
-                embed.setFooter({ text: guildData.verificationFooter });
-            }
-
-            const button = new ButtonBuilder()
-                .setCustomId('verify-button')
-                .setLabel('Verify')
-                .setStyle(ButtonStyle.Primary)
-                .setEmoji('✅')
-                .setDisabled(!enabled);
-
-            const row = new ActionRowBuilder<ButtonBuilder>()
-                .addComponents(button);
-
-            await message.edit({
-                embeds: [embed],
-                components: [row]
-            });
-        } catch (error) {
-            console.error('Failed to update verification message:', error);
-        }
+        await this.editVerificationMessageState(guildData, enabled);
     }
 
     private isValidImageUrl(url: string): boolean {

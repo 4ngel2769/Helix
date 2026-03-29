@@ -1,5 +1,5 @@
 import { AutoModerationRuleTriggerType } from 'discord.js';
-import { getKeywordsForGuild } from '../../lib/utils/automodUtils';
+import { getKeywordsForGuild } from './automodUtils';
 
 export interface AutoModPresetRule {
     name: string;

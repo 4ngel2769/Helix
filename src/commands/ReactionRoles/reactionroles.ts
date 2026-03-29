@@ -13,10 +13,10 @@ import {
     StringSelectMenuOptionBuilder,
     TextChannel
 } from 'discord.js';
-import { Guild, type ReactionRole } from '../../models/Guild';
+import { Guild, type ReactionRole, type ReactionRolesMenu } from '../../models/Guild';
 import config from '../../config';
 import { ErrorHandler } from '../../lib/structures/ErrorHandler';
-import { parseReactionRoleEmoji, updateReactionRoleMenuMessage } from './reactionroles.helpers';
+import { parseReactionRoleEmoji, updateReactionRoleMenuMessage } from '../../lib/utils/reactionRolesHelpers';
 
 @ApplyOptions<Command.Options>({
     name: 'reactionroles',
@@ -308,132 +308,89 @@ export class ReactionRolesCommand extends ModuleCommand<ReactionRolesModule> {
     
     // For autocomplete on menu IDs
     public override async autocompleteRun(interaction: Command.AutocompleteInteraction) {
-        if (interaction.commandName === 'reactionroles') {
-            const subcommand = interaction.options.getSubcommand();
-            
-            // Handle menu_id autocomplete for edit/delete/pause/resume
-            if (['delete', 'pause', 'resume', 'edit'].includes(subcommand) && 
-                interaction.options.getFocused(true).name === 'menu_id') {
-                try {
-                    const guildId = interaction.guildId!;
-                    const guildData = await Guild.findOne({ guildId });
-                    
-                    if (!guildData || !guildData.reactionRolesMenus?.length) {
-                        return interaction.respond([]);
-                    }
-                    
-                    // If the option is 'all', add it (for pause/resume)
-                    let choices = [];
-                    if (['pause', 'resume'].includes(subcommand)) {
-                        choices.push({ name: 'All menus', value: 'all' });
-                    }
-                    
-                    // Add individual menus
-                    const menus = guildData.reactionRolesMenus.map(menu => ({
-                        name: `${menu.title} (${menu.messageId})`,
-                        value: menu.messageId
-                    }));
-                    
-                    choices = [...choices, ...menus];
-                    return interaction.respond(choices);
-                } catch (error) {
-                    console.error('Error in autocomplete:', error);
-                    return interaction.respond([]);
-                }
+        if (interaction.commandName !== 'reactionroles') {
+            return interaction.respond([]);
+        }
+
+        const subcommand = interaction.options.getSubcommand();
+        const focusedOption = interaction.options.getFocused(true);
+
+        if (focusedOption.name === 'menu_id' && ['delete', 'pause', 'resume', 'edit'].includes(subcommand)) {
+            return this.respondWithMenuIdChoices(interaction, ['pause', 'resume'].includes(subcommand));
+        }
+
+        if (subcommand === 'edit' && focusedOption.name === 'remove_roles') {
+            return this.respondWithMenuRoleChoices(interaction, false);
+        }
+
+        if (subcommand === 'edit' && focusedOption.name === 'update_emoji_role') {
+            return this.respondWithMenuRoleChoices(interaction, true);
+        }
+
+        return interaction.respond([]);
+    }
+
+    private async respondWithMenuIdChoices(
+        interaction: Command.AutocompleteInteraction,
+        includeAllOption: boolean
+    ) {
+        try {
+            const guildId = interaction.guildId!;
+            const guildData = await Guild.findOne({ guildId });
+
+            if (!guildData || !guildData.reactionRolesMenus?.length) {
+                return interaction.respond([]);
             }
-            
-            // Handle remove_roles autocomplete for edit
-            if (subcommand === 'edit' && 
-                interaction.options.getFocused(true).name === 'remove_roles') {
-                try {
-                    const guildId = interaction.guildId!;
-                    const menuId = interaction.options.getString('menu_id');
-                    
-                    if (!menuId) {
-                        return interaction.respond([
-                            { name: 'Please select a menu ID first', value: '' }
-                        ]);
-                    }
-                    
-                    const guildData = await Guild.findOne({ 
-                        guildId, 
-                        'reactionRolesMenus.messageId': menuId 
-                    });
-                    
-                    if (!guildData) {
-                        return interaction.respond([]);
-                    }
-                    
-                    const menu = guildData.reactionRolesMenus?.find(m => m.messageId === menuId);
-                    
-                    if (!menu || !menu.roles.length) {
-                        return interaction.respond([]);
-                    }
-                    
-                    // Create choices from available roles
-                    const choices = [];
-                    for (const roleData of menu.roles) {
-                        const role = interaction.guild?.roles.cache.get(roleData.roleId);
-                        const roleName = role ? role.name : 'Unknown Role';
-                        choices.push({
-                            name: `${roleData.label} (${roleName})`,
-                            value: roleData.roleId
-                        });
-                    }
-                    
-                    return interaction.respond(choices);
-                } catch (error) {
-                    console.error('Error in remove_roles autocomplete:', error);
-                    return interaction.respond([]);
-                }
+
+            const allChoice = includeAllOption ? [{ name: 'All menus', value: 'all' }] : [];
+            const menuChoices = guildData.reactionRolesMenus.map((menu) => ({
+                name: `${menu.title} (${menu.messageId})`,
+                value: menu.messageId
+            }));
+
+            return interaction.respond([...allChoice, ...menuChoices]);
+        } catch (error) {
+            console.error('Error in menu_id autocomplete:', error);
+            return interaction.respond([]);
+        }
+    }
+
+    private async respondWithMenuRoleChoices(
+        interaction: Command.AutocompleteInteraction,
+        includeEmojiStatus: boolean
+    ) {
+        try {
+            const menuId = interaction.options.getString('menu_id');
+            if (!menuId) {
+                return interaction.respond([{ name: 'Please select a menu ID first', value: '' }]);
             }
-            
-            // Handle update_emoji_role autocomplete for edit
-            if (subcommand === 'edit' && 
-                interaction.options.getFocused(true).name === 'update_emoji_role') {
-                try {
-                    const guildId = interaction.guildId!;
-                    const menuId = interaction.options.getString('menu_id');
-                    
-                    if (!menuId) {
-                        return interaction.respond([
-                            { name: 'Please select a menu ID first', value: '' }
-                        ]);
-                    }
-                    
-                    const guildData = await Guild.findOne({ 
-                        guildId, 
-                        'reactionRolesMenus.messageId': menuId 
-                    });
-                    
-                    if (!guildData) {
-                        return interaction.respond([]);
-                    }
-                    
-                    const menu = guildData.reactionRolesMenus?.find(m => m.messageId === menuId);
-                    
-                    if (!menu || !menu.roles.length) {
-                        return interaction.respond([]);
-                    }
-                    
-                    // Create choices from available roles
-                    const choices = [];
-                    for (const roleData of menu.roles) {
-                        const role = interaction.guild?.roles.cache.get(roleData.roleId);
-                        const roleName = role ? role.name : 'Unknown Role';
-                        const hasEmoji = roleData.emoji ? '✓' : '✗';
-                        choices.push({
-                            name: `${hasEmoji} ${roleData.label} (${roleName})`,
-                            value: roleData.roleId
-                        });
-                    }
-                    
-                    return interaction.respond(choices);
-                } catch (error) {
-                    console.error('Error in update_emoji_role autocomplete:', error);
-                    return interaction.respond([]);
-                }
+
+            const guildId = interaction.guildId!;
+            const guildData = await Guild.findOne({
+                guildId,
+                'reactionRolesMenus.messageId': menuId
+            });
+
+            const menu = guildData?.reactionRolesMenus?.find((entry) => entry.messageId === menuId);
+            if (!menu || !menu.roles.length) {
+                return interaction.respond([]);
             }
+
+            const choices = menu.roles.map((roleData) => {
+                const role = interaction.guild?.roles.cache.get(roleData.roleId);
+                const roleName = role ? role.name : 'Unknown Role';
+                const emojiPrefix = includeEmojiStatus ? `${roleData.emoji ? '✓' : '✗'} ` : '';
+
+                return {
+                    name: `${emojiPrefix}${roleData.label} (${roleName})`,
+                    value: roleData.roleId
+                };
+            });
+
+            return interaction.respond(choices);
+        } catch (error) {
+            console.error('Error in role autocomplete:', error);
+            return interaction.respond([]);
         }
     }
 
@@ -664,223 +621,139 @@ export class ReactionRolesCommand extends ModuleCommand<ReactionRolesModule> {
     }
 
     private async handlePause(interaction: Command.ChatInputCommandInteraction) {
-        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-        
-        const menuId = interaction.options.getString('menu_id', true);
-        const guildId = interaction.guildId!;
-        
-        try {
-            if (menuId === 'all') {
-                // Pause all menus
-                const guildData = await Guild.findOne({ guildId });
-                
-                if (!guildData || !guildData.reactionRolesMenus?.length) {
-                    return interaction.editReply('No reaction roles menus found in this server.');
-                }
-                
-                // Get active menus
-                const activeMenus = guildData.reactionRolesMenus.filter(m => m.active);
-                if (activeMenus.length === 0) {
-                    return interaction.editReply('All menus are already paused.');
-                }
-                
-                // Update each active menu's message to be disabled
-                let updatedCount = 0;
-                let failedCount = 0;
-                
-                for (const menu of activeMenus) {
-                    const updated = await updateReactionRoleMenuMessage({
-                        interaction,
-                        channelId: menu.channelId,
-                        messageId: menu.messageId,
-                        title: menu.title,
-                        description: menu.description,
-                        roles: menu.roles,
-                        maxSelections: menu.maxSelections,
-                        isActive: false
-                    });
-                    
-                    if (updated) {
-                        updatedCount++;
-                    } else {
-                        failedCount++;
-                    }
-                }
-                
-                // Update the database
-                await Guild.updateMany(
-                    { guildId, 'reactionRolesMenus.active': true },
-                    { $set: { 'reactionRolesMenus.$[].active': false } }
-                );
-                
-                let response = `Successfully paused all reaction roles menus in the database.`;
-                if (updatedCount > 0) {
-                    response += `\nUpdated ${updatedCount} menu message${updatedCount !== 1 ? 's' : ''}.`;
-                }
-                if (failedCount > 0) {
-                    response += `\n${failedCount} menu message${failedCount !== 1 ? 's' : ''} could not be updated (may have been deleted).`;
-                }
-                
-                return interaction.editReply(response);
-            } else {
-                // Pause specific menu
-                const guildData = await Guild.findOne({ guildId, 'reactionRolesMenus.messageId': menuId });
-                
-                if (!guildData) {
-                    return interaction.editReply('Reaction roles menu not found.');
-                }
-                
-                const menu = guildData.reactionRolesMenus?.find(m => m.messageId === menuId);
-                
-                if (!menu) {
-                    return interaction.editReply('Reaction roles menu not found.');
-                }
-                
-                if (!menu.active) {
-                    return interaction.editReply('This menu is already paused.');
-                }
-                
-                // Update the message with disabled select menu
-                const updated = await updateReactionRoleMenuMessage({
-                    interaction,
-                    channelId: menu.channelId,
-                    messageId: menu.messageId,
-                    title: menu.title,
-                    description: menu.description,
-                    roles: menu.roles,
-                    maxSelections: menu.maxSelections,
-                    isActive: false
-                });
-                
-                // Update the database
-                await Guild.updateOne(
-                    { guildId, 'reactionRolesMenus.messageId': menuId },
-                    { $set: { 'reactionRolesMenus.$.active': false } }
-                );
-                
-                let response = `Successfully paused reaction roles menu "${menu.title}" in the database.`;
-                if (updated) {
-                    response += `\nThe menu message has been updated to reflect its paused state.`;
-                } else {
-                    response += `\nThe menu message could not be updated (it may have been deleted).`;
-                }
-                
-                return interaction.editReply(response);
-            }
-        } catch (error) {
-            console.error('Error pausing reaction roles menu:', error);
-            return interaction.editReply('An error occurred while pausing the reaction roles menu.');
-        }
+        return this.toggleMenuState(interaction, false);
     }
 
     private async handleResume(interaction: Command.ChatInputCommandInteraction) {
+        return this.toggleMenuState(interaction, true);
+    }
+
+    private async toggleMenuState(
+        interaction: Command.ChatInputCommandInteraction,
+        makeActive: boolean
+    ) {
         await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-        
+
         const menuId = interaction.options.getString('menu_id', true);
         const guildId = interaction.guildId!;
-        
+
         try {
             if (menuId === 'all') {
-                // Resume all menus
                 const guildData = await Guild.findOne({ guildId });
-                
+
                 if (!guildData || !guildData.reactionRolesMenus?.length) {
                     return interaction.editReply('No reaction roles menus found in this server.');
                 }
-                
-                // Get inactive menus
-                const inactiveMenus = guildData.reactionRolesMenus.filter(m => !m.active);
-                if (inactiveMenus.length === 0) {
-                    return interaction.editReply('All menus are already active.');
+
+                const menusToToggle = guildData.reactionRolesMenus.filter((menu) => menu.active !== makeActive);
+                if (menusToToggle.length === 0) {
+                    return interaction.editReply(
+                        makeActive ? 'All menus are already active.' : 'All menus are already paused.'
+                    );
                 }
-                
-                // Update each inactive menu's message to be enabled
-                let updatedCount = 0;
-                let failedCount = 0;
-                
-                for (const menu of inactiveMenus) {
-                    const updated = await updateReactionRoleMenuMessage({
-                        interaction,
-                        channelId: menu.channelId,
-                        messageId: menu.messageId,
-                        title: menu.title,
-                        description: menu.description,
-                        roles: menu.roles,
-                        maxSelections: menu.maxSelections,
-                        isActive: true
-                    });
-                    
-                    if (updated) {
-                        updatedCount++;
-                    } else {
-                        failedCount++;
-                    }
-                }
-                
-                // Update the database
-                await Guild.updateMany(
-                    { guildId, 'reactionRolesMenus.active': false },
-                    { $set: { 'reactionRolesMenus.$[].active': true } }
+
+                const { updatedCount, failedCount } = await this.syncMenuMessageStates(
+                    interaction,
+                    menusToToggle,
+                    makeActive
                 );
-                
-                let response = `Successfully resumed all reaction roles menus in the database.`;
+
+                await Guild.updateMany(
+                    { guildId, 'reactionRolesMenus.active': !makeActive },
+                    { $set: { 'reactionRolesMenus.$[].active': makeActive } }
+                );
+
+                let response = `Successfully ${makeActive ? 'resumed' : 'paused'} all reaction roles menus in the database.`;
                 if (updatedCount > 0) {
                     response += `\nUpdated ${updatedCount} menu message${updatedCount !== 1 ? 's' : ''}.`;
                 }
                 if (failedCount > 0) {
                     response += `\n${failedCount} menu message${failedCount !== 1 ? 's' : ''} could not be updated (may have been deleted).`;
                 }
-                
-                return interaction.editReply(response);
-            } else {
-                // Resume specific menu
-                const guildData = await Guild.findOne({ guildId, 'reactionRolesMenus.messageId': menuId });
-                
-                if (!guildData) {
-                    return interaction.editReply('Reaction roles menu not found.');
-                }
-                
-                const menu = guildData.reactionRolesMenus?.find(m => m.messageId === menuId);
-                
-                if (!menu) {
-                    return interaction.editReply('Reaction roles menu not found.');
-                }
-                
-                if (menu.active) {
-                    return interaction.editReply('This menu is already active.');
-                }
-                
-                // Update the message with enabled select menu
-                const updated = await updateReactionRoleMenuMessage({
-                    interaction,
-                    channelId: menu.channelId,
-                    messageId: menu.messageId,
-                    title: menu.title,
-                    description: menu.description,
-                    roles: menu.roles,
-                    maxSelections: menu.maxSelections,
-                    isActive: true
-                });
-                
-                // Update the database
-                await Guild.updateOne(
-                    { guildId, 'reactionRolesMenus.messageId': menuId },
-                    { $set: { 'reactionRolesMenus.$.active': true } }
-                );
-                
-                let response = `Successfully resumed reaction roles menu "${menu.title}" in the database.`;
-                if (updated) {
-                    response += `\nThe menu message has been updated and is now interactive.`;
-                } else {
-                    response += `\nThe menu message could not be updated (it may have been deleted).`;
-                }
-                
+
                 return interaction.editReply(response);
             }
+
+            const guildData = await Guild.findOne({ guildId, 'reactionRolesMenus.messageId': menuId });
+            if (!guildData) {
+                return interaction.editReply('Reaction roles menu not found.');
+            }
+
+            const menu = guildData.reactionRolesMenus?.find((entry) => entry.messageId === menuId);
+            if (!menu) {
+                return interaction.editReply('Reaction roles menu not found.');
+            }
+
+            if (menu.active === makeActive) {
+                return interaction.editReply(
+                    makeActive ? 'This menu is already active.' : 'This menu is already paused.'
+                );
+            }
+
+            const updated = await this.updateMenuMessageState(interaction, menu, makeActive);
+
+            await Guild.updateOne(
+                { guildId, 'reactionRolesMenus.messageId': menuId },
+                { $set: { 'reactionRolesMenus.$.active': makeActive } }
+            );
+
+            let response = `Successfully ${makeActive ? 'resumed' : 'paused'} reaction roles menu "${menu.title}" in the database.`;
+            if (updated) {
+                response += makeActive
+                    ? '\nThe menu message has been updated and is now interactive.'
+                    : '\nThe menu message has been updated to reflect its paused state.';
+            } else {
+                response += '\nThe menu message could not be updated (it may have been deleted).';
+            }
+
+            return interaction.editReply(response);
         } catch (error) {
-            console.error('Error resuming reaction roles menu:', error);
-            return interaction.editReply('An error occurred while resuming the reaction roles menu.');
+            console.error(
+                `Error ${makeActive ? 'resuming' : 'pausing'} reaction roles menu:`,
+                error
+            );
+            return interaction.editReply(
+                `An error occurred while ${makeActive ? 'resuming' : 'pausing'} the reaction roles menu.`
+            );
         }
+    }
+
+    private async syncMenuMessageStates(
+        interaction: Command.ChatInputCommandInteraction,
+        menus: ReactionRolesMenu[],
+        isActive: boolean
+    ): Promise<{ updatedCount: number; failedCount: number }> {
+        let updatedCount = 0;
+        let failedCount = 0;
+
+        for (const menu of menus) {
+            const updated = await this.updateMenuMessageState(interaction, menu, isActive);
+            if (updated) {
+                updatedCount++;
+                continue;
+            }
+
+            failedCount++;
+        }
+
+        return { updatedCount, failedCount };
+    }
+
+    private async updateMenuMessageState(
+        interaction: Command.ChatInputCommandInteraction,
+        menu: ReactionRolesMenu,
+        isActive: boolean
+    ): Promise<boolean> {
+        return updateReactionRoleMenuMessage({
+            interaction,
+            channelId: menu.channelId,
+            messageId: menu.messageId,
+            title: menu.title,
+            description: menu.description,
+            roles: menu.roles,
+            maxSelections: menu.maxSelections,
+            isActive
+        });
     }
 
     private async handleEdit(interaction: Command.ChatInputCommandInteraction) {

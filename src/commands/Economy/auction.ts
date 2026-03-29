@@ -2,7 +2,7 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import type { EconomyModule } from '../../modules/Economy';
-import { EmbedBuilder, MessageFlags, Message, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+import { EmbedBuilder, MessageFlags, Message, ActionRowBuilder, ButtonBuilder, ButtonStyle, ColorResolvable } from 'discord.js';
 import config from '../../config';
 import { AuctionService } from '../../lib/services/AuctionService';
 
@@ -274,70 +274,88 @@ export class AuctionCommand extends ModuleCommand<EconomyModule> {
             const result = await AuctionService.getAuctions(interaction.user.id, filter);
 
             if (!result.success || !result.auctions || result.auctions.length === 0) {
-                const embed = new EmbedBuilder()
-                    .setColor(config.bot.embedColor.warn)
-                    .setTitle('📋 No Auctions Found')
-                    .setDescription('There are no auctions matching your criteria.')
-                    .setTimestamp();
+                const embed = this.createAuctionListEmbed(
+                    '📋 No Auctions Found',
+                    'There are no auctions matching your criteria.',
+                    config.bot.embedColor.warn
+                );
 
                 return interaction.editReply({ embeds: [embed] });
             }
 
-            const embed = new EmbedBuilder()
-                .setColor(config.bot.embedColor.default)
-                .setTitle('🔨 Active Auctions')
-                .setDescription(`Showing ${result.auctions.length} auction(s)`)
-                .setTimestamp();
+            const embed = this.createAuctionListEmbed(
+                '🔨 Active Auctions',
+                `Showing ${result.auctions.length} auction(s)`
+            );
+            this.appendAuctionFields(embed, result.auctions);
 
-            for (const auction of result.auctions.slice(0, 10)) { // Show max 10 auctions
-                const timeLeft = auction.endsAt.getTime() - Date.now();
-                const hoursLeft = Math.max(0, Math.floor(timeLeft / (1000 * 60 * 60)));
-                const minutesLeft = Math.max(0, Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60)));
-                const auctionId = auction.id ?? 'unknown';
-                const currentBid = auction.currentBid ?? 0;
-                const quantity = auction.quantity ?? 0;
-
-                embed.addFields({
-                    name: `${quantity}x ${auction.item.name} (ID: ${auctionId.slice(-8)})`,
-                    value: `💰 Current Bid: **${currentBid.toLocaleString()}** coins\n` +
-                           `👤 Seller: <@${auction.sellerId}>\n` +
-                           `⏰ Time Left: ${hoursLeft}h ${minutesLeft}m`,
-                    inline: true
-                });
-            }
-
-            const row = new ActionRowBuilder<ButtonBuilder>()
-                .addComponents(
-                    new ButtonBuilder()
-                        .setCustomId('auction_refresh')
-                        .setLabel('Refresh')
-                        .setStyle(ButtonStyle.Secondary)
-                        .setEmoji('🔄'),
-                    new ButtonBuilder()
-                        .setCustomId('auction_filter_mine')
-                        .setLabel('My Auctions')
-                        .setStyle(ButtonStyle.Primary)
-                        .setEmoji('👤'),
-                    new ButtonBuilder()
-                        .setCustomId('auction_filter_ending')
-                        .setLabel('Ending Soon')
-                        .setStyle(ButtonStyle.Danger)
-                        .setEmoji('⏰')
-                );
-
-            return interaction.editReply({ embeds: [embed], components: [row] });
+            return interaction.editReply({ embeds: [embed], components: [this.createAuctionListActionRow()] });
 
         } catch (error) {
             console.error('Error listing auctions:', error);
 
-            const embed = new EmbedBuilder()
-                .setColor(config.bot.embedColor.err)
-                .setTitle('❌ Error')
-                .setDescription('An error occurred while fetching auctions. Please try again.')
-                .setTimestamp();
+            const embed = this.createAuctionListEmbed(
+                '❌ Error',
+                'An error occurred while fetching auctions. Please try again.',
+                config.bot.embedColor.err
+            );
 
             return interaction.editReply({ embeds: [embed] });
         }
+    }
+
+    private createAuctionListEmbed(
+        title: string,
+        description: string,
+        color: ColorResolvable = config.bot.embedColor.default as ColorResolvable
+    ) {
+        return new EmbedBuilder()
+            .setColor(color)
+            .setTitle(title)
+            .setDescription(description)
+            .setTimestamp();
+    }
+
+    private appendAuctionFields(
+        embed: EmbedBuilder,
+        auctions: Awaited<ReturnType<typeof AuctionService.getAuctions>>['auctions']
+    ) {
+        for (const auction of (auctions ?? []).slice(0, 10)) {
+            const timeLeft = auction.endsAt.getTime() - Date.now();
+            const hoursLeft = Math.max(0, Math.floor(timeLeft / (1000 * 60 * 60)));
+            const minutesLeft = Math.max(0, Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60)));
+            const auctionId = auction.id ?? 'unknown';
+            const currentBid = auction.currentBid ?? 0;
+            const quantity = auction.quantity ?? 0;
+
+            embed.addFields({
+                name: `${quantity}x ${auction.item.name} (ID: ${auctionId.slice(-8)})`,
+                value: `💰 Current Bid: **${currentBid.toLocaleString()}** coins\n` +
+                    `👤 Seller: <@${auction.sellerId}>\n` +
+                    `⏰ Time Left: ${hoursLeft}h ${minutesLeft}m`,
+                inline: true
+            });
+        }
+    }
+
+    private createAuctionListActionRow() {
+        return new ActionRowBuilder<ButtonBuilder>().addComponents(
+            new ButtonBuilder()
+                .setCustomId('auction_refresh')
+                .setLabel('Refresh')
+                .setStyle(ButtonStyle.Secondary)
+                .setEmoji('🔄'),
+            new ButtonBuilder()
+                .setCustomId('auction_filter_mine')
+                .setLabel('My Auctions')
+                .setStyle(ButtonStyle.Primary)
+                .setEmoji('👤'),
+            new ButtonBuilder()
+                .setCustomId('auction_filter_ending')
+                .setLabel('Ending Soon')
+                .setStyle(ButtonStyle.Danger)
+                .setEmoji('⏰')
+        );
     }
 
     private async handleView(interaction: Command.ChatInputCommandInteraction) {

@@ -8,7 +8,7 @@ import {
     StringSelectMenuOptionBuilder
 } from 'discord.js';
 import { getModuleConfig } from '../../config/modules';
-import { GuildConfigService } from '../../lib/services/GuildConfigService';
+import { GuildConfigService } from '../services/GuildConfigService';
 
 export function getInteractionErrorCode(error: unknown): number | undefined {
     if (typeof error === 'object' && error !== null && 'code' in error) {
