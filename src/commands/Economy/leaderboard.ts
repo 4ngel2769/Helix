@@ -29,6 +29,7 @@ interface LeaderboardUser {
 }
 
 type LeaderboardType = 'total' | 'wallet' | 'bank' | 'level';
+const LEADERBOARD_FETCH_LIMIT = 1000;
 
 @ApplyOptions<Command.Options>({
     name: 'leaderboard-bank',
@@ -147,7 +148,12 @@ export class EconomyLeaderboardCommand extends ModuleCommand<EconomyModule> {
                     }
                 } catch (error) {
                     console.error('Error handling leaderboard interaction:', error);
-                    if (error.code === 10062) {
+                    const errorCode =
+                        typeof error === 'object' && error !== null && 'code' in error
+                            ? (error as { code?: unknown }).code
+                            : undefined;
+
+                    if (errorCode === 10062) {
                         console.log('Leaderboard interaction expired, ignoring...');
                     } else {
                         try {
@@ -251,8 +257,19 @@ export class EconomyLeaderboardCommand extends ModuleCommand<EconomyModule> {
                 });
             }
 
-            // Get more users to find user position
-            pipeline.push({ $limit: 1000 });
+            // Keep payload compact: only fields required by rendering/ranking
+            pipeline.push({
+                $project: {
+                    userId: 1,
+                    'economy.wallet': 1,
+                    'economy.bank': 1,
+                    'economy.level': 1,
+                    'economy.experience': 1
+                }
+            });
+
+            // Get enough users to estimate user position while keeping responses bounded
+            pipeline.push({ $limit: LEADERBOARD_FETCH_LIMIT });
             
             const users = await User.aggregate(pipeline);
             
@@ -291,7 +308,7 @@ export class EconomyLeaderboardCommand extends ModuleCommand<EconomyModule> {
         users: LeaderboardUser[], 
         type: 'total' | 'wallet' | 'bank' | 'level',
         isGlobal: boolean,
-        currentUser: IUser | null,
+        currentUser: IUser,
         userPosition: number,
         serverName: string
     ): Promise<EmbedBuilder> {

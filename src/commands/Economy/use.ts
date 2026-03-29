@@ -52,18 +52,28 @@ export class UseCommand extends ModuleCommand<EconomyModule> {
         if (focusedOption.name === 'item') {
             try {
                 const inventory = await EconomyService.getInventory(interaction.user.id);
-                
-                // Filter to only show usable items (consumables or items with effects)
-                const usableItems = [];
-                
-                for (const invItem of inventory) {
-                    const item = await EconomyItem.findOne({ itemId: invItem.itemId });
-                    if (item && (item.consumable || (item.effects && item.effects.length > 0))) {
-                        if (invItem.name.toLowerCase().includes(focusedOption.value.toLowerCase())) {
-                            usableItems.push(invItem);
-                        }
-                    }
+                if (inventory.length === 0) {
+                    return interaction.respond([]);
                 }
+
+                const itemIds = [...new Set(inventory.map((item) => item.itemId))];
+                const itemRecords = await EconomyItem.find(
+                    { itemId: { $in: itemIds } },
+                    { itemId: 1, consumable: 1, effects: 1 }
+                ).lean();
+
+                const usableItemIds = new Set(
+                    itemRecords
+                        .filter((item) => item.consumable || (Array.isArray(item.effects) && item.effects.length > 0))
+                        .map((item) => item.itemId)
+                );
+                
+                const searchValue = focusedOption.value.toLowerCase();
+                const usableItems = inventory.filter(
+                    (invItem) =>
+                        usableItemIds.has(invItem.itemId) &&
+                        invItem.name.toLowerCase().includes(searchValue)
+                );
 
                 const choices = usableItems
                     .slice(0, 25)

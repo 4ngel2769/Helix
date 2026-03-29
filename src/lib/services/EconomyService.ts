@@ -43,42 +43,107 @@ export class EconomyService {
     return user;
   }
 
+  private static createTransaction(
+    type: Transaction['type'],
+    amount: number,
+    description: string,
+    metadata?: Record<string, unknown>
+  ): Transaction {
+    return {
+      type,
+      amount,
+      description,
+      timestamp: new Date(),
+      metadata
+    };
+  }
+
   /**
    * Add money to user's wallet or bank
    */
   static async addMoney(userId: string, amount: number, location: 'wallet' | 'bank' = 'wallet', reason: string = 'Unknown'): Promise<boolean> {
     try {
-      const user = await User.findOne({ userId });
-      if (!user) return false;
+      if (amount <= 0) return false;
+
+      const transaction = this.createTransaction('earn', amount, reason, { location });
 
       if (location === 'wallet') {
-        user.economy.wallet += amount;
-      } else {
-        const availableSpace = user.economy.bankLimit - user.economy.bank;
-        const amountToAdd = Math.min(amount, availableSpace);
-        user.economy.bank += amountToAdd;
-        
-        if (amountToAdd < amount) {
-          user.economy.wallet += (amount - amountToAdd);
-        }
+        const updatedUser = await User.findOneAndUpdate(
+          { userId },
+          {
+            $inc: { 'economy.wallet': amount },
+            $push: {
+              'economy.transactions': {
+                $each: [transaction],
+                $slice: -100
+              }
+            }
+          }
+        );
+
+        return !!updatedUser;
       }
 
-      // Add transaction
-      user.economy.transactions.push({
-        type: 'earn',
-        amount,
-        description: reason,
-        timestamp: new Date(),
-        metadata: { location }
-      });
+      const updatedUser = await User.findOneAndUpdate(
+        { userId },
+        [
+          {
+            $set: {
+              _availableBankSpace: {
+                $max: [
+                  0,
+                  {
+                    $subtract: [
+                      { $ifNull: ['$economy.bankLimit', 10000] },
+                      { $ifNull: ['$economy.bank', 0] }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            $set: {
+              _bankAmountToAdd: {
+                $min: [amount, '$_availableBankSpace']
+              }
+            }
+          },
+          {
+            $set: {
+              _walletOverflow: {
+                $subtract: [amount, '$_bankAmountToAdd']
+              }
+            }
+          },
+          {
+            $set: {
+              'economy.bank': {
+                $add: [{ $ifNull: ['$economy.bank', 0] }, '$_bankAmountToAdd']
+              },
+              'economy.wallet': {
+                $add: [{ $ifNull: ['$economy.wallet', 0] }, '$_walletOverflow']
+              },
+              'economy.transactions': {
+                $slice: [
+                  {
+                    $concatArrays: [
+                      { $ifNull: ['$economy.transactions', []] },
+                      [transaction]
+                    ]
+                  },
+                  -100
+                ]
+              }
+            }
+          },
+          {
+            $unset: ['_availableBankSpace', '_bankAmountToAdd', '_walletOverflow']
+          }
+        ]
+      );
 
-      // Keep only last 100 transactions
-      if (user.economy.transactions.length > 100) {
-        user.economy.transactions = user.economy.transactions.slice(-100);
-      }
-
-      await user.save();
-      return true;
+      return !!updatedUser;
     } catch (error) {
       console.error('Error adding money:', error);
       return false;
@@ -90,33 +155,28 @@ export class EconomyService {
    */
   static async removeMoney(userId: string, amount: number, location: 'wallet' | 'bank' = 'wallet', reason: string = 'Unknown'): Promise<boolean> {
     try {
-      const user = await User.findOne({ userId });
-      if (!user) return false;
+      if (amount <= 0) return false;
 
-      if (location === 'wallet') {
-        if (user.economy.wallet < amount) return false;
-        user.economy.wallet -= amount;
-      } else {
-        if (user.economy.bank < amount) return false;
-        user.economy.bank -= amount;
-      }
+      const moneyPath = location === 'wallet' ? 'economy.wallet' : 'economy.bank';
+      const transaction = this.createTransaction('spend', -amount, reason, { location });
 
-      // Add transaction
-      user.economy.transactions.push({
-        type: 'spend',
-        amount: -amount,
-        description: reason,
-        timestamp: new Date(),
-        metadata: { location }
-      });
+      const updatedUser = await User.findOneAndUpdate(
+        {
+          userId,
+          [moneyPath]: { $gte: amount }
+        },
+        {
+          $inc: { [moneyPath]: -amount },
+          $push: {
+            'economy.transactions': {
+              $each: [transaction],
+              $slice: -100
+            }
+          }
+        }
+      );
 
-      // Keep only last 100 transactions
-      if (user.economy.transactions.length > 100) {
-        user.economy.transactions = user.economy.transactions.slice(-100);
-      }
-
-      await user.save();
-      return true;
+      return !!updatedUser;
     } catch (error) {
       console.error('Error removing money:', error);
       return false;
@@ -128,31 +188,81 @@ export class EconomyService {
    */
   static async transferMoney(userId: string, amount: number, from: 'wallet' | 'bank', to: 'wallet' | 'bank'): Promise<boolean> {
     try {
-      const user = await User.findOne({ userId });
-      if (!user) return false;
+      if (amount <= 0) return false;
+      if (from === to) return true;
 
-      if (from === 'wallet') {
-        if (user.economy.wallet < amount) return false;
-        user.economy.wallet -= amount;
-      } else {
-        if (user.economy.bank < amount) return false;
-        user.economy.bank -= amount;
+      if (from === 'wallet' && to === 'bank') {
+        const updatedUser = await User.findOneAndUpdate(
+          {
+            userId,
+            'economy.wallet': { $gte: amount }
+          },
+          [
+            {
+              $set: {
+                _availableBankSpace: {
+                  $max: [
+                    0,
+                    {
+                      $subtract: [
+                        { $ifNull: ['$economy.bankLimit', 10000] },
+                        { $ifNull: ['$economy.bank', 0] }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              $set: {
+                _transferAmount: {
+                  $min: [amount, '$_availableBankSpace']
+                }
+              }
+            },
+            {
+              $set: {
+                _overflowAmount: {
+                  $subtract: [amount, '$_transferAmount']
+                }
+              }
+            },
+            {
+              $set: {
+                'economy.wallet': {
+                  $add: [
+                    { $subtract: [{ $ifNull: ['$economy.wallet', 0] }, amount] },
+                    '$_overflowAmount'
+                  ]
+                },
+                'economy.bank': {
+                  $add: [{ $ifNull: ['$economy.bank', 0] }, '$_transferAmount']
+                }
+              }
+            },
+            {
+              $unset: ['_availableBankSpace', '_transferAmount', '_overflowAmount']
+            }
+          ]
+        );
+
+        return !!updatedUser;
       }
 
-      if (to === 'wallet') {
-        user.economy.wallet += amount;
-      } else {
-        const availableSpace = user.economy.bankLimit - user.economy.bank;
-        const amountToAdd = Math.min(amount, availableSpace);
-        user.economy.bank += amountToAdd;
-        
-        if (amountToAdd < amount) {
-          user.economy.wallet += (amount - amountToAdd);
+      const updatedUser = await User.findOneAndUpdate(
+        {
+          userId,
+          'economy.bank': { $gte: amount }
+        },
+        {
+          $inc: {
+            'economy.bank': -amount,
+            'economy.wallet': amount
+          }
         }
-      }
+      );
 
-      await user.save();
-      return true;
+      return !!updatedUser;
     } catch (error) {
       console.error('Error transferring money:', error);
       return false;
@@ -194,70 +304,58 @@ export class EconomyService {
         inventory = inventory.filter(item => item.category === category);
       }
 
+      const itemIds = [...new Set(inventory.map((item) => item.itemId))];
+      const economyItems = await EconomyItemModel.find({ itemId: { $in: itemIds } });
+      const economyItemMap = new Map(economyItems.map((item) => [item.itemId, item]));
+
       // Get complete item data from EconomyItem collection and merge with user inventory
-      const inventoryWithPrices = await Promise.all(
-        inventory.map(async (invItem) => {
-          try {
-            // Fetch the complete item data from EconomyItem collection
-            const economyItem = await EconomyItemModel.findOne({ itemId: invItem.itemId });
-            
-            if (!economyItem) {
-              console.warn(`Item ${invItem.itemId} not found in EconomyItem collection`);
-              return {
-                ...invItem,
-                name: invItem.name || 'Unknown Item',
-                sellPrice: 0,
-                sellable: false
-              };
-            }
+      const inventoryWithPrices = inventory.map((invItem) => {
+        const economyItem = economyItemMap.get(invItem.itemId);
 
-            // Calculate sell price
-            let sellPrice = 0;
-            if (economyItem.sellable) {
-              // Calculate sell price as 70% of base price with rarity multiplier
-              const rarityMultipliers: Record<string, number> = {
-                common: 1,
-                uncommon: 1.5,
-                rare: 2.5,
-                epic: 4,
-                legendary: 7,
-                mythical: 12,
-                divine: 20,
-                cursed: 15
-              };
-              
-              const basePrice = economyItem.basePrice || 0;
-              const rarityMultiplier = rarityMultipliers[economyItem.rarity] || 1;
-              sellPrice = Math.floor(basePrice * rarityMultiplier * 0.7);
-            }
+        if (!economyItem) {
+          console.warn(`Item ${invItem.itemId} not found in EconomyItem collection`);
+          return {
+            ...invItem,
+            name: invItem.name || 'Unknown Item',
+            sellPrice: 0,
+            sellable: false,
+            quantity: Number(invItem.quantity) || 0
+          };
+        }
 
-            // Merge inventory item data with complete economy item data
-            return {
-              itemId: economyItem.itemId,
-              name: economyItem.name,
-              description: economyItem.description,
-              category: economyItem.category,
-              rarity: economyItem.rarity,
-              sellable: economyItem.sellable,
-              emoji: economyItem.emoji,
-              image: economyItem.image,
-              quantity: Number(invItem.quantity) || 0,
-              purchasePrice: Number(invItem.purchasePrice) || 0,
-              sellPrice: sellPrice,
-              // Include any additional properties from the inventory item
-              ...invItem
-            };
-          } catch (itemError) {
-            console.error(`Error processing inventory item ${invItem.itemId}:`, itemError);
-            return {
-              ...invItem,
-              name: invItem.name || 'Unknown Item',
-              sellPrice: 0,
-              quantity: Number(invItem.quantity) || 0
-            };
-          }
-        })
-      );
+        let sellPrice = 0;
+        if (economyItem.sellable) {
+          const rarityMultipliers: Record<string, number> = {
+            common: 1,
+            uncommon: 1.5,
+            rare: 2.5,
+            epic: 4,
+            legendary: 7,
+            mythical: 12,
+            divine: 20,
+            cursed: 15
+          };
+
+          const basePrice = economyItem.basePrice || 0;
+          const rarityMultiplier = rarityMultipliers[economyItem.rarity] || 1;
+          sellPrice = Math.floor(basePrice * rarityMultiplier * 0.7);
+        }
+
+        return {
+          ...invItem,
+          itemId: economyItem.itemId,
+          name: economyItem.name,
+          description: economyItem.description,
+          category: economyItem.category,
+          rarity: economyItem.rarity,
+          sellable: economyItem.sellable,
+          emoji: economyItem.emoji,
+          image: economyItem.image,
+          quantity: Number(invItem.quantity) || 0,
+          purchasePrice: Number(invItem.purchasePrice) || 0,
+          sellPrice
+        };
+      });
 
       // Filter out items with 0 quantity (they shouldn't be in inventory)
       const validInventory = inventoryWithPrices.filter(item => item.quantity > 0);
@@ -699,26 +797,28 @@ export class EconomyService {
       const user = await User.findOne({ userId });
       if (!user) return false;
 
+      const itemIds = [...new Set(user.economy.inventory.map((item) => item.itemId))];
+      const economyItems = await EconomyItemModel.find({ itemId: { $in: itemIds } });
+      const economyItemMap = new Map(economyItems.map((item) => [item.itemId, item]));
+
       // Update each inventory item with fresh data from EconomyItem collection
-      const refreshedInventory = await Promise.all(
-        user.economy.inventory.map(async (invItem) => {
-          const economyItem = await EconomyItemModel.findOne({ itemId: invItem.itemId });
-          
-          if (economyItem) {
-            return {
-              ...invItem,
-              name: economyItem.name,
-              description: economyItem.description,
-              category: economyItem.category,
-              rarity: economyItem.rarity,
-              sellable: economyItem.sellable,
-              emoji: economyItem.emoji
-            };
-          }
-          
-          return invItem; // Keep original if item not found
-        })
-      );
+      const refreshedInventory = user.economy.inventory.map((invItem) => {
+        const economyItem = economyItemMap.get(invItem.itemId);
+
+        if (economyItem) {
+          return {
+            ...invItem,
+            name: economyItem.name,
+            description: economyItem.description,
+            category: economyItem.category,
+            rarity: economyItem.rarity,
+            sellable: economyItem.sellable,
+            emoji: economyItem.emoji
+          };
+        }
+
+        return invItem; // Keep original if item not found
+      });
 
       user.economy.inventory = refreshedInventory;
       await user.save();

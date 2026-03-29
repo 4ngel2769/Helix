@@ -251,5 +251,6 @@ userSchema.index({ 'economy.wallet': -1 });
 userSchema.index({ 'economy.bank': -1 });
 userSchema.index({ 'economy.level': -1 });
 userSchema.index({ 'economy.activeEffects.expiresAt': 1 });
+userSchema.index({ joinedServers: 1 });
 
 export const User = model<IUser>('User', userSchema);

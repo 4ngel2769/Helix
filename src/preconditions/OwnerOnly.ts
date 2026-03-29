@@ -27,7 +27,7 @@ export async function fetchDeveloperUsernames(client: { users: { fetch: (id: str
     }
 }
 export class UserPrecondition extends AllFlowsPrecondition {
-    #message = `This command can only be used by the bot developer(s): ${config.bot.ownerIDs.join(', ')}.`;
+    #message = 'This command is restricted to bot developers.';
 
     public override chatInputRun(interaction: CommandInteraction) {
         return this.doOwnerCheck(interaction.user.id);
