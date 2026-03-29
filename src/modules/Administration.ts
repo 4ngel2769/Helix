@@ -1,6 +1,6 @@
 import { Module, type IsEnabledContext, type ModuleError } from '@kbotdev/plugin-modules';
 import type { Piece, Result } from '@sapphire/framework';
-import { Guild } from '../models/Guild';
+import { GuildConfigService } from '../lib/services/GuildConfigService';
 
 export class AdministrationModule extends Module {
     public constructor(context: Module.LoaderContext, options: Piece.Options) {
@@ -14,15 +14,17 @@ export class AdministrationModule extends Module {
     }
 
     public async IsEnabled(context: IsEnabledContext): Promise<Result<Boolean, ModuleError>> {
-        try {
-            if (!context.guild) return this.ok(false);
-            const guildData = await Guild.findOne({ guildId: context.guild.id });
-            const isEnabled = guildData?.modules?.administration ?? true;
-            return this.ok(isEnabled);
-        } catch (error) {
-            this.container.logger.error('Error checking Administration module status:', error);
-            return this.ok(true); // Default to enabled on error
-        }
+        const isEnabled = await GuildConfigService.resolveModuleState({
+            guildId: context.guild?.id,
+            moduleKey: 'administration',
+            moduleDisplayName: 'Administration',
+            defaultWhenNoGuild: false,
+            defaultWhenMissing: true,
+            defaultOnError: true,
+            logger: this.container.logger
+        });
+
+        return this.ok(isEnabled);
     }
 }
 

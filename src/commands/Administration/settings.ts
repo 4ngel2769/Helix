@@ -94,7 +94,7 @@ export class SettingsCommand extends ModuleCommand<AdministrationModule> {
                             inline: false
                         }
                     )
-                    .setThumbnail(interaction.guild.iconURL() || undefined)
+                    .setThumbnail(interaction.guild.iconURL() || null)
                     .setTimestamp();
 
                 return interaction.reply({ embeds: [embed] });

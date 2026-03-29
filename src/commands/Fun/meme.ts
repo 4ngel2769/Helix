@@ -2,7 +2,7 @@ import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { FunModule } from '../../modules/Fun';
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
-import 'node-fetch';
+// import 'node-fetch';
 import { 
     EmbedBuilder, 
     ColorResolvable,

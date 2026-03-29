@@ -53,7 +53,7 @@ export class SetAdminRoleCommand extends ModuleCommand<AdministrationModule> {
 
             if (!role) {
                 // Clear admin role
-                guildData.adminRoleId = null;
+                guildData.adminRoleId = undefined;
                 await guildData.save();
 
                 const embed = new EmbedBuilder()

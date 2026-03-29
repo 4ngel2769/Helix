@@ -54,7 +54,7 @@ export class SetMemberLogCommand extends ModuleCommand<AdministrationModule> {
 
             if (!channel) {
                 // Clear member log
-                guildData.memberLogChannelId = null;
+                guildData.memberLogChannelId = undefined;
                 await guildData.save();
 
                 const embed = new EmbedBuilder()

@@ -53,7 +53,7 @@ export class SetMuteRoleCommand extends ModuleCommand<AdministrationModule> {
 
             if (!role) {
                 // Clear mute role
-                guildData.muteRoleId = null;
+                guildData.muteRoleId = undefined;
                 await guildData.save();
 
                 const embed = new EmbedBuilder()

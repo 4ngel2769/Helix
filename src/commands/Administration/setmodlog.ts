@@ -54,7 +54,7 @@ export class SetModLogCommand extends ModuleCommand<AdministrationModule> {
 
             if (!channel) {
                 // Clear mod log
-                guildData.modLogChannelId = null;
+                guildData.modLogChannelId = undefined;
                 await guildData.save();
 
                 const embed = new EmbedBuilder()

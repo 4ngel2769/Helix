@@ -31,6 +31,12 @@ interface LeaderboardUser {
 type LeaderboardType = 'total' | 'wallet' | 'bank' | 'level';
 const LEADERBOARD_FETCH_LIMIT = 1000;
 
+interface LeaderboardRenderState {
+    currentUser: IUser;
+    leaderboardData: LeaderboardUser[];
+    userPosition: number;
+}
+
 @ApplyOptions<Command.Options>({
     name: 'leaderboard-bank',
     description: 'View the economy leaderboard',
@@ -141,30 +147,9 @@ export class EconomyLeaderboardCommand extends ModuleCommand<EconomyModule> {
 
             collector.on('collect', async (i: ButtonInteraction | StringSelectMenuInteraction) => {
                 try {
-                    if (i.isButton()) {
-                        await this.handleButtonInteraction(i, type, isGlobal, guildId, interaction.user.id);
-                    } else if (i.isStringSelectMenu()) {
-                        await this.handleSelectMenuInteraction(i, isGlobal, guildId, interaction.user.id);
-                    }
+                    await this.handleCollectorInteraction(i, type, isGlobal, guildId, interaction.user.id);
                 } catch (error) {
-                    console.error('Error handling leaderboard interaction:', error);
-                    const errorCode =
-                        typeof error === 'object' && error !== null && 'code' in error
-                            ? (error as { code?: unknown }).code
-                            : undefined;
-
-                    if (errorCode === 10062) {
-                        console.log('Leaderboard interaction expired, ignoring...');
-                    } else {
-                        try {
-                            await i.reply({
-                                content: 'An error occurred while updating the leaderboard.',
-                                ephemeral: true
-                            });
-                        } catch (replyError) {
-                            console.error('Failed to send error message:', replyError);
-                        }
-                    }
+                    await this.handleCollectorError(i, error);
                 }
             });
 
@@ -304,6 +289,119 @@ export class EconomyLeaderboardCommand extends ModuleCommand<EconomyModule> {
         return userIndex === -1 ? -1 : userIndex + 1;
     }
 
+    private async handleCollectorInteraction(
+        interaction: ButtonInteraction | StringSelectMenuInteraction,
+        type: LeaderboardType,
+        isGlobal: boolean,
+        guildId: string | null,
+        userId: string
+    ): Promise<void> {
+        if (interaction.isButton()) {
+            await this.handleButtonInteraction(interaction, type, isGlobal, guildId, userId);
+            return;
+        }
+
+        if (interaction.isStringSelectMenu()) {
+            await this.handleSelectMenuInteraction(interaction, isGlobal, guildId, userId);
+        }
+    }
+
+    private async handleCollectorError(
+        interaction: ButtonInteraction | StringSelectMenuInteraction,
+        error: unknown
+    ): Promise<void> {
+        console.error('Error handling leaderboard interaction:', error);
+        const errorCode =
+            typeof error === 'object' && error !== null && 'code' in error
+                ? (error as { code?: unknown }).code
+                : undefined;
+
+        if (errorCode === 10062) {
+            console.log('Leaderboard interaction expired, ignoring...');
+            return;
+        }
+
+        try {
+            await interaction.reply({
+                content: 'An error occurred while updating the leaderboard.',
+                ephemeral: true
+            });
+        } catch (replyError) {
+            console.error('Failed to send error message:', replyError);
+        }
+    }
+
+    private getScopeLabel(guildId: string | null, guildName?: string): string {
+        return guildId ? guildName || 'Unknown Server' : 'Global';
+    }
+
+    private async getRenderState(
+        type: LeaderboardType,
+        isGlobal: boolean,
+        guildId: string | null,
+        userId: string,
+        username: string
+    ): Promise<LeaderboardRenderState> {
+        const currentUser = await EconomyService.getUser(userId, username);
+        const leaderboardData = await this.getLeaderboard(type, isGlobal, guildId);
+        const userPosition = this.findUserPosition(leaderboardData, userId, type);
+
+        return {
+            currentUser,
+            leaderboardData,
+            userPosition
+        };
+    }
+
+    private createEmptyLeaderboardEmbed(currentUser: IUser, type: LeaderboardType): EmbedBuilder {
+        return new EmbedBuilder()
+            .setColor(config.bot.embedColor.warn as ColorResolvable)
+            .setTitle('📊 Economy Leaderboard')
+            .setDescription('No users found with economy data.')
+            .addFields({
+                name: 'Your Current Stats',
+                value: this.formatUserStats(currentUser, type),
+                inline: false
+            })
+            .setTimestamp();
+    }
+
+    private async updateLeaderboardReply(
+        interaction: ButtonInteraction | StringSelectMenuInteraction,
+        type: LeaderboardType,
+        isGlobal: boolean,
+        guildId: string | null,
+        userId: string
+    ): Promise<void> {
+        const { currentUser, leaderboardData, userPosition } = await this.getRenderState(
+            type,
+            isGlobal,
+            guildId,
+            userId,
+            interaction.user.username
+        );
+
+        const components = this.createComponents(type, isGlobal);
+        if (leaderboardData.length === 0) {
+            await interaction.editReply({
+                embeds: [this.createEmptyLeaderboardEmbed(currentUser, type)],
+                components
+            });
+            return;
+        }
+
+        const embed = await this.createLeaderboardEmbed(
+            leaderboardData.slice(0, 20),
+            type,
+            isGlobal,
+            currentUser,
+            userPosition,
+            this.getScopeLabel(guildId, interaction.guild?.name)
+        );
+
+        await interaction.editReply({ embeds: [embed], components });
+    }
+
     private async createLeaderboardEmbed(
         users: LeaderboardUser[], 
         type: 'total' | 'wallet' | 'bank' | 'level',
@@ -439,49 +537,8 @@ export class EconomyLeaderboardCommand extends ModuleCommand<EconomyModule> {
         await interaction.deferUpdate();
 
         try {
-            let newIsGlobal = isGlobal;
-
-            if (interaction.customId === 'leaderboard_scope') {
-                newIsGlobal = !isGlobal;
-            }
-
-            // Get updated data
-            const currentUser = await EconomyService.getUser(userId, interaction.user.username);
-            const leaderboardData = await this.getLeaderboard(currentType as LeaderboardType, newIsGlobal, guildId);
-            
-            if (!leaderboardData || leaderboardData.length === 0) {
-                // Handle empty leaderboard case
-                const embed = new EmbedBuilder()
-                    .setColor(config.bot.embedColor.warn as ColorResolvable)
-                    .setTitle('📊 Economy Leaderboard')
-                    .setDescription('No users found with economy data.')
-                    .addFields({
-                        name: 'Your Current Stats',
-                        value: this.formatUserStats(currentUser, currentType as LeaderboardType),
-                        inline: false
-                    })
-                    .setTimestamp();
-
-                const components = this.createComponents(currentType, newIsGlobal);
-                return interaction.editReply({ embeds: [embed], components });
-            }
-            
-            const userPosition = this.findUserPosition(leaderboardData, userId, currentType as LeaderboardType);
-
-            // Create updated embed
-            const embed = await this.createLeaderboardEmbed(
-                leaderboardData.slice(0, 20),
-                currentType as LeaderboardType,
-                newIsGlobal,
-                currentUser,
-                userPosition,
-                guildId ? interaction.guild?.name || 'Unknown Server' : 'Global'
-            );
-
-            // Update components
-            const components = this.createComponents(currentType, newIsGlobal);
-
-            await interaction.editReply({ embeds: [embed], components });
+            const newIsGlobal = interaction.customId === 'leaderboard_scope' ? !isGlobal : isGlobal;
+            await this.updateLeaderboardReply(interaction, currentType as LeaderboardType, newIsGlobal, guildId, userId);
         } catch (error) {
             console.error('Error handling button interaction:', error);
             throw error;
@@ -497,45 +554,8 @@ export class EconomyLeaderboardCommand extends ModuleCommand<EconomyModule> {
         await interaction.deferUpdate();
 
         try {
-            const newType = interaction.values[0] as 'total' | 'wallet' | 'bank' | 'level';
-
-            // Get updated data
-            const currentUser = await EconomyService.getUser(userId, interaction.user.username);
-            const leaderboardData = await this.getLeaderboard(newType, isGlobal, guildId);
-            
-            if (!leaderboardData || leaderboardData.length === 0) {
-                // Handle empty leaderboard case
-                const embed = new EmbedBuilder()
-                    .setColor(config.bot.embedColor.warn as ColorResolvable)
-                    .setTitle('📊 Economy Leaderboard')
-                    .setDescription('No users found with economy data.')
-                    .addFields({
-                        name: 'Your Current Stats',
-                        value: this.formatUserStats(currentUser, newType),
-                        inline: false
-                    })
-                    .setTimestamp();
-
-                const components = this.createComponents(newType, isGlobal);
-                return interaction.editReply({ embeds: [embed], components });
-            }
-            
-            const userPosition = this.findUserPosition(leaderboardData, userId, newType);
-
-            // Create updated embed
-            const embed = await this.createLeaderboardEmbed(
-                leaderboardData.slice(0, 20),
-                newType,
-                isGlobal,
-                currentUser,
-                userPosition,
-                guildId ? interaction.guild?.name || 'Unknown Server' : 'Global'
-            );
-
-            // Update components
-            const components = this.createComponents(newType, isGlobal);
-
-            await interaction.editReply({ embeds: [embed], components });
+            const newType = interaction.values[0] as LeaderboardType;
+            await this.updateLeaderboardReply(interaction, newType, isGlobal, guildId, userId);
         } catch (error) {
             console.error('Error handling select menu interaction:', error);
             throw error;

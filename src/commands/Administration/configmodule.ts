@@ -1,8 +1,8 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { PermissionFlagsBits } from 'discord.js';
-import { Guild as GuildModel } from '../../models/Guild';
 import { getAllModuleKeys, getModuleConfig } from '../../config/modules';
+import { GuildConfigService } from '../../lib/services/GuildConfigService';
 
 @ApplyOptions<Command.Options>({
 	name: 'configmodule',
@@ -63,11 +63,7 @@ export class ConfigModuleCommand extends Command {
 		}
 
 		// Get or create guild data
-		let guildData = await GuildModel.findOne({ guildId });
-		if (!guildData) {
-			const defaultData = this.createDefaultGuildData(guildId);
-			guildData = new GuildModel(defaultData);
-		}
+		const guildData = await GuildConfigService.getOrCreateGuildData(guildId);
 
 		// Ensure modules object exists
 		if (!guildData.modules) {
@@ -98,21 +94,4 @@ export class ConfigModuleCommand extends Command {
 		}
 	}
 
-	// Creates default guild data with all modules set to their defaultEnabled state
-	private createDefaultGuildData(guildId: string) {
-		const modules: Record<string, boolean> = {};
-
-		// Set default values for all modules
-		getAllModuleKeys().forEach((moduleKey) => {
-			const config = getModuleConfig(moduleKey);
-			if (config) {
-				modules[moduleKey] = config.defaultEnabled;
-			}
-		});
-
-		return {
-			guildId,
-			modules
-		};
-	}
 }

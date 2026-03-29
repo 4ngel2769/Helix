@@ -8,6 +8,13 @@ import { EconomyService } from '../../lib/services/EconomyService';
 import { EffectService } from '../../lib/services/EffectService';
 import { EconomyItem } from '../../models/EconomyItem';
 
+interface UseItemResult {
+    success: boolean;
+    message: string;
+    appliedEffects?: string[];
+    statChanges?: Record<string, number>;
+}
+
 @ApplyOptions<Command.Options>({
     name: 'use',
     description: 'Use an item from your inventory',
@@ -209,9 +216,8 @@ export class UseCommand extends ModuleCommand<EconomyModule> {
         }
     }
 
-    private async useItem(userId: string, itemName: string, quantity: number): Promise<any> {
+    private async useItem(userId: string, itemName: string, quantity: number): Promise<UseItemResult> {
         try {
-            // Get user inventory
             const inventory = await EconomyService.getInventory(userId);
             const userItem = inventory.find(item => 
                 item.name.toLowerCase().includes(itemName.toLowerCase())
@@ -225,43 +231,20 @@ export class UseCommand extends ModuleCommand<EconomyModule> {
                 return { success: false, message: `You only have ${userItem.quantity}x ${userItem.name}.` };
             }
 
-            // Get item details
             const item = await EconomyItem.findOne({ itemId: userItem.itemId });
             if (!item) {
                 return { success: false, message: 'Item data not found.' };
             }
 
-            // Enhanced usability check
             const isUsable = this.checkItemUsability(item);
             if (!isUsable.canUse) {
                 return { success: false, message: isUsable.reason };
             }
 
-            let totalEffects: string[] = [];
-            let totalStatChanges: Record<string, number> = {};
+            const { totalEffects, totalStatChanges } = await this.applyEffectsForQuantity(userId, item.itemId, quantity);
 
-            // Apply effects for each quantity used
-            for (let i = 0; i < quantity; i++) {
-                const result = await EffectService.applyItemEffects(userId, item.itemId, 'use');
-                
-                if (result.success) {
-                    if (result.appliedEffects) {
-                        totalEffects.push(...result.appliedEffects);
-                    }
-                    if (result.statChanges) {
-                        Object.entries(result.statChanges).forEach(([stat, change]) => {
-                            totalStatChanges[stat] = (totalStatChanges[stat] || 0) + change;
-                        });
-                    }
-                }
-            }
-
-            // Remove items from inventory if consumable
-            if (item.consumable) {
-                const removed = await EconomyService.removeItem(userId, item.itemId, quantity);
-                if (!removed) {
-                    return { success: false, message: 'Failed to remove item from inventory.' };
-                }
+            if (item.consumable && !(await EconomyService.removeItem(userId, item.itemId, quantity))) {
+                return { success: false, message: 'Failed to remove item from inventory.' };
             }
 
             return {
@@ -274,6 +257,38 @@ export class UseCommand extends ModuleCommand<EconomyModule> {
         } catch (error) {
             console.error('Error using item:', error);
             return { success: false, message: 'Failed to use item.' };
+        }
+    }
+
+    private async applyEffectsForQuantity(
+        userId: string,
+        itemId: string,
+        quantity: number
+    ): Promise<{ totalEffects: string[]; totalStatChanges: Record<string, number> }> {
+        const totalEffects: string[] = [];
+        const totalStatChanges: Record<string, number> = {};
+
+        for (let i = 0; i < quantity; i++) {
+            const result = await EffectService.applyItemEffects(userId, itemId, 'use');
+            if (!result.success) {
+                continue;
+            }
+
+            if (result.appliedEffects?.length) {
+                totalEffects.push(...result.appliedEffects);
+            }
+
+            if (result.statChanges) {
+                this.mergeStatChanges(totalStatChanges, result.statChanges);
+            }
+        }
+
+        return { totalEffects, totalStatChanges };
+    }
+
+    private mergeStatChanges(target: Record<string, number>, source: Record<string, number>): void {
+        for (const [stat, change] of Object.entries(source)) {
+            target[stat] = (target[stat] || 0) + change;
         }
     }
 

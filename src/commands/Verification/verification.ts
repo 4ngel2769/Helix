@@ -271,7 +271,7 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
             }
 
             case 'footer': {
-                const footer = interaction.options.getString('footer');
+                const footer = interaction.options.getString('footer') ?? undefined;
                 
                 guildData.verificationFooter = footer;
                 guildData.verificationLastModifiedBy = {
@@ -290,7 +290,7 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
             }
 
             case 'thumbnail': {
-                const url = interaction.options.getString('url');
+                const url = interaction.options.getString('url') ?? undefined;
                 
                 // Validate URL if provided
                 if (url && !this.isValidImageUrl(url)) {

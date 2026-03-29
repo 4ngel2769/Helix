@@ -7,7 +7,8 @@ import {
     StringSelectMenuBuilder,
     StringSelectMenuOptionBuilder
 } from 'discord.js';
-import { getAllModuleKeys, getModuleConfig } from '../../config/modules';
+import { getModuleConfig } from '../../config/modules';
+import { GuildConfigService } from '../../lib/services/GuildConfigService';
 
 export function getInteractionErrorCode(error: unknown): number | undefined {
     if (typeof error === 'object' && error !== null && 'code' in error) {
@@ -19,19 +20,7 @@ export function getInteractionErrorCode(error: unknown): number | undefined {
 }
 
 export function createDefaultGuildData(guildId: string): { guildId: string; modules: Record<string, boolean> } {
-    const modules: Record<string, boolean> = {};
-
-    getAllModuleKeys().forEach((moduleKey) => {
-        const moduleConfig = getModuleConfig(moduleKey);
-        if (moduleConfig) {
-            modules[moduleKey] = moduleConfig.defaultEnabled;
-        }
-    });
-
-    return {
-        guildId,
-        modules
-    };
+    return GuildConfigService.createDefaultGuildData(guildId);
 }
 
 export function paginateItems<T>(items: T[], pageSize: number): T[][] {

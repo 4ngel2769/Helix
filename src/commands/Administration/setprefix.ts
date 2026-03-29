@@ -55,7 +55,7 @@ export class SetPrefixCommand extends ModuleCommand<AdministrationModule> {
 
             if (!prefix) {
                 // Reset to default
-                guildData.prefix = null;
+                guildData.prefix = undefined;
                 await guildData.save();
 
                 const embed = new EmbedBuilder()

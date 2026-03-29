@@ -306,33 +306,30 @@ export class NoteCommand extends Command {
         try {
             const note = await mongooseUtils.findById(DevNote, noteId);
 
-            // Use switch for existence check
-            switch (!!note) {
-                case true: {
-                    await mongooseUtils.deleteById(DevNote, noteId);
-
-                    const embed = new EmbedBuilder()
-                        .setColor(config.bot.embedColor.err as ColorResolvable)
-                        .setTitle('🗑️ Note Deleted')
-                        .setDescription(note.content)
-                        .addFields([{
-                            name: 'Deleted Note ID',
-                            value: noteId,
-                            inline: true
-                        }])
-                        .setTimestamp();
-
-                    return interaction.reply({
-                        embeds: [embed],
-                        flags: MessageFlags.Ephemeral
-                    });
-                }
-                default:
-                    return interaction.reply({ 
-                        content: 'Note not found.', 
-                        flags: MessageFlags.Ephemeral 
-                    });
+            if (!note) {
+                return interaction.reply({ 
+                    content: 'Note not found.', 
+                    flags: MessageFlags.Ephemeral 
+                });
             }
+
+            await mongooseUtils.deleteById(DevNote, noteId);
+
+            const embed = new EmbedBuilder()
+                .setColor(config.bot.embedColor.err as ColorResolvable)
+                .setTitle('🗑️ Note Deleted')
+                .setDescription(note.content)
+                .addFields([{
+                    name: 'Deleted Note ID',
+                    value: noteId,
+                    inline: true
+                }])
+                .setTimestamp();
+
+            return interaction.reply({
+                embeds: [embed],
+                flags: MessageFlags.Ephemeral
+            });
         } catch (error) {
             console.error('Error deleting note:', error);
             return interaction.reply({ 
