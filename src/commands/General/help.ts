@@ -5,9 +5,7 @@ import {
     ButtonBuilder, 
     EmbedBuilder, 
     StringSelectMenuBuilder,
-    ButtonStyle,
     StringSelectMenuInteraction,
-    StringSelectMenuOptionBuilder,
     ButtonInteraction,
     ColorResolvable,
     Message,
@@ -23,7 +21,14 @@ import { Module, Modules, type IsEnabledContext, type ModuleError } from '@kbotd
 import { Result } from '@sapphire/result';
 import { ModuleCommand, ModuleCommandUnion } from '@kbotdev/plugin-modules';
 import { GeneralModule } from '../../modules/General';
-import { getAllModuleKeys, getModuleConfig } from '../../config/modules';
+import {
+    createDefaultGuildData,
+    createHelpModuleSelect,
+    createHelpPaginationButtons,
+    getInteractionErrorCode,
+    paginateItems,
+    sendInteractionErrorMessage
+} from './help.helpers';
 
 const COMMANDS_PER_PAGE = 5;
 
@@ -56,15 +61,6 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
         });
     }
 
-    private getErrorCode(error: unknown): number | undefined {
-        if (typeof error === 'object' && error !== null && 'code' in error) {
-            const code = (error as { code?: unknown }).code;
-            return typeof code === 'number' ? code : undefined;
-        }
-
-        return undefined;
-    }
-
     // Define required permissions for each module
     private modulePermissions: CommandPermissions = {
         Administration: [
@@ -79,24 +75,6 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
             PermissionFlagsBits.ModerateMembers
         ]
     };
-
-    // Add the missing method
-    private createDefaultGuildData(guildId: string) {
-        const modules: Record<string, boolean> = {};
-        
-        // Use our module configs to set default values
-        getAllModuleKeys().forEach(moduleKey => {
-            const config = getModuleConfig(moduleKey);
-            if (config) {
-                modules[moduleKey] = config.defaultEnabled;
-            }
-        });
-        
-        return { 
-            guildId,
-            modules
-        };
-    }
 
     public override async registerApplicationCommands(registry: Command.Registry): Promise<void> {
         await registry.registerChatInputCommand((builder) =>
@@ -178,12 +156,12 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
         } catch (error) {
             console.error('Database error in help command:', error);
             // Create default guild data as fallback for errors
-            guildData = this.createDefaultGuildData(guildId);
+            guildData = createDefaultGuildData(guildId);
         }
         
         // If no guild data exists, create default data instead of showing error
         if (!guildData) {
-            guildData = this.createDefaultGuildData(guildId);
+            guildData = createDefaultGuildData(guildId);
             
             // Optionally save the default data to database
             try {
@@ -254,7 +232,7 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
         // Filter out null values and create final array
         const filteredModules = enabledModules.filter((module): module is string => module !== null);
 
-        const moduleSelect = this.createModuleSelect(filteredModules);
+        const moduleSelect = createHelpModuleSelect(filteredModules);
 
         const mainEmbed = new EmbedBuilder()
             .setColor(config.bot.embedColor.default as ColorResolvable)
@@ -301,11 +279,11 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
                 console.error('Error handling interaction in collector:', error);
                 
                 // More robust error handling
-                if (this.getErrorCode(error) === 10062) { // Unknown interaction
+                if (getInteractionErrorCode(error) === 10062) { // Unknown interaction
                     // Interaction expired - just log it, don't try to respond
                     this.container.logger.debug('Interaction expired, ignoring...');
                 } else {
-                    await this.sendErrorMessage(i as ButtonInteraction, 'An error occurred while processing your request.');
+                    await sendInteractionErrorMessage(i as ButtonInteraction, 'An error occurred while processing your request.');
                 }
             }
         });
@@ -387,7 +365,7 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
         // Create pagination buttons if needed
         const components = needsPagination 
             ? [new ActionRowBuilder<ButtonBuilder>().addComponents(
-                ...this.createPaginationButtons(0, pages.length)
+                ...createHelpPaginationButtons(0, pages.length)
             )] 
             : [];
         
@@ -431,7 +409,7 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
                 
                 // Update embed with new page
                 const newEmbed = generateEmbed(newPage);
-                const newButtons = this.createPaginationButtons(newPage, pages.length);
+                const newButtons = createHelpPaginationButtons(newPage, pages.length);
                 
                 // Update the message
                 await i.update({ 
@@ -441,7 +419,7 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
             } catch (error) {
                 console.error('Error handling DM help pagination:', error);
                 // Handle expired interaction
-                if (this.getErrorCode(error) === 10062) {
+                if (getInteractionErrorCode(error) === 10062) {
                     this.container.logger.debug('DM help interaction expired, ignoring...');
                 }
             }
@@ -631,7 +609,7 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
                 }
                 
                 // Recreate the module select dropdown
-                const moduleSelect = this.createModuleSelect(Array.from(categories));
+                const moduleSelect = createHelpModuleSelect(Array.from(categories));
                 
                 const row = new ActionRowBuilder<StringSelectMenuBuilder>()
                     .addComponents(moduleSelect);
@@ -708,13 +686,13 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
             // Filter out null values
             const filteredModules = enabledModules.filter((module): module is string => module !== null);
 
-            const moduleSelect = this.createModuleSelect(filteredModules);
+            const moduleSelect = createHelpModuleSelect(filteredModules);
             
-            const pages = this.generateCommandPages(commands);
+            const pages = paginateItems(commands, COMMANDS_PER_PAGE);
             const embed = this.generateCommandEmbed(pages[0], selectedModule, 1, pages.length);
 
             // Create navigation buttons for pagination
-            const buttons = this.createPaginationButtons(0, pages.length);
+            const buttons = createHelpPaginationButtons(0, pages.length);
 
             // Set up components with dropdown always in first row
             const components: (ActionRowBuilder<StringSelectMenuBuilder> | ActionRowBuilder<ButtonBuilder>)[] = [
@@ -731,7 +709,7 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
             console.error('Error in handleModuleSelect:', error);
             
             // Handle expired interaction
-            if (this.getErrorCode(error) === 10062) {
+            if (getInteractionErrorCode(error) === 10062) {
                 this.container.logger.debug('Module select interaction expired, ignoring...');
                 return;
             }
@@ -799,11 +777,11 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
                 .filter(cmd => cmd.category?.toLowerCase() === selectedModule) as unknown as ExtendedCommand[];
 
             // Generate new embed with updated page
-            const pages = this.generateCommandPages(commands);
+            const pages = paginateItems(commands, COMMANDS_PER_PAGE);
             const embed = this.generateCommandEmbed(pages[newPage - 1], selectedModule, newPage, totalPages);
             
             // Create pagination buttons with proper disabled states
-            const buttons = this.createPaginationButtons(newPage - 1, totalPages);
+            const buttons = createHelpPaginationButtons(newPage - 1, totalPages);
 
             // Preserve the existing dropdown menu from the first component row
             const components = [
@@ -823,46 +801,14 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
             console.error('Error in handlePaginationButton:', error);
             
             // Handle expired interaction
-            if (this.getErrorCode(error) === 10062) {
+            if (getInteractionErrorCode(error) === 10062) {
                 this.container.logger.debug('Pagination interaction expired, ignoring...');
                 return;
             }
             
             // Handle other errors
-            await this.sendErrorMessage(interaction, 'An error occurred while navigating pages.');
+            await sendInteractionErrorMessage(interaction, 'An error occurred while navigating pages.');
         }
-    }
-
-    private async sendErrorMessage(interaction: ButtonInteraction, message: string) {
-        try {
-            if (!interaction.replied && !interaction.deferred) {
-                await interaction.reply({
-                    content: message,
-                    flags: MessageFlags.Ephemeral
-                });
-            } else if (interaction.deferred) {
-                await interaction.editReply({
-                    content: message
-                });
-            } else {
-                await interaction.followUp({
-                    content: message,
-                    flags: MessageFlags.Ephemeral
-                });
-            }
-        } catch (error) {
-            console.error('Failed to send error message:', error);
-            // Just log the error if we can't send a response
-            this.container.logger.debug('Unable to send error message to user, interaction may have expired');
-        }
-    }
-
-    private generateCommandPages(commands: ExtendedCommand[]) {
-        const pages: ExtendedCommand[][] = [];
-        for (let i = 0; i < commands.length; i += COMMANDS_PER_PAGE) {
-            pages.push(commands.slice(i, i + COMMANDS_PER_PAGE));
-        }
-        return pages;
     }
 
     private generateCommandEmbed(
@@ -952,46 +898,6 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
             .setFooter({ text: `Page ${currentPage}/${totalPages}` });
 
         return embed;
-    }
-
-    private createModuleSelect(modules: string[]) {
-        return new StringSelectMenuBuilder()
-            .setCustomId('module-select')
-            .setPlaceholder('Select a module')
-            .addOptions(
-                modules.map(moduleName => {
-                    // Get module config from our modules config file
-                    const moduleConfig = getModuleConfig(moduleName);
-                    
-                    return new StringSelectMenuOptionBuilder()
-                        .setLabel(moduleConfig?.name || moduleName)
-                        .setDescription(moduleConfig?.description || `View ${moduleName} commands`)
-                        .setValue(moduleName.toLowerCase())
-                        .setEmoji(
-                            typeof moduleConfig?.emoji === 'object'
-                                ? (moduleConfig.emoji.id
-                                    ? `${moduleConfig.emoji.animated ? '<a:' : '<:'}${moduleConfig.emoji.name}:${moduleConfig.emoji.id}>`
-                                    : moduleConfig.emoji.name || '📦')
-                                : moduleConfig?.emoji || '📦'
-                        );
-                })
-            );
-    }
-
-    private createPaginationButtons(currentPage: number, totalPages: number) {
-        const previousButton = new ButtonBuilder()
-            .setCustomId('previous')
-            .setLabel('Previous')
-            .setStyle(ButtonStyle.Primary)
-            .setDisabled(currentPage === 0);
-
-        const nextButton = new ButtonBuilder()
-            .setCustomId('next')
-            .setLabel('Next')
-            .setStyle(ButtonStyle.Primary)
-            .setDisabled(currentPage === totalPages - 1);
-
-        return [previousButton, nextButton];
     }
 
     public override async autocompleteRun(interaction: Command.AutocompleteInteraction) {
