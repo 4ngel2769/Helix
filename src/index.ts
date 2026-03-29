@@ -1,8 +1,6 @@
 import './lib/setup';
-import { LogLevel, SapphireClient } from '@sapphire/framework';
+import { SapphireClient } from '@sapphire/framework';
 import { GatewayIntentBits, OAuth2Scopes, Partials } from 'discord.js';
-import { Server, Middleware } from '@sapphire/plugin-api';
-import type { Request, Response, NextFunction } from 'express';
 import '@sapphire/plugin-api/register';
 import '@kbotdev/plugin-modules/register';
 import '@sapphire/plugin-hmr/register';
@@ -70,31 +68,7 @@ const main = async () => {
 
         await client.login(config.bot.token);
         client.logger.info('✅ Logged in');
-
-        // Register cookie parsing middleware so API routes can read cookie-based auth
-        // Use simple, untyped handler to avoid tight express typings; Sapphire's MiddlewareStore accepts this at runtime
-        try {
-            if (client.server && (client.server as any).middlewares && typeof (client.server as any).middlewares.set === 'function') {
-                (client.server as any).middlewares.set('cookieParser', (rawReq: any, _res: any, next: any) => {
-                    const req = rawReq;
-                    const cookies: Record<string, string> = {};
-                    const header = (req && req.headers && req.headers.cookie) || '';
-                    if (header) {
-                        header.split(';').forEach((cookie: string) => {
-                            const [k, ...v] = cookie.trim().split('=');
-                            if (k) cookies[k] = decodeURIComponent((v || []).join('='));
-                        });
-                    }
-                    req.cookies = cookies;
-                    next();
-                });
-                client.logger.info('🍪 Cookie middleware registered (simple)');
-            } else {
-                client.logger.warn('Cookie middleware: server.middlewares not available');
-            }
-        } catch (err) {
-            client.logger.warn('Cookie middleware: unable to register', err);
-        }
+        client.logger.info('🍪 Using @sapphire/plugin-api built-in cookies/auth middlewares');
     } catch (error) {
         client.logger.fatal(error);
         await client.destroy();

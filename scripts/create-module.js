@@ -767,7 +767,7 @@ ${indent})`;
             });
 
             // Generate modal handler if needed
-            if this.moduleData.command.modals) {
+            if (this.moduleData.command.modals) {
                 files.push({
                     path: path.join(this.srcDir, 'interaction-handlers', 'modals', `${this.moduleData.command.name}Modal.ts`),
                     content: this.generateModalInteractionHandler()

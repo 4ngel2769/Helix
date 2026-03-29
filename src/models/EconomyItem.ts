@@ -275,7 +275,6 @@ const economyItemSchema = new Schema<IEconomyItem>({
 });
 
 // Create indexes for better performance
-economyItemSchema.index({ itemId: 1 });
 economyItemSchema.index({ name: 1 });
 economyItemSchema.index({ category: 1 });
 economyItemSchema.index({ rarity: 1 });

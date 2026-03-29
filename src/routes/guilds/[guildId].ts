@@ -1,7 +1,12 @@
 import { Route } from '@sapphire/plugin-api';
+import { ApplyOptions } from '@sapphire/decorators';
 import type { ApiRequest, ApiResponse } from '@sapphire/plugin-api';
+import type { RouteOptions } from '@sapphire/plugin-api';
 import type { OAuth2Guild } from 'discord.js';
 
+@ApplyOptions<RouteOptions>({
+    methods: ['GET']
+})
 export class GuildsRoute extends Route {
     public override async run(request: ApiRequest, response: ApiResponse) {
         if (!request.auth?.token) {

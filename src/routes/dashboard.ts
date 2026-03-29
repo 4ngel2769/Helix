@@ -8,7 +8,8 @@ import { ErrorHandler } from '../lib/structures/ErrorHandler';
 
 @ApplyOptions<RouteOptions>({
     name: 'dashboard',
-    route: 'dashboard'
+    route: 'dashboard',
+    methods: ['GET']
 })
 export class DashboardRoute extends Route {
     public override async run(request: ApiRequest, response: ApiResponse) {

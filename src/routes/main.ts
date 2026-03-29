@@ -5,7 +5,8 @@ import type { RouteOptions } from '@sapphire/plugin-api';
 
 @ApplyOptions<RouteOptions>({
 	name: 'main',
-	route: ''
+	route: '',
+	methods: ['GET']
 })
 export class MainRoute extends Route {
 	public override run(_request: ApiRequest, response: ApiResponse) {
