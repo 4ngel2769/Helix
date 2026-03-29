@@ -64,7 +64,10 @@ export class LeaderboardCommand extends ModuleCommand<FunModule> {
                 topPlayers
                     .map(
                         (player, index) => {
-                            const stats = player.gameStats?.multiplayer?.[gameName] ?? {};
+                            const multiplayerStats = player.gameStats?.multiplayer as
+                                | Partial<Record<string, { wins?: number; losses?: number }>>
+                                | undefined;
+                            const stats = multiplayerStats?.[gameName] ?? {};
                             const wins = stats.wins ?? 0;
                             const losses = stats.losses ?? 0;
                             let ratio: string | number;
