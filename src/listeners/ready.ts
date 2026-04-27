@@ -17,7 +17,7 @@ import {
 import { ActivityType } from 'discord.js';
 
 // Import from files
-import { TPSMonitor } from '../lib/services/TPSMonitor';
+import { PerformanceMonitor } from '../lib/services/TPSMonitor';
 import { Guild } from '../models/Guild';
 import { Config } from '../config.js';
 import configModule from '../config.js';
@@ -39,9 +39,9 @@ export class UserEvent extends Listener {
 		this.syncGuildDatabase();
 		this.botStartupFinish();
 		
-		// Initialize TPS Monitor
-		TPSMonitor.getInstance();
-		this.container.logger.info('TPS Monitor initialized');
+		// Initialize performance monitor
+		PerformanceMonitor.getInstance(this.container.client);
+		this.container.logger.info('Performance Monitor initialized');
 	}
 
 	// Experimental
@@ -77,15 +77,13 @@ export class UserEvent extends Listener {
 		`;
 
 		console.log(banner);
-        
-        const tpsMonitor = TPSMonitor.getInstance();
-        logger.info(`[${success}] TPS Monitor initialized and tracking started`);
+        logger.info(`[${success}] Performance Monitor initialized and tracking started`);
         
         if (dev) logger.warn(`${blc('<')}${llc('/')}${blc('>')} ${llc('DEVELOPMENT MODE')}`);
         logger.info(`${ylc(`Helix version ${config.bot.version}`)}${llc(' - ')}${llc('by ')}${rlc('Angel')}`);
         logger.info(`[${success}] Gateway: ${blc(this.container.client.ws.shards.size.toString())} shards`);
         logger.info(`[${success}] Database`);
-        logger.info(`[${success}] TPS Monitor`);
+        logger.info(`[${success}] Performance Monitor`);
         logger.info(`[${success}] Logger`);
 	}
 

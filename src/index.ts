@@ -7,7 +7,7 @@ import '@sapphire/plugin-hmr/register';
 import config from './config';
 import { verifyDatabaseConnection } from './lib/utils/dbCheck';
 import { Guild } from './models/Guild';
-import { initializeTPSMonitor } from './lib/services/TPSMonitor';
+import { initializePerformanceMonitor } from './lib/services/TPSMonitor';
 
 const hmrOptions = {
     enabled: process.env.NODE_ENV !== 'production'
@@ -62,7 +62,7 @@ const client = new SapphireClient({
 const main = async () => {
     try {
         await verifyDatabaseConnection();
-        initializeTPSMonitor();
+        initializePerformanceMonitor(client);
 
         if (!config.bot.token) {
             console.warn('⚠️ No bot token present in config.bot.token or DISCORD_TOKEN. Aborting login.');

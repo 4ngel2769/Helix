@@ -1,7 +1,10 @@
 import { monitorEventLoopDelay } from 'perf_hooks';
+import type { SapphireClient } from '@sapphire/framework';
 
-export interface TPSMetrics {
-	averageTPS: number;
+export interface PerformanceMetrics {
+	eventRate: number;
+	messageRate: number;
+	interactionRate: number;
 	averageEventLoopLatencyMs: number;
 	maxEventLoopLatencyMs: number;
 	p95EventLoopLatencyMs: number;
@@ -9,61 +12,61 @@ export interface TPSMetrics {
 	uptimeSeconds: number;
 }
 
-export class TPSMonitor {
-	private static instance: TPSMonitor | null = null;
-	private readonly targetTPS = 20;
-	private readonly tickIntervalMs = 1000 / this.targetTPS;
+export class PerformanceMonitor {
+	private static instance: PerformanceMonitor | null = null;
 	private readonly summaryIntervalMs = 1000;
 	private readonly historyLength = 900;
 
 	private readonly histogram = monitorEventLoopDelay({ resolution: 10 });
-	private readonly tickSamples: number[] = [];
-	private readonly tpsHistory: number[] = [];
+	private readonly eventHistory: number[] = [];
+	private readonly messageHistory: number[] = [];
+	private readonly interactionHistory: number[] = [];
 	private readonly eventLoopAvgHistory: number[] = [];
 	private readonly eventLoopMaxHistory: number[] = [];
 	private readonly eventLoopP95History: number[] = [];
 
-	private lastTickTime = performance.now();
-	private tickInterval: NodeJS.Timeout | null = null;
+	private currentEvents = 0;
+	private currentMessages = 0;
+	private currentInteractions = 0;
 	private summaryInterval: NodeJS.Timeout | null = null;
 
-	private constructor() {
+	private constructor(client: SapphireClient) {
 		this.histogram.enable();
-		this.startTicking();
+		this.attachClientListeners(client);
 		this.startSummaries();
 	}
 
-	public static getInstance(): TPSMonitor {
+	public static getInstance(client?: SapphireClient): PerformanceMonitor {
 		if (!this.instance) {
-			this.instance = new TPSMonitor();
+			if (!client) {
+				throw new Error('PerformanceMonitor must be initialized with a client.');
+			}
+			this.instance = new PerformanceMonitor(client);
 		}
 		return this.instance;
 	}
 
-	private startTicking(): void {
-		this.tickInterval = setInterval(() => {
-			const now = performance.now();
-			const elapsed = now - this.lastTickTime;
-			const currentTPS = elapsed > 0 ? Math.min(1000 / elapsed, this.targetTPS) : this.targetTPS;
+	private attachClientListeners(client: SapphireClient): void {
+		client.on('messageCreate', () => {
+			this.currentEvents++;
+			this.currentMessages++;
+		});
 
-			this.tickSamples.push(currentTPS);
-			if (this.tickSamples.length > 100) {
-				this.tickSamples.shift();
-			}
-
-			this.lastTickTime = now;
-		}, this.tickIntervalMs);
-
-		this.tickInterval.unref();
+		client.on('interactionCreate', () => {
+			this.currentEvents++;
+			this.currentInteractions++;
+		});
 	}
 
 	private startSummaries(): void {
 		this.summaryInterval = setInterval(() => {
-			if (this.tickSamples.length > 0) {
-				const averageTPS = this.average(this.tickSamples);
-				this.pushHistory(this.tpsHistory, averageTPS);
-				this.tickSamples.length = 0;
-			}
+			this.pushHistory(this.eventHistory, this.currentEvents);
+			this.pushHistory(this.messageHistory, this.currentMessages);
+			this.pushHistory(this.interactionHistory, this.currentInteractions);
+
+			this.currentEvents = 0;
+			this.currentMessages = 0;
+			this.currentInteractions = 0;
 
 			this.pushHistory(this.eventLoopAvgHistory, this.nsToMs(this.histogram.mean));
 			this.pushHistory(this.eventLoopMaxHistory, this.nsToMs(this.histogram.max));
@@ -89,8 +92,24 @@ export class TPSMonitor {
 		return Number(value) / 1_000_000;
 	}
 
-	public getTPS(duration: number = 60): number | null {
-		const relevantHistory = this.getHistorySlice(this.tpsHistory, duration);
+	private getHistorySlice(history: number[], duration: number): number[] {
+		return history.slice(-Math.min(duration, history.length));
+	}
+
+	public getEventRate(duration: number = 60): number | null {
+		const relevantHistory = this.getHistorySlice(this.eventHistory, duration);
+		if (relevantHistory.length === 0) return null;
+		return Math.round(this.average(relevantHistory) * 100) / 100;
+	}
+
+	public getMessageRate(duration: number = 60): number | null {
+		const relevantHistory = this.getHistorySlice(this.messageHistory, duration);
+		if (relevantHistory.length === 0) return null;
+		return Math.round(this.average(relevantHistory) * 100) / 100;
+	}
+
+	public getInteractionRate(duration: number = 60): number | null {
+		const relevantHistory = this.getHistorySlice(this.interactionHistory, duration);
 		if (relevantHistory.length === 0) return null;
 		return Math.round(this.average(relevantHistory) * 100) / 100;
 	}
@@ -121,22 +140,14 @@ export class TPSMonitor {
 		return Math.round(process.uptime());
 	}
 
-	public getTPSColor(tps: number): string {
-		if (tps >= 18) return '🟢';
-		if (tps >= 15) return '🟡';
+	public getLatencyStatus(latency: number | null): string {
+		if (latency === null) return '⚪ Collecting';
+		if (latency < 20) return '🟢';
+		if (latency < 50) return '🟡';
 		return '🔴';
 	}
 
-	private getHistorySlice(history: number[], duration: number): number[] {
-		return history.slice(-Math.min(duration, history.length));
-	}
-
 	public cleanup(): void {
-		if (this.tickInterval) {
-			clearInterval(this.tickInterval);
-			this.tickInterval = null;
-		}
-
 		if (this.summaryInterval) {
 			clearInterval(this.summaryInterval);
 			this.summaryInterval = null;
@@ -146,6 +157,6 @@ export class TPSMonitor {
 	}
 }
 
-export function initializeTPSMonitor(): TPSMonitor {
-	return TPSMonitor.getInstance();
+export function initializePerformanceMonitor(client: SapphireClient): PerformanceMonitor {
+	return PerformanceMonitor.getInstance(client);
 }

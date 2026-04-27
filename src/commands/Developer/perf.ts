@@ -2,7 +2,7 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { EmbedBuilder, Message, ColorResolvable, MessageFlags } from 'discord.js';
 import config from '../../config';
-import { TPSMonitor } from '../../lib/services/TPSMonitor';
+import { PerformanceMonitor } from '../../lib/services/TPSMonitor';
 
 function formatBytes(bytes: number): string {
 	if (bytes === 0) return '0 B';
@@ -20,8 +20,8 @@ function formatUptime(seconds: number): string {
 }
 
 @ApplyOptions<Command.Options>({
-	name: 'tps',
-	description: 'Shows the current TPS (Ticks Per Second) of the bot',
+	name: 'perf',
+	description: 'Shows current bot performance metrics and event-loop latency',
 	preconditions: ['OwnerOnly']
 })
 export class TPSCommand extends Command {
@@ -34,56 +34,56 @@ export class TPSCommand extends Command {
 	}
 
 	public override registerApplicationCommands(registry: Command.Registry) {
-		registry.registerChatInputCommand((builder) => builder.setName('tps').setDescription('Shows the current TPS (Ticks Per Second) of the bot'));
+		registry.registerChatInputCommand((builder) => builder.setName('perf').setDescription('Shows current bot performance metrics and event-loop latency'));
 	}
 
 	private async sendTPSEmbed(interaction: Message | Command.ChatInputCommandInteraction) {
-		const tpsMonitor = TPSMonitor.getInstance();
-		const tps1m = tpsMonitor.getTPS(60);
-		const tps5m = tpsMonitor.getTPS(300);
-		const tps15m = tpsMonitor.getTPS(900);
-		const loop1m = tpsMonitor.getEventLoopLatency(60);
-		const loopP951m = tpsMonitor.getEventLoopP95Latency(60);
-		const maxLoop1m = tpsMonitor.getEventLoopMaxLatency(60);
-		const memory = tpsMonitor.getMemoryUsage();
-		const uptime = tpsMonitor.getUptime();
+		const monitor = PerformanceMonitor.getInstance();
+		const eventRate1m = monitor.getEventRate(60);
+		const messageRate1m = monitor.getMessageRate(60);
+		const interactionRate1m = monitor.getInteractionRate(60);
+		const loop1m = monitor.getEventLoopLatency(60);
+		const loopP951m = monitor.getEventLoopP95Latency(60);
+		const maxLoop1m = monitor.getEventLoopMaxLatency(60);
+		const memory = monitor.getMemoryUsage();
+		const uptime = monitor.getUptime();
 
 		const formatValue = (value: number | null, unit = '') =>
 			value === null ? 'Collecting...' : `${value}${unit}`;
 
 		const embed = new EmbedBuilder()
 			.setColor(config.bot.embedColor.default as ColorResolvable)
-			.setTitle('🎯 Bot TPS & Performance')
-			.setDescription('Shows the bot\'s event loop and TPS performance over recent intervals.')
+			.setTitle('🎯 Bot Performance')
+			.setDescription('Shows the bot\'s event throughput and event-loop latency over recent intervals.')
 			.addFields([
 				{
-					name: 'Last Minute TPS',
-					value: `${tpsMonitor.getTPSColor(tps1m ?? 0)} ${formatValue(tps1m, ' TPS')}`,
+					name: 'Event Rate (1m)',
+					value: formatValue(eventRate1m, ' events/s'),
 					inline: true
 				},
 				{
-					name: 'Last 5 Minutes TPS',
-					value: `${tpsMonitor.getTPSColor(tps5m ?? 0)} ${formatValue(tps5m, ' TPS')}`,
+					name: 'Message Rate (1m)',
+					value: formatValue(messageRate1m, ' msgs/s'),
 					inline: true
 				},
 				{
-					name: 'Last 15 Minutes TPS',
-					value: `${tpsMonitor.getTPSColor(tps15m ?? 0)} ${formatValue(tps15m, ' TPS')}`,
+					name: 'Interaction Rate (1m)',
+					value: formatValue(interactionRate1m, ' interactions/s'),
 					inline: true
 				},
 				{
 					name: 'Event Loop Avg (1m)',
-					value: formatValue(loop1m, ' ms'),
+					value: `${monitor.getLatencyStatus(loop1m)} ${formatValue(loop1m, ' ms')}`,
 					inline: true
 				},
 				{
 					name: 'Event Loop P95 (1m)',
-					value: formatValue(loopP951m, ' ms'),
+					value: `${monitor.getLatencyStatus(loopP951m)} ${formatValue(loopP951m, ' ms')}`,
 					inline: true
 				},
 				{
 					name: 'Event Loop Max (1m)',
-					value: formatValue(maxLoop1m, ' ms'),
+					value: `${monitor.getLatencyStatus(maxLoop1m)} ${formatValue(maxLoop1m, ' ms')}`,
 					inline: true
 				},
 				{
@@ -97,7 +97,7 @@ export class TPSCommand extends Command {
 					inline: true
 				}
 			])
-			.setFooter({ text: 'TPS Status: 🟢 Good (18-20) | 🟡 Warning (15-17) | 🔴 Poor (<15)' })
+			.setFooter({ text: 'Latency Status: 🟢 <20ms | 🟡 20-50ms | 🔴 >50ms' })
 			.setTimestamp();
 
 		if (interaction instanceof Message) {
