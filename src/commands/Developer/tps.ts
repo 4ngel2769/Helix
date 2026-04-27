@@ -2,53 +2,21 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { EmbedBuilder, Message, ColorResolvable, MessageFlags } from 'discord.js';
 import config from '../../config';
+import { TPSMonitor } from '../../lib/services/TPSMonitor';
 
-class TPSMonitor {
-	private static instance: TPSMonitor;
-	private lastTick: number;
-	private tpsHistory: number[];
-	private readonly targetTPS: number = 20;
-	private readonly historyLength: number = 60;
+function formatBytes(bytes: number): string {
+	if (bytes === 0) return '0 B';
+	const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+	const index = Math.floor(Math.log(bytes) / Math.log(1024));
+	const value = bytes / Math.pow(1024, index);
+	return `${value.toFixed(2)} ${units[index]}`;
+}
 
-	private constructor() {
-		this.lastTick = Date.now();
-		this.tpsHistory = [];
-		this.startTicking();
-	}
-
-	public static getInstance(): TPSMonitor {
-		if (!TPSMonitor.instance) {
-			TPSMonitor.instance = new TPSMonitor();
-		}
-		return TPSMonitor.instance;
-	}
-
-	private startTicking(): void {
-		setInterval(() => {
-			const now = Date.now();
-			const elapsed = now - this.lastTick;
-			const currentTPS = 1000 / elapsed;
-
-			this.tpsHistory.push(Math.min(currentTPS, this.targetTPS));
-			if (this.tpsHistory.length > this.historyLength) {
-				this.tpsHistory.shift();
-			}
-
-			this.lastTick = now;
-		}, 1000 / this.targetTPS);
-	}
-
-	public getTPS(duration: number = 60): number {
-		const relevantHistory = this.tpsHistory.slice(-Math.min(duration, this.historyLength));
-		const average = relevantHistory.reduce((a, b) => a + b, 0) / relevantHistory.length;
-		return Math.round(average * 100) / 100;
-	}
-
-	public getTPSColor(tps: number): string {
-		if (tps >= 18) return '🟢';
-		if (tps >= 15) return '🟡';
-		return '🔴';
-	}
+function formatUptime(seconds: number): string {
+	const hrs = Math.floor(seconds / 3600);
+	const mins = Math.floor((seconds % 3600) / 60);
+	const secs = seconds % 60;
+	return `${hrs}h ${mins}m ${secs}s`;
 }
 
 @ApplyOptions<Command.Options>({
@@ -74,25 +42,58 @@ export class TPSCommand extends Command {
 		const tps1m = tpsMonitor.getTPS(60);
 		const tps5m = tpsMonitor.getTPS(300);
 		const tps15m = tpsMonitor.getTPS(900);
+		const loop1m = tpsMonitor.getEventLoopLatency(60);
+		const loopP951m = tpsMonitor.getEventLoopP95Latency(60);
+		const maxLoop1m = tpsMonitor.getEventLoopMaxLatency(60);
+		const memory = tpsMonitor.getMemoryUsage();
+		const uptime = tpsMonitor.getUptime();
+
+		const formatValue = (value: number | null, unit = '') =>
+			value === null ? 'Collecting...' : `${value}${unit}`;
 
 		const embed = new EmbedBuilder()
 			.setColor(config.bot.embedColor.default as ColorResolvable)
-			.setTitle('🎯 Bot TPS (Ticks Per Second)')
-			.setDescription('Shows how many ticks per second the bot is processing.\nOptimal TPS: 20')
+			.setTitle('🎯 Bot TPS & Performance')
+			.setDescription('Shows the bot\'s event loop and TPS performance over recent intervals.')
 			.addFields([
 				{
-					name: 'Last Minute',
-					value: `${tpsMonitor.getTPSColor(tps1m)} ${tps1m} TPS`,
+					name: 'Last Minute TPS',
+					value: `${tpsMonitor.getTPSColor(tps1m ?? 0)} ${formatValue(tps1m, ' TPS')}`,
 					inline: true
 				},
 				{
-					name: 'Last 5 Minutes',
-					value: `${tpsMonitor.getTPSColor(tps5m)} ${tps5m} TPS`,
+					name: 'Last 5 Minutes TPS',
+					value: `${tpsMonitor.getTPSColor(tps5m ?? 0)} ${formatValue(tps5m, ' TPS')}`,
 					inline: true
 				},
 				{
-					name: 'Last 15 Minutes',
-					value: `${tpsMonitor.getTPSColor(tps15m)} ${tps15m} TPS`,
+					name: 'Last 15 Minutes TPS',
+					value: `${tpsMonitor.getTPSColor(tps15m ?? 0)} ${formatValue(tps15m, ' TPS')}`,
+					inline: true
+				},
+				{
+					name: 'Event Loop Avg (1m)',
+					value: formatValue(loop1m, ' ms'),
+					inline: true
+				},
+				{
+					name: 'Event Loop P95 (1m)',
+					value: formatValue(loopP951m, ' ms'),
+					inline: true
+				},
+				{
+					name: 'Event Loop Max (1m)',
+					value: formatValue(maxLoop1m, ' ms'),
+					inline: true
+				},
+				{
+					name: 'Heap Used',
+					value: formatBytes(memory.heapUsed),
+					inline: true
+				},
+				{
+					name: 'Uptime',
+					value: formatUptime(uptime),
 					inline: true
 				}
 			])
@@ -101,8 +102,8 @@ export class TPSCommand extends Command {
 
 		if (interaction instanceof Message) {
 			return interaction.reply({ embeds: [embed] });
-		} else {
-			return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 		}
+
+		return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 	}
 }

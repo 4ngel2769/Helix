@@ -17,7 +17,7 @@ import {
 import { ActivityType } from 'discord.js';
 
 // Import from files
-import { TPSMonitor } from '../lib/structures/TPSMonitor';
+import { TPSMonitor } from '../lib/services/TPSMonitor';
 import { Guild } from '../models/Guild';
 import { Config } from '../config.js';
 import configModule from '../config.js';
