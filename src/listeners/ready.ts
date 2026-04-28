@@ -80,7 +80,7 @@ export class UserEvent extends Listener {
         logger.info(`[${success}] Performance Monitor initialized and tracking started`);
         
         if (dev) logger.warn(`${blc('<')}${llc('/')}${blc('>')} ${llc('DEVELOPMENT MODE')}`);
-        logger.info(`${ylc(`Helix version ${config.bot.version}`)}${llc(' - ')}${llc('by ')}${rlc('Angel')}`);
+		logger.info(`${ylc(`Helix version ${config.bot.version}`)}${llc(' - ')}${llc('by ')}${rlc('\u001B]8;;https://github.com/4ngel2769/Helix\u0007angeldev0\u001B]8;;\u0007')}`);
         logger.info(`[${success}] Gateway: ${blc(this.container.client.ws.shards.size.toString())} shards`);
         logger.info(`[${success}] Database`);
         logger.info(`[${success}] Performance Monitor`);
