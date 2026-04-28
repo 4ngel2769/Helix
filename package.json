@@ -80,7 +80,7 @@
     "start": "node dist/index.js",
     "dev": "run-s build start",
     "dev2": "run-p watch start",
-    "dev3": "run-s build && run-p watch start",
+    "dev3": "run-s clean:dist watch:start",
     "dev4": "ts-node-dev --respawn --transpile-only --no-modify src/index.ts",
     "dev5": "tsc-watch --onSuccess \"node ./dist/index.js\"",
     "watch:start": "tsc-watch --onSuccess \"node ./dist/index.js\"",

@@ -3,6 +3,7 @@ import { Args, Command, CommandOptions, container } from '@sapphire/framework';
 import { 
     ActionRowBuilder, 
     ButtonBuilder, 
+    ButtonStyle,
     EmbedBuilder, 
     StringSelectMenuBuilder,
     StringSelectMenuInteraction,
@@ -17,6 +18,7 @@ import {
 import { Guild as DiscordGuild } from 'discord.js';
 import { Guild as GuildModel } from '../../models/Guild';
 import config from '../../config';
+import { getModuleConfig } from '../../config/modules';
 import { Module, Modules, type IsEnabledContext, type ModuleError } from '@kbotdev/plugin-modules';
 import { Result } from '@sapphire/result';
 import { ModuleCommand, ModuleCommandUnion } from '@kbotdev/plugin-modules';
@@ -30,7 +32,7 @@ import {
     sendInteractionErrorMessage
 } from '../../lib/utils/helpCommandHelpers';
 
-const COMMANDS_PER_PAGE = 5;
+const COMMANDS_PER_PAGE = 11;
 
 interface ExtendedCommand extends Command<Args, CommandOptions> {
     category: string | null;
@@ -85,6 +87,91 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
         }
 
         return Array.from(categories);
+    }
+
+    private getFilteredCommandCounts(filteredModules: string[]): Map<string, number> {
+        const counts = new Map<string, number>();
+        for (const module of filteredModules) {
+            counts.set(module.toLowerCase(), 0);
+        }
+
+        for (const command of container.stores.get('commands').values() as IterableIterator<ExtendedCommand>) {
+            const category = command.category?.toLowerCase();
+            if (!category) continue;
+            if (!counts.has(category)) continue;
+            counts.set(category, (counts.get(category) ?? 0) + 1);
+        }
+
+        return counts;
+    }
+
+    private buildHelpEmbed(filteredModules: string[]) {
+        return new EmbedBuilder()
+            .setColor(config.bot.embedColor.default as ColorResolvable)
+            .setTitle('Help Menu')
+            .setDescription(
+                'Use the dropdown below to browse command modules. Press **Main Help** anytime to return here.'
+            )
+            .addFields([
+                {
+                    name: 'Quick links',
+                    value: '[Dashboard](https://helix.angellabs.xyz/dashboard) • [Command List](https://helix.angellabs.xyz/commands)'
+                },
+                {
+                    name: 'Policies',
+                    value: '[Terms of Service](https://helix.angellabs.xyz/terms) • [Privacy Policy](https://helix.angellabs.xyz/privacy)'
+                },
+                {
+                    name: 'Need help?',
+                    value: 'Use the dropdown to select a module, or type `/help <command>` for specific command information.'
+                }
+            ])
+            .setFooter({ text: `Helix v${config.bot.version} • ${filteredModules.length} module${filteredModules.length === 1 ? '' : 's'} available` });
+    }
+
+    private createHomeButton(disabled = false) {
+        return new ButtonBuilder()
+            .setCustomId('help-home')
+            .setLabel('Main Help')
+            .setStyle(ButtonStyle.Secondary)
+            .setDisabled(disabled);
+    }
+
+    private async updateHelpResponse(
+        interaction: Command.ChatInputCommandInteraction | StringSelectMenuInteraction | ButtonInteraction | Message,
+        embed: EmbedBuilder,
+        components: Array<ActionRowBuilder<StringSelectMenuBuilder> | ActionRowBuilder<ButtonBuilder>>
+    ) {
+        const buttonCheck = typeof (interaction as ButtonInteraction).isButton === 'function';
+        const selectCheck = typeof (interaction as StringSelectMenuInteraction).isStringSelectMenu === 'function';
+
+        if (buttonCheck || selectCheck) {
+            const componentInteraction = interaction as StringSelectMenuInteraction | ButtonInteraction;
+            if (componentInteraction.deferred || componentInteraction.replied) {
+                await (componentInteraction as any).editReply({ embeds: [embed], components });
+            } else {
+                try {
+                    await componentInteraction.update({ embeds: [embed], components });
+                } catch (error: unknown) {
+                    const code = typeof error === 'object' && error !== null && 'code' in error ? (error as { code?: number }).code : undefined;
+                    if (code === 40060 || code === 10062) {
+                        await (componentInteraction as any).editReply({ embeds: [embed], components }).catch(() => null);
+                    } else {
+                        throw error;
+                    }
+                }
+            }
+            return;
+        }
+
+        if (typeof (interaction as any).editReply === 'function') {
+            await (interaction as any).editReply({ embeds: [embed], components });
+            return;
+        }
+
+        if (interaction instanceof Message) {
+            await interaction.edit({ embeds: [embed], components });
+        }
     }
 
     private getMemberPermissions(member: unknown): bigint | Readonly<PermissionsBitField> | undefined {
@@ -299,25 +386,17 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
         );
 
         const moduleSelect = createHelpModuleSelect(filteredModules);
+        const mainEmbed = this.buildHelpEmbed(filteredModules);
 
-        const mainEmbed = new EmbedBuilder()
-            .setColor(config.bot.embedColor.default as ColorResolvable)
-            .setTitle('Help Menu')
-            .setDescription(
-                'Select a module from the dropdown menu below to view its commands.\n\n' +
-                '**Available Modules:**\n' +
-                filteredModules.map(module => `> - \`${module}\``).join('\n')
-            );
-
-        const row = new ActionRowBuilder<StringSelectMenuBuilder>()
-            .addComponents(moduleSelect);
+        const selectRow = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(moduleSelect);
+        const buttonRow = new ActionRowBuilder<ButtonBuilder>().addComponents(this.createHomeButton(true));
 
         const response = await (isSlash ? 
             (interaction as Command.ChatInputCommandInteraction).editReply({ 
                 embeds: [mainEmbed], 
-                components: [row]
+                components: [selectRow, buttonRow]
             }) :
-            (interaction.channel as TextChannel).send({ embeds: [mainEmbed], components: [row] }));
+            (interaction.channel as TextChannel).send({ embeds: [mainEmbed], components: [selectRow, buttonRow] }));
             
         const collector = response.createMessageComponentCollector({
             filter: (i) => 
@@ -327,19 +406,17 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
 
         collector.on('collect', async (i: ButtonInteraction | StringSelectMenuInteraction) => {
             try {
-                // Check interaction age before processing
-                const interactionAge = Date.now() - i.createdTimestamp;
-                if (interactionAge > 2500) { // 2.5 seconds - close to Discord's 3-second limit
-                    // Interaction might be too old, defer immediately
-                    if (!i.deferred && !i.replied) {
-                        await i.deferUpdate().catch(() => null);
-                    }
-                }
-
                 if (i.isStringSelectMenu()) {
                     await this.handleModuleSelect(i);
                 } else if (i.isButton()) {
-                    await this.handlePaginationButton(i);
+                    if (i.customId === 'help-home') {
+                        const mainEmbed = this.buildHelpEmbed(filteredModules);
+                        const selectRow = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(moduleSelect);
+                        const buttonRow = new ActionRowBuilder<ButtonBuilder>().addComponents(this.createHomeButton(true));
+                        await this.updateHelpResponse(i, mainEmbed, [selectRow, buttonRow]);
+                    } else {
+                        await this.handlePaginationButton(i);
+                    }
                 }
             } catch (error) {
                 console.error('Error handling interaction in collector:', error);
@@ -679,13 +756,14 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
                 
                 const row = new ActionRowBuilder<StringSelectMenuBuilder>()
                     .addComponents(moduleSelect);
+                const buttonRow = new ActionRowBuilder<ButtonBuilder>().addComponents(this.createHomeButton(false));
                     
                 await interaction.update({
                     embeds: [new EmbedBuilder()
                         .setColor(config.bot.embedColor.default as ColorResolvable)
                         .setTitle(`${selectedModule.charAt(0).toUpperCase() + selectedModule.slice(1)} Commands`)
                         .setDescription('No commands available in this module.')],
-                    components: [row]
+                    components: [row, buttonRow]
                 });
                 return;
             }
@@ -713,7 +791,8 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
 
             // Set up components with dropdown always in first row
             const components: (ActionRowBuilder<StringSelectMenuBuilder> | ActionRowBuilder<ButtonBuilder>)[] = [
-                new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(moduleSelect)
+                new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(moduleSelect),
+                new ActionRowBuilder<ButtonBuilder>().addComponents(this.createHomeButton(false))
             ];
             
             // Only add pagination buttons if needed
@@ -834,87 +913,44 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
         currentPage: number,
         totalPages: number
     ) {
-        const embed = new EmbedBuilder()
+        const truncate = (text: string, length: number) =>
+            text.length > length ? `${text.slice(0, length).trim()}…` : text;
+
+        const lines = commands.map((cmd) => {
+            const commandId = this.container.client.application?.commands.cache
+                .find(c => c.name === cmd.name)?.id;
+
+            const mention = commandId ? `</${cmd.name}:${commandId}>` : `/${cmd.name}`;
+            const description = cmd.description ? truncate(cmd.description, 68) : 'No description available.';
+
+            const options = Array.isArray(cmd.options?.options)
+                ? cmd.options.options
+                    .filter((opt: any) => opt.type !== 1)
+                    .map((opt: any) => opt.name)
+                    .slice(0, 3)
+                    .join(', ')
+                : '';
+
+            const subcommands = Array.isArray(cmd.options?.options)
+                ? cmd.options.options
+                    .filter((opt: any) => opt.type === 1)
+                    .map((opt: any) => opt.name)
+                    .slice(0, 4)
+                    .join(', ')
+                : '';
+
+            const parts = [`**${mention}**`, `— ${description}`];
+            if (options) parts.push(`(${options})`);
+            if (subcommands) parts.push(`*(subcommands: ${subcommands})*`);
+
+            return parts.join(' ');
+        });
+
+        return new EmbedBuilder()
             .setColor(config.bot.embedColor.default as ColorResolvable)
             .setTitle(`${moduleName.charAt(0).toUpperCase() + moduleName.slice(1)} Commands`)
-            .setDescription(
-                commands.map(cmd => {
-                    // Get command ID from application commands
-                    const commandId = this.container.client.application?.commands.cache
-                        .find(c => c.name === cmd.name)?.id;
-
-                    // Create clickable command mention
-                    const commandMention = commandId 
-                        ? `</${cmd.name}:${commandId}>`
-                        : `\`/${cmd.name}\``;
-
-                    // Check if the command has subcommands
-                    const hasSubcommandOptions = cmd.options?.options && 
-                        Array.isArray(cmd.options.options) && 
-                        cmd.options.options.some((opt: any) => opt.type === 1); // Type 1 is subcommand
-
-                    const hasSubcommands = !!hasSubcommandOptions;
-
-                    if (hasSubcommands) {
-                        // Get the application command from the cache to retrieve subcommands
-                        const appCommand = this.container.client.application?.commands.cache
-                            .find(c => c.name === cmd.name);
-
-                        // Start with the main command description
-                        let description = `${cmd.description || 'No description available'}\n`;
-                        description += '\n**Subcommands:**\n';
-
-                        // If we have access to the application command data (preferred method)
-                        if (appCommand && commandId) {
-                            // Get subcommands from application command options
-                            const subcommands = appCommand.options
-                                .filter(opt => opt.type === 1) // Type 1 is subcommand
-                                .map(opt => {
-                                    // Create clickable subcommand mention format
-                                    return `</${cmd.name} ${opt.name}:${commandId}> - ${opt.description}`;
-                            });
-                        
-                        if (subcommands.length > 0) {
-                            description += subcommands.join('\n');
-                        } else {
-                            description += '*No subcommands found in application command data*';
-                        }
-                        } else {
-                            // Fallback if we can't get application command data
-                            const cmdOptions = cmd.options?.options;
-                            const subcommandOptions = Array.isArray(cmdOptions) 
-                                ? cmdOptions.filter((opt: any) => opt.type === 1)
-                                : [];
-                                
-                            if (subcommandOptions && subcommandOptions.length > 0) {
-                                description += subcommandOptions
-                                    .map((opt: any) => `\`/${cmd.name} ${opt.name}\` - ${opt.description || 'No description'}`)
-                                    .join('\n');
-                            } else {
-                                description += '*Use the command to see available subcommands*';
-                            }
-                        }
-
-                        return `${commandMention}\n↳ ${description}\n`;
-                    } else {
-                        // Handle regular commands (no subcommands) like before
-                        const cmdOptions = cmd.options?.options;
-                        const options = Array.isArray(cmdOptions)
-                            ? cmdOptions
-                                .filter((opt: any) => opt.type !== 1) // Filter out subcommands
-                                .map((opt: any) => `\`${opt.name}\``)
-                                .join(', ')
-                            : undefined;
-
-                        return `${commandMention}\n↳ ${cmd.description || 'No description available'}${
-                            options ? `\nOptions: ${options}` : ''
-                        }\n`;
-                    }
-                }).join('\n')
-            )
+            .setDescription(lines.join('\n'))
             .setFooter({ text: `Page ${currentPage}/${totalPages}` });
-
-        return embed;
     }
 
     public override async autocompleteRun(interaction: Command.AutocompleteInteraction) {
