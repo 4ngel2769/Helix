@@ -177,8 +177,8 @@ export class UserinfoCommand extends Command<GeneralModule> {
 				value: `
 				> **Username :** \`${userToGet?.username}\`
 				> **ID :** \`${userToGet?.id}\`
-				> **Joined Discord :** <t:${Math.floor(joinDate!.getTime() / 1000)}:f>
-				> **Joined server :** <t:${Math.floor(createDate!.getTime() / 1000 )}:f>
+				> **Joined Discord :** <t:${Math.floor(createDate!.getTime() / 1000)}:f>
+				> **Joined server :** <t:${Math.floor(joinDate!.getTime() / 1000 )}:f>
 				`
 			},{
 				name:`Guild`,

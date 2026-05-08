@@ -15,6 +15,21 @@ export class ButtonHandler extends InteractionHandler {
             'my-awesome-button',
             'note_back',
             'bank_upgrade_cancel',
+            // Tic Tac Toe game buttons
+            'continue_singleplayer',
+            'cancel_game',
+            'withdraw',
+            'offer_draw',
+            'replay',
+            '0-0',
+            '0-1',
+            '0-2',
+            '1-0',
+            '1-1',
+            '1-2',
+            '2-0',
+            '2-1',
+            '2-2',
             // Help command pagination buttons (handled by the help command collector)
             'previous',
             'next'
@@ -27,7 +42,9 @@ export class ButtonHandler extends InteractionHandler {
             'note_delete_',
             'auction_',
             'bank_upgrade_confirm_',
-            'inventory_'
+            'inventory_',
+            'accept_draw_',
+            'decline_draw_'
         ];
 
         if (handledElsewhere.includes(interaction.customId)) {
