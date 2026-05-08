@@ -76,18 +76,20 @@ export async function startSinglePlayerGame(interaction: ModuleCommand.ChatInput
         confirmCollector.on('collect', async (btn) => {
             if (btn.customId === 'continue_singleplayer') {
                 confirmCollector.stop('continue');
-                await btn.update({ 
-                    content: 'Starting singleplayer game (ephemeral mode)...', 
-                    embeds: [], 
-                    components: [] 
+                await btn.deferUpdate().catch(() => null);
+                await interaction.editReply({
+                    content: 'Starting singleplayer game (ephemeral mode)...',
+                    embeds: [],
+                    components: []
                 });
                 // Continue with the game setup below
             } else {
                 confirmCollector.stop('cancel');
-                await btn.update({ 
-                    content: 'Game cancelled.', 
-                    embeds: [], 
-                    components: [] 
+                await btn.deferUpdate().catch(() => null);
+                await interaction.editReply({
+                    content: 'Game cancelled.',
+                    embeds: [],
+                    components: []
                 });
                 return;
             }
@@ -306,7 +308,8 @@ export async function startSinglePlayerGame(interaction: ModuleCommand.ChatInput
 
 		resetTimer();
 
-		await buttonInteraction.update({
+		await buttonInteraction.deferUpdate().catch(() => null);
+		await interaction.editReply({
 			embeds: [createGameEmbed()],
 			components: createGameButtons() // do NOT add the withdraw row again here
 		});
@@ -376,9 +379,12 @@ export async function startSinglePlayerGame(interaction: ModuleCommand.ChatInput
 			}
 			
 			replayCollector.stop('accepted');
-			await btn.update({ content: 'Starting a new game...', components: [] });
+			await interaction.editReply({
+				embeds: [createGameEmbed('Starting a new game...')],
+				components: []
+			});
 			
-			// Start new singleplayer game using the button interaction
+			// Start new singleplayer game using the replay button interaction
 			await startSinglePlayerGame(btn, player, bot);
 		});
 		
@@ -406,7 +412,11 @@ export async function startSinglePlayerGame(interaction: ModuleCommand.ChatInput
     }
 }
 
-export async function startMultiplayerGame(interaction: ModuleCommand.ChatInputCommandInteraction, player1: User, player2: User) {
+export async function startMultiplayerGame(
+    interaction: ModuleCommand.ChatInputCommandInteraction | ButtonInteraction,
+    player1: User,
+    player2: User
+) {
     try {
     // Check if bot is properly in guild for multiplayer functionality
     if (interaction.guild && !isBotProperlyInGuild(interaction)) {
@@ -513,6 +523,7 @@ export async function startMultiplayerGame(interaction: ModuleCommand.ChatInputC
                     flags: MessageFlags.Ephemeral
                 });
             }
+            await buttonInteraction.deferUpdate().catch(() => null);
             collector.stop('resign');
             const resignedPlayer = buttonInteraction.user.id === player1Id ? player1 : player2;
             const winnerPlayer = buttonInteraction.user.id === player1Id ? player2 : player1;
@@ -527,7 +538,7 @@ export async function startMultiplayerGame(interaction: ModuleCommand.ChatInputC
                 { $inc: { 'gameStats.multiplayer.tictactoe.wins': 1, 'gameStats.multiplayer.tictactoe.gamesPlayed': 1 } }
             );
 
-            await buttonInteraction.update({
+            await interaction.editReply({
                 embeds: [createGameEmbed(`${resignedPlayer.username} resigned. ${winnerPlayer.username} wins!`)],
                 components: [getReplayRow()]
             });
@@ -542,6 +553,7 @@ export async function startMultiplayerGame(interaction: ModuleCommand.ChatInputC
                     flags: MessageFlags.Ephemeral
                 });
             }
+            await buttonInteraction.deferUpdate().catch(() => null);
             const offeringPlayer = buttonInteraction.user.id === player1Id ? player1 : player2;
             const otherPlayer = buttonInteraction.user.id === player1Id ? player2 : player1;
             
@@ -556,7 +568,7 @@ export async function startMultiplayerGame(interaction: ModuleCommand.ChatInputC
                     .setStyle(ButtonStyle.Danger)
             );
 
-            await buttonInteraction.update({
+            await interaction.editReply({
                 embeds: [createGameEmbed(`${offeringPlayer.username} offers a draw. ${otherPlayer.username}, do you accept?`)],
                 components: [...createGameButtons(), drawButtons]
             });
@@ -573,6 +585,7 @@ export async function startMultiplayerGame(interaction: ModuleCommand.ChatInputC
                 });
             }
 
+            await buttonInteraction.deferUpdate().catch(() => null);
             if (buttonInteraction.customId.startsWith('accept_draw_')) {
                 collector.stop('draw');
                 await gameStatsModel.updateOne(
@@ -584,13 +597,13 @@ export async function startMultiplayerGame(interaction: ModuleCommand.ChatInputC
                     { $inc: { 'gameStats.multiplayer.tictactoe.draws': 1, 'gameStats.multiplayer.tictactoe.gamesPlayed': 1 } }
                 );
 
-                await buttonInteraction.update({
+                await interaction.editReply({
                     embeds: [createGameEmbed("Draw accepted! It's a draw!")],
                     components: [getReplayRow()]
                 });
                 return;
             } else {
-                await buttonInteraction.update({
+                await interaction.editReply({
                     embeds: [createGameEmbed()],
                     components: [...createGameButtons(), getGameControlRow({ multiplayer: true })]
                 });
@@ -620,6 +633,7 @@ export async function startMultiplayerGame(interaction: ModuleCommand.ChatInputC
             return buttonInteraction.reply({ content: 'This spot is already taken!', flags: MessageFlags.Ephemeral });
         }
 
+        await buttonInteraction.deferUpdate().catch(() => null);
         board[row][col] = currentPlayer === player1 ? '❌' : '⭕';
         currentPlayer = currentPlayer === player1 ? player2 : player1;
         movesMade++;
@@ -640,7 +654,7 @@ export async function startMultiplayerGame(interaction: ModuleCommand.ChatInputC
                 { $inc: { 'gameStats.multiplayer.tictactoe.losses': 1, 'gameStats.multiplayer.tictactoe.gamesPlayed': 1 } }
             );
 
-            await buttonInteraction.update({
+            await interaction.editReply({
                 embeds: [createGameEmbed(`${winner === '❌' ? player1.username : player2.username} wins!`)],
                 components: [getReplayRow()]
             });
@@ -658,14 +672,14 @@ export async function startMultiplayerGame(interaction: ModuleCommand.ChatInputC
                 { $inc: { 'gameStats.multiplayer.tictactoe.draws': 1, 'gameStats.multiplayer.tictactoe.gamesPlayed': 1 } }
             );
 
-            await buttonInteraction.update({
+            await interaction.editReply({
                 embeds: [createGameEmbed("It's a draw!")],
                 components: [getReplayRow()]
             });
             return;
         }
 
-        await buttonInteraction.update({
+        await interaction.editReply({
             embeds: [createGameEmbed()],
             components: [...createGameButtons(), getGameControlRow({ multiplayer: true })]
         });
@@ -692,7 +706,8 @@ export async function startMultiplayerGame(interaction: ModuleCommand.ChatInputC
                 if (!replayInitiator) {
                     // First click: set initiator, update button to "Accept Replay"
                     replayInitiator = btn.user.id;
-                    await btn.update({
+                    await btn.deferUpdate().catch(() => null);
+                    await interaction.editReply({
                         embeds: [createGameEmbed(`${btn.user.username} wants a rematch! Waiting for the other player to accept...`)],
                         components: [
                             new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -713,8 +728,9 @@ export async function startMultiplayerGame(interaction: ModuleCommand.ChatInputC
                 
                 // Second player accepts
                 replayCollector.stop('accepted');
-                await btn.update({ content: 'Starting a new game...', components: [] });
-                await startMultiplayerGame(interaction, player1, player2);
+                await btn.deferUpdate().catch(() => null);
+                await interaction.editReply({ content: 'Starting a new game...', components: [] });
+                await startMultiplayerGame(btn, player1, player2);
             });
             
             replayCollector.on('end', async (_, reason) => {
