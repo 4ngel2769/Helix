@@ -18,12 +18,12 @@ import { Guild } from '../../../models/Guild';
 import config from '../../../config';
 import { ErrorHandler } from '../../../lib/structures/ErrorHandler';
 import { parseReactionRoleEmoji, updateReactionRoleMenuMessage } from '../../../lib/utils/reactionRolesHelpers';
-import { handleCreate } from './create';
-import { handleList } from './list';
-import { handleDelete } from './delete';
-import { handlePause, handleResume } from './pause';
-import { handleEdit } from './edit';
-import { respondWithMenuIdChoices, respondWithMenuRoleChoices, hasRequiredPermissions } from './utils';
+import { handleCreate } from './_create';
+import { handleList } from './_list';
+import { handleDelete } from './_delete';
+import { handlePause, handleResume } from './_pause';
+import { handleEdit } from './_edit';
+import { respondWithMenuIdChoices, respondWithMenuRoleChoices, hasRequiredPermissions } from './_utils';
 
 @ApplyOptions<Command.Options>({
     name: 'reactionroles',

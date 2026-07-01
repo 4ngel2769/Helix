@@ -3,10 +3,10 @@ import { Command } from '@sapphire/framework';
 import { EmbedBuilder, MessageFlags } from 'discord.js';
 import { EconomyItem } from '../../../models/EconomyItem';
 import config from '../../../config';
-import { handleMoneyAdd, handleMoneyRemove, handleMoneySet } from './money';
-import { handleDiamondsAdd, handleDiamondsRemove, handleDiamondsSet } from './diamonds';
-import { handleItemGive, handleItemTake, handleItemClear } from './items';
-import { handleProfileReset, handleProfileView } from './profile';
+import { handleMoneyAdd, handleMoneyRemove, handleMoneySet } from './_money';
+import { handleDiamondsAdd, handleDiamondsRemove, handleDiamondsSet } from './_diamonds';
+import { handleItemGive, handleItemTake, handleItemClear } from './_items';
+import { handleProfileReset, handleProfileView } from './_profile';
 
 @ApplyOptions<Command.Options>({
     name: 'user-manage',

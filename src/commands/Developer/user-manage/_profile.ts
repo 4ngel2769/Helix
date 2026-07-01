@@ -5,7 +5,7 @@ import config from '../../../config';
 import { UserService } from '../../../lib/services/economy/UserService';
 import { DiamondService } from '../../../lib/services/economy/DiamondService';
 import { User } from '../../../models/User';
-import { getMostValuableItem } from './utils';
+import { getMostValuableItem } from './_utils';
 
 export async function handleProfileReset(interaction: Command.ChatInputCommandInteraction) {
   await interaction.deferReply();

@@ -29,15 +29,15 @@ import {
   sendInteractionErrorMessage
 } from '../../../lib/utils/helpCommandHelpers';
 import { Args, CommandOptions } from '@sapphire/framework';
-import { getFilteredModules } from './permissions';
-import { getMemberPermissions } from './permissions';
+import { getFilteredModules } from './_permissions';
+import { getMemberPermissions } from './_permissions';
 import {
   buildHelpEmbed,
   createHomeButton,
   updateHelpResponse,
   generateCommandEmbed,
   getCommandCategories
-} from './rendering';
+} from './_rendering';
 
 const COMMANDS_PER_PAGE = 11;
 

@@ -6,7 +6,7 @@ import { UserService } from '../../../lib/services/economy/UserService';
 import { InventoryService } from '../../../lib/services/economy/InventoryService';
 import { EconomyItem } from '../../../models/EconomyItem';
 import { User } from '../../../models/User';
-import { getRarityDisplay } from './utils';
+import { getRarityDisplay } from './_utils';
 
 export async function handleItemGive(interaction: Command.ChatInputCommandInteraction) {
   await interaction.deferReply();
