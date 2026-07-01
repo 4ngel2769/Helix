@@ -5,6 +5,7 @@ import { MessageFlags } from 'discord.js';
 
 interface HelpPaginationCommand {
     handlePaginationButton(interaction: ButtonInteraction): Promise<unknown> | unknown;
+    handleHomeButton(interaction: ButtonInteraction): Promise<unknown> | unknown;
 }
 
 function isHelpPaginationCommand(command: unknown): command is HelpPaginationCommand {
@@ -21,7 +22,7 @@ function isHelpPaginationCommand(command: unknown): command is HelpPaginationCom
 })
 export class HelpButtonHandler extends InteractionHandler {
     public override parse(interaction: ButtonInteraction) {
-        const helpButtons = ['previous', 'next'];
+        const helpButtons = ['previous', 'next', 'help-home'];
         
         if (!helpButtons.includes(interaction.customId)) return this.none();
         return this.some();
@@ -42,7 +43,11 @@ export class HelpButtonHandler extends InteractionHandler {
         const helpCommand = this.container.stores.get('commands').get('help');
         if (isHelpPaginationCommand(helpCommand)) {
             try {
-                await helpCommand.handlePaginationButton(interaction);
+                if (interaction.customId === 'help-home') {
+                    await helpCommand.handleHomeButton(interaction);
+                } else {
+                    await helpCommand.handlePaginationButton(interaction);
+                }
             } catch (error: unknown) {
                 this.container.logger.error('Error in help pagination:', error);
 

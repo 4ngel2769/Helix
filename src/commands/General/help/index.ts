@@ -457,6 +457,50 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
     }
   }
 
+  public async handleHomeButton(interaction: ButtonInteraction) {
+    try {
+      if (Date.now() - interaction.createdTimestamp > 14 * 60 * 1000) {
+        this.container.logger.debug('Home button interaction expired, ignoring...');
+        return;
+      }
+
+      const guildId = interaction.guildId;
+      if (!guildId) return;
+
+      const memberPermissions = getMemberPermissions(interaction.member);
+      let guildData: Record<string, unknown> | null = null;
+      try {
+        guildData = await GuildModel.findOne({ guildId });
+      } catch {
+        guildData = createDefaultGuildData(guildId);
+      }
+      if (!guildData) guildData = createDefaultGuildData(guildId);
+
+      const categories = getCommandCategories();
+      const filteredModules = await getFilteredModules(
+        categories, guildData, interaction.guild as DiscordGuild | null, interaction as any, memberPermissions
+      );
+
+      const moduleSelect = createHelpModuleSelect(filteredModules);
+      const mainEmbed = buildHelpEmbed(filteredModules);
+      const selectRow = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(moduleSelect);
+      const buttonRow = new ActionRowBuilder<ButtonBuilder>().addComponents(createHomeButton(true));
+
+      if (interaction.deferred) {
+        await interaction.editReply({ embeds: [mainEmbed], components: [selectRow, buttonRow] });
+      } else {
+        await interaction.update({ embeds: [mainEmbed], components: [selectRow, buttonRow] });
+      }
+    } catch (error) {
+      this.container.logger.error('Error in handleHomeButton:', error);
+      if (getInteractionErrorCode(error) === 10062) {
+        this.container.logger.debug('Home button interaction expired, ignoring...');
+        return;
+      }
+      await sendInteractionErrorMessage(interaction, 'An error occurred while returning to the main menu.');
+    }
+  }
+
   public async handlePaginationButton(interaction: ButtonInteraction) {
     try {
       if (Date.now() - interaction.createdTimestamp > 14 * 60 * 1000) {
