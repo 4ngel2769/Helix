@@ -354,7 +354,7 @@ export class UserManageCommand extends Command {
             }
         }
 
-        return interaction.reply({ content: 'Invalid command usage', ephemeral: true });
+        return interaction.reply({ content: 'Invalid command usage', flags: MessageFlags.Ephemeral });
     }
 
     public override async autocompleteRun(interaction: Command.AutocompleteInteraction) {

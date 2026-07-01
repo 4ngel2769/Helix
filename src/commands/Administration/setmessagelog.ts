@@ -1,6 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
-import { PermissionFlagsBits, EmbedBuilder, ChannelType, TextChannel } from 'discord.js';
+import { PermissionFlagsBits, EmbedBuilder, ChannelType, TextChannel, MessageFlags } from 'discord.js';
 import { Guild } from '../../models/Guild';
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { AdministrationModule } from '../../modules/Administration';
@@ -67,7 +67,7 @@ export class SetMessageLogCommand extends ModuleCommand<AdministrationModule> {
 
     public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
         if (!interaction.guild) {
-            return interaction.reply({ content: '❌ This command can only be used in a server.', ephemeral: true });
+            return interaction.reply({ content: '❌ This command can only be used in a server.', flags: MessageFlags.Ephemeral });
         }
 
         const subcommand = interaction.options.getSubcommand();
@@ -89,14 +89,14 @@ export class SetMessageLogCommand extends ModuleCommand<AdministrationModule> {
             } else if (subcommand === 'both') {
                 return this.handleBoth(interaction, guildData, channel);
             } else {
-                return interaction.reply({ content: '❌ Invalid subcommand.', ephemeral: true });
+                return interaction.reply({ content: '❌ Invalid subcommand.', flags: MessageFlags.Ephemeral });
             }
 
         } catch (error) {
             this.container.logger.error('Error setting message log:', error);
             return interaction.reply({ 
                 content: '❌ An error occurred while setting the message log channel.', 
-                ephemeral: true 
+                flags: MessageFlags.Ephemeral 
             });
         }
     }
@@ -116,7 +116,7 @@ export class SetMessageLogCommand extends ModuleCommand<AdministrationModule> {
         }
 
         if (channel.type !== ChannelType.GuildText) {
-            return interaction.reply({ content: '❌ Please select a text channel.', ephemeral: true });
+            return interaction.reply({ content: '❌ Please select a text channel.', flags: MessageFlags.Ephemeral });
         }
 
         guildData.messageEditLogChannelId = channel.id;
@@ -151,7 +151,7 @@ export class SetMessageLogCommand extends ModuleCommand<AdministrationModule> {
         }
 
         if (channel.type !== ChannelType.GuildText) {
-            return interaction.reply({ content: '❌ Please select a text channel.', ephemeral: true });
+            return interaction.reply({ content: '❌ Please select a text channel.', flags: MessageFlags.Ephemeral });
         }
 
         guildData.messageDeleteLogChannelId = channel.id;
@@ -187,7 +187,7 @@ export class SetMessageLogCommand extends ModuleCommand<AdministrationModule> {
         }
 
         if (channel.type !== ChannelType.GuildText) {
-            return interaction.reply({ content: '❌ Please select a text channel.', ephemeral: true });
+            return interaction.reply({ content: '❌ Please select a text channel.', flags: MessageFlags.Ephemeral });
         }
 
         guildData.messageEditLogChannelId = channel.id;

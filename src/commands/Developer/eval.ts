@@ -1,6 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
-import { EmbedBuilder, type ColorResolvable } from 'discord.js';
+import { EmbedBuilder, type ColorResolvable, MessageFlags } from 'discord.js';
 import { Script, createContext } from 'node:vm';
 import { inspect } from 'node:util';
 
@@ -70,13 +70,13 @@ export class EvalCommand extends Command {
 		const code = interaction.options.getString('code', true);
 		if (code.length > MAX_CODE_LENGTH) {
 			const embed = this.createEmbed('Eval Rejected', '#F44336', `Input exceeds ${MAX_CODE_LENGTH} characters.`);
-			return interaction.reply({ embeds: [embed], ephemeral: true });
+			return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 		}
 
 		const blockedReason = this.getBlockedReason(code);
 		if (blockedReason) {
 			const embed = this.createEmbed('Eval Rejected', '#F44336', blockedReason);
-			return interaction.reply({ embeds: [embed], ephemeral: true });
+			return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 		}
 
 		try {
@@ -115,11 +115,11 @@ export class EvalCommand extends Command {
 			const output = this.trimOutput(outputParts.join('\n\n'));
 
 			const embed = this.createEmbed('Eval Result', '#4CAF50', output);
-			return interaction.reply({ embeds: [embed], ephemeral: true });
+			return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 		} catch (error) {
 			const output = this.trimOutput(this.toDisplay(error));
 			const embed = this.createEmbed('Eval Error', '#F44336', output);
-			return interaction.reply({ embeds: [embed], ephemeral: true });
+			return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 		}
 	}
 }

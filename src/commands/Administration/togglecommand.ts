@@ -1,6 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
-import { PermissionFlagsBits, EmbedBuilder } from 'discord.js';
+import { PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
 import { Guild } from '../../models/Guild';
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { AdministrationModule } from '../../modules/Administration';
@@ -68,7 +68,7 @@ export class ToggleCommandCommand extends ModuleCommand<AdministrationModule> {
 
     public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
         if (!interaction.guild) {
-            return interaction.reply({ content: '❌ This command can only be used in a server.', ephemeral: true });
+            return interaction.reply({ content: '❌ This command can only be used in a server.', flags: MessageFlags.Ephemeral });
         }
 
         const commandName = interaction.options.getString('command', true).toLowerCase();
@@ -80,7 +80,7 @@ export class ToggleCommandCommand extends ModuleCommand<AdministrationModule> {
             if (!command) {
                 return interaction.reply({ 
                     content: `❌ Command \`${commandName}\` not found.`, 
-                    ephemeral: true 
+                    flags: MessageFlags.Ephemeral 
                 });
             }
 
@@ -89,7 +89,7 @@ export class ToggleCommandCommand extends ModuleCommand<AdministrationModule> {
             if (criticalCommands.includes(commandName)) {
                 return interaction.reply({ 
                     content: `❌ Cannot disable critical command \`${commandName}\`.`, 
-                    ephemeral: true 
+                    flags: MessageFlags.Ephemeral 
                 });
             }
 
@@ -111,7 +111,7 @@ export class ToggleCommandCommand extends ModuleCommand<AdministrationModule> {
                 if (isDisabled) {
                     return interaction.reply({ 
                         content: `❌ Command \`${commandName}\` is already disabled.`, 
-                        ephemeral: true 
+                        flags: MessageFlags.Ephemeral 
                     });
                 }
 
@@ -135,7 +135,7 @@ export class ToggleCommandCommand extends ModuleCommand<AdministrationModule> {
                 if (!isDisabled) {
                     return interaction.reply({ 
                         content: `❌ Command \`${commandName}\` is not disabled.`, 
-                        ephemeral: true 
+                        flags: MessageFlags.Ephemeral 
                     });
                 }
 
@@ -160,7 +160,7 @@ export class ToggleCommandCommand extends ModuleCommand<AdministrationModule> {
             this.container.logger.error('Error toggling command:', error);
             return interaction.reply({ 
                 content: '❌ An error occurred while toggling the command.', 
-                ephemeral: true 
+                flags: MessageFlags.Ephemeral 
             });
         }
     }

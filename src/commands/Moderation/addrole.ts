@@ -1,6 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
-import { PermissionFlagsBits, EmbedBuilder, GuildMember, Role } from 'discord.js';
+import { PermissionFlagsBits, EmbedBuilder, GuildMember, Role, MessageFlags } from 'discord.js';
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { ModerationModule } from '../../modules/Moderation';
 
@@ -48,7 +48,7 @@ export class AddRoleCommand extends ModuleCommand<ModerationModule> {
 
     public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
         if (!interaction.guild) {
-            return interaction.reply({ content: '❌ This command can only be used in a server.', ephemeral: true });
+            return interaction.reply({ content: '❌ This command can only be used in a server.', flags: MessageFlags.Ephemeral });
         }
 
         const targetUser = interaction.options.getUser('user', true);
@@ -64,14 +64,14 @@ export class AddRoleCommand extends ModuleCommand<ModerationModule> {
             if (!botMember.permissions.has(PermissionFlagsBits.ManageRoles)) {
                 return interaction.reply({ 
                     content: '❌ I don\'t have permission to manage roles.', 
-                    ephemeral: true 
+                    flags: MessageFlags.Ephemeral 
                 });
             }
 
             if (!executorMember.permissions.has(PermissionFlagsBits.ManageRoles)) {
                 return interaction.reply({ 
                     content: '❌ You don\'t have permission to manage roles.', 
-                    ephemeral: true 
+                    flags: MessageFlags.Ephemeral 
                 });
             }
 
@@ -79,7 +79,7 @@ export class AddRoleCommand extends ModuleCommand<ModerationModule> {
             if (botMember.roles.highest.position <= role.position) {
                 return interaction.reply({ 
                     content: '❌ I cannot add this role because it is higher than or equal to my highest role.', 
-                    ephemeral: true 
+                    flags: MessageFlags.Ephemeral 
                 });
             }
 
@@ -87,7 +87,7 @@ export class AddRoleCommand extends ModuleCommand<ModerationModule> {
             if (executorMember.roles.highest.position <= role.position) {
                 return interaction.reply({ 
                     content: '❌ You cannot add this role because it is higher than or equal to your highest role.', 
-                    ephemeral: true 
+                    flags: MessageFlags.Ephemeral 
                 });
             }
 
@@ -95,7 +95,7 @@ export class AddRoleCommand extends ModuleCommand<ModerationModule> {
             if (member.roles.cache.has(role.id)) {
                 return interaction.reply({ 
                     content: `❌ ${targetUser.tag} already has the ${role.name} role.`, 
-                    ephemeral: true 
+                    flags: MessageFlags.Ephemeral 
                 });
             }
 
@@ -120,7 +120,7 @@ export class AddRoleCommand extends ModuleCommand<ModerationModule> {
             this.container.logger.error('Error adding role:', error);
             return interaction.reply({ 
                 content: '❌ An error occurred while adding the role.', 
-                ephemeral: true 
+                flags: MessageFlags.Ephemeral 
             });
         }
     }

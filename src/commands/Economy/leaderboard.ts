@@ -1,7 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
-import { 
-    EmbedBuilder, 
+import { EmbedBuilder, 
     ActionRowBuilder, 
     ButtonBuilder, 
     ButtonStyle,
@@ -9,8 +8,7 @@ import {
     ButtonInteraction,
     StringSelectMenuBuilder,
     StringSelectMenuInteraction,
-    StringSelectMenuOptionBuilder
-} from 'discord.js';
+    StringSelectMenuOptionBuilder, MessageFlags } from 'discord.js';
 import type { PipelineStage } from 'mongoose';
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { EconomyModule } from '../../modules/Economy';
@@ -326,7 +324,7 @@ export class EconomyLeaderboardCommand extends ModuleCommand<EconomyModule> {
         try {
             await interaction.reply({
                 content: 'An error occurred while updating the leaderboard.',
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         } catch (replyError) {
             this.container.logger.error('Failed to send error message:', replyError);

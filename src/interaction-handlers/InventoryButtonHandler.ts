@@ -1,7 +1,7 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { InteractionHandler, InteractionHandlerTypes } from '@sapphire/framework';
 import type { ButtonInteraction, User } from 'discord.js';
-import { EmbedBuilder, ColorResolvable } from 'discord.js';
+import { EmbedBuilder, ColorResolvable, MessageFlags } from 'discord.js';
 import { InventoryService } from '../lib/services/economy/InventoryService';
 import config from '../config';
 import {
@@ -35,7 +35,7 @@ export class InventoryButtonHandler extends InteractionHandler {
             if (!category || !userId || Number.isNaN(expirationTime)) {
                 return interaction.followUp({
                     content: '❌ Invalid inventory interaction data. Please run `/inventory` again.',
-                    ephemeral: true
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -48,7 +48,7 @@ export class InventoryButtonHandler extends InteractionHandler {
             if (userId !== interaction.user.id) {
                 return interaction.followUp({
                     content: '❌ You can only interact with your own inventory buttons.',
-                    ephemeral: true
+                    flags: MessageFlags.Ephemeral
                 });
             }
 

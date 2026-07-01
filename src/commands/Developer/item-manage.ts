@@ -1,6 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
-import { EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder } from 'discord.js';
+import { EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, MessageFlags } from 'discord.js';
 import { EconomyItem } from '../../models/EconomyItem';
 import { randomUUID } from 'crypto';
 import config from '../../config';
@@ -172,7 +172,7 @@ export class ItemManageCommand extends Command {
             case 'delete':
                 return this.handleDelete(interaction);
             default:
-                return interaction.reply({ content: 'Invalid subcommand', ephemeral: true });
+                return interaction.reply({ content: 'Invalid subcommand', flags: MessageFlags.Ephemeral });
         }
     }
 

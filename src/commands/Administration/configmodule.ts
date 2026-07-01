@@ -1,6 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
-import { PermissionFlagsBits } from 'discord.js';
+import { PermissionFlagsBits, MessageFlags } from 'discord.js';
 import { getAllModuleKeys, getModuleConfig } from '../../config/modules';
 import { GuildConfigService } from '../../lib/services/GuildConfigService';
 
@@ -46,7 +46,7 @@ export class ConfigModuleCommand extends Command {
 		if (!guildId) {
 			return interaction.reply({
 				content: 'This command can only be used in a server.',
-				ephemeral: true
+				flags: MessageFlags.Ephemeral
 			});
 		}
 
@@ -58,7 +58,7 @@ export class ConfigModuleCommand extends Command {
 		if (!moduleConfig) {
 			return interaction.reply({
 				content: `Module "${moduleKey}" does not exist.`,
-				ephemeral: true
+				flags: MessageFlags.Ephemeral
 			});
 		}
 
@@ -82,14 +82,14 @@ export class ConfigModuleCommand extends Command {
 				// Confirmation reply
 				return interaction.reply({
 					content: `The ${moduleConfig.name} module has been ${enabled ? 'enabled' : 'disabled'} for this server.`,
-					ephemeral: true
+					flags: MessageFlags.Ephemeral
 				});
 			}
 			default:
 				// Handle unknown actions
 				return interaction.reply({
 					content: 'Invalid action.',
-					ephemeral: true
+					flags: MessageFlags.Ephemeral
 				});
 		}
 	}

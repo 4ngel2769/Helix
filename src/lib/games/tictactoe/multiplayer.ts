@@ -80,7 +80,7 @@ export async function startMultiplayerGame(
           createBotNotInServerEmbed(botUserId).data.description! +
           '\n\n**Multiplayer games require the bot to be properly invited to the server.**'
         )],
-        ephemeral: true
+        flags: MessageFlags.Ephemeral
       });
     }
 
@@ -238,6 +238,6 @@ export async function startMultiplayerGame(
     });
   } catch (error) {
     container.logger.error('Error in startMultiplayerGame:', error);
-    await safeReply(interaction, { content: 'An error occurred while starting the game. Please try again later.', ephemeral: true });
+    await safeReply(interaction, { content: 'An error occurred while starting the game. Please try again later.', flags: MessageFlags.Ephemeral });
   }
 }

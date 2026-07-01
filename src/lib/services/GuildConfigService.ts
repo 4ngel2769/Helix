@@ -36,7 +36,7 @@ export class GuildConfigService {
         const guildData = await Guild.findOneAndUpdate(
             { guildId },
             { $setOnInsert: this.createDefaultGuildData(guildId) },
-            { upsert: true, new: true }
+            { upsert: true, returnDocument: 'after' }
         );
 
         if (!guildData) {

@@ -112,11 +112,21 @@ export interface UserEconomyData {
   };
 }
 
+export interface UserWarning {
+  guildId: string;
+  reason: string;
+  moderatorId: string;
+  moderatorTag: string;
+  timestamp: Date;
+  active: boolean;
+}
+
 export interface IUser extends Document {
   userId: string;
   username: string;
   discriminator: string;
   economy: UserEconomyData;
+  warnings: UserWarning[];
   joinedServers: string[];
   lastSeen: Date;
   createdAt?: Date;
@@ -239,6 +249,15 @@ const userSchema = new Schema<IUser>({
       showEffectNotifications: { type: Boolean, default: true }
     }
   },
+  
+  warnings: [{
+    guildId: { type: String, required: true },
+    reason: { type: String, required: true },
+    moderatorId: { type: String, required: true },
+    moderatorTag: { type: String, required: true },
+    timestamp: { type: Date, default: Date.now },
+    active: { type: Boolean, default: true }
+  }],
   
   joinedServers: [{ type: String }],
   lastSeen: { type: Date, default: Date.now }

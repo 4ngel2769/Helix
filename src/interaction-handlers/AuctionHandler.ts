@@ -1,7 +1,7 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { InteractionHandler, InteractionHandlerTypes } from '@sapphire/framework';
 import type { ButtonInteraction } from 'discord.js';
-import { EmbedBuilder, ModalBuilder, ActionRowBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
+import { EmbedBuilder, ModalBuilder, ActionRowBuilder, TextInputBuilder, TextInputStyle, MessageFlags } from 'discord.js';
 import { AuctionService } from '../lib/services/AuctionService';
 import config from '../config';
 
@@ -47,7 +47,7 @@ export class AuctionHandler extends InteractionHandler {
                     .setDescription('This auction no longer exists or has ended.')
                     .setTimestamp();
 
-                return interaction.reply({ embeds: [embed], ephemeral: true });
+                return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
             }
 
             const minBid = (auction.auction.currentBid ?? auction.auction.startingBid ?? 0) + 1;
@@ -77,7 +77,7 @@ export class AuctionHandler extends InteractionHandler {
                 .setDescription('An error occurred. Please try again.')
                 .setTimestamp();
 
-            return interaction.reply({ embeds: [embed], ephemeral: true });
+            return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
         }
     }
 

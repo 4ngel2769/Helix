@@ -35,7 +35,7 @@ async function requestSingleplayerConfirmation(
   await safeReply(interaction, {
     embeds: [createBotNotInServerEmbed(botUserId)],
     components: [buttons],
-    ephemeral: true
+    flags: MessageFlags.Ephemeral
   });
 
   const replyMessage = await interaction.fetchReply();
@@ -187,6 +187,6 @@ export async function startSinglePlayerGame(
     });
   } catch (error) {
     container.logger.error('Error in startSinglePlayerGame:', error);
-    await safeReply(interaction, { content: 'An error occurred while starting the game. Please try again later.', ephemeral: true });
+    await safeReply(interaction, { content: 'An error occurred while starting the game. Please try again later.', flags: MessageFlags.Ephemeral });
   }
 }

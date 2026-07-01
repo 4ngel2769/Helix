@@ -2,7 +2,7 @@ import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { FunModule } from '../../modules/Fun';
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
-import { EmbedBuilder } from 'discord.js';
+import { EmbedBuilder, MessageFlags } from 'discord.js';
 import { getGameStatsModel } from '../../models/GameStats';
 
 @ApplyOptions<Command.Options>({
@@ -12,6 +12,15 @@ import { getGameStatsModel } from '../../models/GameStats';
     enabled: true
 })
 export class LeaderboardCommand extends ModuleCommand<FunModule> {
+    public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
+        super(context, {
+            ...options,
+            module: 'Fun',
+            description: 'View the leaderboard for a specific game.',
+            enabled: true
+        });
+    }
+
     public override registerApplicationCommands(registry: Command.Registry) {
         registry.registerChatInputCommand((builder) =>
             builder
@@ -96,7 +105,7 @@ export class LeaderboardCommand extends ModuleCommand<FunModule> {
             this.container.logger.error('Error fetching leaderboard data:', error);
             return interaction.reply({
                 content: 'An error occurred while fetching the leaderboard. Please try again later.',
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
     }

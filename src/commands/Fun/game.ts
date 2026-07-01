@@ -28,6 +28,7 @@ export class GameCommand extends ModuleCommand<FunModule> {
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
         super(context, {
             ...options,
+            module: 'Fun',
             description: 'Play a game!',
             enabled: true
         });

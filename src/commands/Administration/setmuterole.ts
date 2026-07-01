@@ -1,6 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
-import { PermissionFlagsBits, EmbedBuilder, Role } from 'discord.js';
+import { PermissionFlagsBits, EmbedBuilder, Role, MessageFlags } from 'discord.js';
 import { Guild } from '../../models/Guild';
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { AdministrationModule } from '../../modules/Administration';
@@ -37,7 +37,7 @@ export class SetMuteRoleCommand extends ModuleCommand<AdministrationModule> {
 
     public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
         if (!interaction.guild) {
-            return interaction.reply({ content: '❌ This command can only be used in a server.', ephemeral: true });
+            return interaction.reply({ content: '❌ This command can only be used in a server.', flags: MessageFlags.Ephemeral });
         }
 
         const role = interaction.options.getRole('role') as Role | null;
@@ -93,7 +93,7 @@ export class SetMuteRoleCommand extends ModuleCommand<AdministrationModule> {
             this.container.logger.error('Error setting mute role:', error);
             return interaction.reply({ 
                 content: '❌ An error occurred while setting the mute role.', 
-                ephemeral: true 
+                flags: MessageFlags.Ephemeral 
             });
         }
     }

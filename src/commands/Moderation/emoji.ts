@@ -114,7 +114,7 @@ export class EmojiCommand extends ModuleCommand<ModerationModule> {
                 );
             }
         } else {
-            return interaction.reply({ content: '❌ Invalid subcommand.', ephemeral: true });
+            return interaction.reply({ content: '❌ Invalid subcommand.', flags: MessageFlags.Ephemeral });
         }
     }
 } 

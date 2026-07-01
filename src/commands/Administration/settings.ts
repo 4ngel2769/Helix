@@ -1,6 +1,6 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
-import { PermissionFlagsBits, EmbedBuilder } from 'discord.js';
+import { PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
 import { IGuild } from '../../models/Guild';
 import { Guild } from '../../models/Guild';
 import { ModuleCommand } from '@kbotdev/plugin-modules';
@@ -44,7 +44,7 @@ export class SettingsCommand extends ModuleCommand<AdministrationModule> {
 
     public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
         if (!interaction.guild) {
-            return interaction.reply({ content: '❌ This command can only be used in a server.', ephemeral: true });
+            return interaction.reply({ content: '❌ This command can only be used in a server.', flags: MessageFlags.Ephemeral });
         }
 
         const category = interaction.options.getString('category');
@@ -117,14 +117,14 @@ export class SettingsCommand extends ModuleCommand<AdministrationModule> {
                 case 'general':
                     return this.showGeneralSettings(interaction, guildData, prefixString);
                 default:
-                    return interaction.reply({ content: '❌ Invalid category.', ephemeral: true });
+                    return interaction.reply({ content: '❌ Invalid category.', flags: MessageFlags.Ephemeral });
             }
 
         } catch (error) {
             this.container.logger.error('Error fetching settings:', error);
             return interaction.reply({ 
                 content: '❌ An error occurred while fetching server settings.', 
-                ephemeral: true 
+                flags: MessageFlags.Ephemeral 
             });
         }
     }

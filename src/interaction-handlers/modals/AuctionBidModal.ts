@@ -1,7 +1,7 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { InteractionHandler, InteractionHandlerTypes } from '@sapphire/framework';
 import type { ModalSubmitInteraction } from 'discord.js';
-import { EmbedBuilder } from 'discord.js';
+import { EmbedBuilder, MessageFlags } from 'discord.js';
 import { AuctionService } from '../../lib/services/AuctionService';
 import config from '../../config';
 
@@ -15,7 +15,7 @@ export class AuctionBidModal extends InteractionHandler {
     }
 
     public override async run(interaction: ModalSubmitInteraction) {
-        await interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
         const auctionId = interaction.customId.replace('auction_place_bid_', '');
         const bidAmountStr = interaction.fields.getTextInputValue('bid_amount');

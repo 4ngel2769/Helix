@@ -2,7 +2,7 @@ import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { GeneralModule } from '../../modules/General';
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
-import { EmbedBuilder } from 'discord.js';
+import { EmbedBuilder, MessageFlags } from 'discord.js';
 import { getGameStatsModel } from '../../models/GameStats';
 
 @ApplyOptions<Command.Options>({
@@ -65,7 +65,7 @@ export class ProfileCommand extends ModuleCommand<GeneralModule> {
 			this.container.logger.error('Error fetching profile data:', error);
 			return interaction.reply({
 				content: 'An error occurred while fetching your profile. Please try again later.',
-				ephemeral: true
+				flags: MessageFlags.Ephemeral
 			});
 		}
 	}

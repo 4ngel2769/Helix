@@ -88,15 +88,27 @@ export interface IGuild extends Document, LegacyModuleFlags, VerificationSetting
   adminRoleId?: string;
   modRoleId?: string;
   muteRoleId?: string;
+  autoroleId?: string;
   disabledCommands?: string[];
   modLogChannelId?: string;
   memberLogChannelId?: string;
   messageEditLogChannelId?: string;
   messageDeleteLogChannelId?: string;
+  nicknameLogChannelId?: string;
+  roleLogChannelId?: string;
+  welcomeChannelId?: string;
+  welcomeMessage?: string;
+  farewellChannelId?: string;
+  farewellMessage?: string;
+  systemChannelId?: string;
   lockedChannels?: LockedChannel[];
   modules: ModuleSettings;
   automodKeywords?: AutoModKeywords;
   reactionRolesMenus?: ReactionRolesMenu[];
+  warnSettings?: {
+    thresholds: Array<{ count: number; action: 'kick' | 'ban' | 'timeout'; duration?: number }>;
+    modChannelId?: string;
+  };
 }
 
 const guildSchema = new Schema<IGuild>({
@@ -105,6 +117,7 @@ const guildSchema = new Schema<IGuild>({
   adminRoleId: { type: String, default: null },
   modRoleId: { type: String, default: null },
   muteRoleId: { type: String, default: null },
+  autoroleId: { type: String, default: null },
   disabledCommands: { type: [String], default: [] },
   
   // Logging channels
@@ -112,6 +125,17 @@ const guildSchema = new Schema<IGuild>({
   memberLogChannelId: { type: String, default: null },
   messageEditLogChannelId: { type: String, default: null },
   messageDeleteLogChannelId: { type: String, default: null },
+  nicknameLogChannelId: { type: String, default: null },
+  roleLogChannelId: { type: String, default: null },
+  
+  // Welcome / Farewell
+  welcomeChannelId: { type: String, default: null },
+  welcomeMessage: { type: String, default: null },
+  farewellChannelId: { type: String, default: null },
+  farewellMessage: { type: String, default: null },
+  
+  // System notifications
+  systemChannelId: { type: String, default: null },
   
   // Legacy module flags (for backward compatibility)
   isAdministration: { type: Boolean, default: true },
@@ -169,6 +193,16 @@ const guildSchema = new Schema<IGuild>({
       });
       return defaults;
     }
+  },
+  
+  // Warn settings
+  warnSettings: {
+    thresholds: [{
+      count: { type: Number, required: true },
+      action: { type: String, enum: ['kick', 'ban', 'timeout'], required: true },
+      duration: { type: Number, default: null }
+    }],
+    modChannelId: { type: String, default: null }
   },
   
   // AutoMod keywords
