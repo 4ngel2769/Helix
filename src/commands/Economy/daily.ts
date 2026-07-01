@@ -4,7 +4,9 @@ import { ModuleCommand } from '@kbotdev/plugin-modules';
 import type { EconomyModule } from '../../modules/Economy';
 import { EmbedBuilder, Message } from 'discord.js';
 import config from '../../config';
-import { EconomyService } from '../../lib/services/EconomyService';
+import { UserService } from '../../lib/services/economy/UserService';
+import { MoneyService } from '../../lib/services/economy/MoneyService';
+import { DiamondService } from '../../lib/services/economy/DiamondService';
 
 @ApplyOptions<Command.Options>({
     name: 'daily',
@@ -200,7 +202,7 @@ export class DailyCommand extends ModuleCommand<EconomyModule> {
 
     private async processDaily(userId: string, username: string) {
         try {
-            const user = await EconomyService.getUser(userId, username);
+            const user = await UserService.getUser(userId, username);
             const now = new Date();
             
             // Check if user has already claimed daily in the last 12 hours
@@ -275,7 +277,7 @@ export class DailyCommand extends ModuleCommand<EconomyModule> {
             }
 
             // Add money and XP
-            const moneyAdded = await EconomyService.addMoney(
+            const moneyAdded = await MoneyService.addMoney(
                 userId, 
                 totalCoins, 
                 'wallet', 
@@ -288,7 +290,7 @@ export class DailyCommand extends ModuleCommand<EconomyModule> {
 
             // Add diamonds if earned
             if (diamondsEarned > 0) {
-                await EconomyService.addDiamonds(userId, diamondsEarned, `Daily reward rare find (${newStreak} day streak)`);
+                await DiamondService.addDiamonds(userId, diamondsEarned, `Daily reward rare find (${newStreak} day streak)`);
             }
 
             // Add experience
@@ -308,7 +310,7 @@ export class DailyCommand extends ModuleCommand<EconomyModule> {
             await user.save();
 
             // Get updated balance
-            const updatedUser = await EconomyService.getUser(userId, username);
+            const updatedUser = await UserService.getUser(userId, username);
 
             let message = `You claimed your daily reward and earned **${totalCoins.toLocaleString()}** coins!`;
             if (diamondsEarned > 0) {

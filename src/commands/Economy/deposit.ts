@@ -4,7 +4,8 @@ import { ModuleCommand } from '@kbotdev/plugin-modules';
 import type { EconomyModule } from '../../modules/Economy';
 import { EmbedBuilder, MessageFlags, Message } from 'discord.js';
 import config from '../../config';
-import { EconomyService } from '../../lib/services/EconomyService';
+import { UserService } from '../../lib/services/economy/UserService';
+import { MoneyService } from '../../lib/services/economy/MoneyService';
 
 @ApplyOptions<Command.Options>({
     name: 'deposit',
@@ -167,7 +168,7 @@ export class DepositCommand extends ModuleCommand<EconomyModule> {
 
     private async processDeposit(userId: string, username: string, amountInput: string) {
         try {
-            const user = await EconomyService.getUser(userId, username);
+            const user = await UserService.getUser(userId, username);
             
             // Parse amount
             let amount: number;
@@ -222,14 +223,14 @@ export class DepositCommand extends ModuleCommand<EconomyModule> {
             }
 
             // Perform the deposit
-            const transferSuccess = await EconomyService.transferMoney(userId, amount, 'wallet', 'bank');
+            const transferSuccess = await MoneyService.transferMoney(userId, amount, 'wallet', 'bank');
             
             if (!transferSuccess) {
                 return { success: false, message: 'Failed to process deposit. Please try again.' };
             }
 
             // Get updated user data
-            const updatedUser = await EconomyService.getUser(userId, username);
+            const updatedUser = await UserService.getUser(userId, username);
 
             return {
                 success: true,

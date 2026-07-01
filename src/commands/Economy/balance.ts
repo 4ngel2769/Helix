@@ -3,7 +3,7 @@ import { Command } from '@sapphire/framework';
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import type { EconomyModule } from '../../modules/Economy';
 import { EmbedBuilder, MessageFlags, Message } from 'discord.js';
-import { EconomyService } from '../../lib/services/EconomyService';
+import { UserService } from '../../lib/services/economy/UserService';
 import type { IUser, EconomyItem as InventoryItem } from '../../models/User';
 import config from '../../config';
 
@@ -38,7 +38,7 @@ export class BalanceCommand extends ModuleCommand<EconomyModule> {
 
     public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
         const targetUser = interaction.options.getUser('user') || interaction.user;
-        const user = await EconomyService.getUser(targetUser.id, targetUser.username);
+        const user = await UserService.getUser(targetUser.id, targetUser.username);
 
         // Get diamonds from inventory
         const diamonds = this.getUserDiamonds(user);
@@ -113,7 +113,7 @@ export class BalanceCommand extends ModuleCommand<EconomyModule> {
             }
         }
 
-        const user = await EconomyService.getUser(targetUser.id, targetUser.username);
+        const user = await UserService.getUser(targetUser.id, targetUser.username);
         const diamonds = this.getUserDiamonds(user);
         const total = user.economy.wallet + user.economy.bank;
         const bankUsage = user.economy.bankLimit > 0 ? 

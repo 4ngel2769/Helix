@@ -4,7 +4,7 @@ import { ModuleCommand } from '@kbotdev/plugin-modules';
 import type { EconomyModule } from '../../modules/Economy';
 import { EmbedBuilder, Message, ColorResolvable } from 'discord.js';
 import config from '../../config';
-import { EconomyService } from '../../lib/services/EconomyService';
+import { InventoryService } from '../../lib/services/economy/InventoryService';
 import {
     addGroupedInventoryFields,
     buildInventoryFilterButtonRows,
@@ -63,7 +63,7 @@ export class InventoryCommand extends ModuleCommand<EconomyModule> {
         const category = interaction.options.getString('category') || 'all';
 
         try {
-            const result = await EconomyService.getUserInventory(targetUser.id, category);
+            const result = await InventoryService.getUserInventory(targetUser.id, category);
 
             if (!result.success || !result.inventory || result.inventory.length === 0) {
                 const embed = new EmbedBuilder()
@@ -132,7 +132,7 @@ export class InventoryCommand extends ModuleCommand<EconomyModule> {
         }
 
         try {
-            const result = await EconomyService.getUserInventory(targetUser.id, 'all');
+            const result = await InventoryService.getUserInventory(targetUser.id, 'all');
 
             if (!result.success || !result.inventory || result.inventory.length === 0) {
                 const embed = new EmbedBuilder()

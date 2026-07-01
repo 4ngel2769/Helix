@@ -4,7 +4,7 @@ import { ModuleCommand } from '@kbotdev/plugin-modules';
 import type { EconomyModule } from '../../modules/Economy';
 import { EmbedBuilder, MessageFlags, Message } from 'discord.js';
 import config from '../../config';
-import { EconomyService } from '../../lib/services/EconomyService';
+import { InventoryService } from '../../lib/services/economy/InventoryService';
 import { EffectService } from '../../lib/services/EffectService';
 import { EconomyItem } from '../../models/EconomyItem';
 
@@ -58,7 +58,7 @@ export class UseCommand extends ModuleCommand<EconomyModule> {
         
         if (focusedOption.name === 'item') {
             try {
-                const inventory = await EconomyService.getInventory(interaction.user.id);
+                const inventory = await InventoryService.getInventory(interaction.user.id);
                 if (inventory.length === 0) {
                     return interaction.respond([]);
                 }
@@ -218,7 +218,7 @@ export class UseCommand extends ModuleCommand<EconomyModule> {
 
     private async useItem(userId: string, itemName: string, quantity: number): Promise<UseItemResult> {
         try {
-            const inventory = await EconomyService.getInventory(userId);
+            const inventory = await InventoryService.getInventory(userId);
             const userItem = inventory.find(item => 
                 item.name.toLowerCase().includes(itemName.toLowerCase())
             );
@@ -243,7 +243,7 @@ export class UseCommand extends ModuleCommand<EconomyModule> {
 
             const { totalEffects, totalStatChanges } = await this.applyEffectsForQuantity(userId, item.itemId, quantity);
 
-            if (item.consumable && !(await EconomyService.removeItem(userId, item.itemId, quantity))) {
+            if (item.consumable && !(await InventoryService.removeItem(userId, item.itemId, quantity))) {
                 return { success: false, message: 'Failed to remove item from inventory.' };
             }
 

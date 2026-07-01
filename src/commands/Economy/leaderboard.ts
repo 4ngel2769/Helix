@@ -14,7 +14,7 @@ import {
 import type { PipelineStage } from 'mongoose';
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { EconomyModule } from '../../modules/Economy';
-import { EconomyService } from '../../lib/services/EconomyService';
+import { UserService } from '../../lib/services/economy/UserService';
 import { User, type IUser } from '../../models/User';
 import config from '../../config';
 
@@ -88,7 +88,7 @@ export class EconomyLeaderboardCommand extends ModuleCommand<EconomyModule> {
             const guildId = interaction.guildId;
 
             // Get user's current economy data first to ensure they're in the system
-            const currentUser = await EconomyService.getUser(interaction.user.id, interaction.user.username);
+            const currentUser = await UserService.getUser(interaction.user.id, interaction.user.username);
 
             // Get leaderboard data
             const leaderboardData = await this.getLeaderboard(type, isGlobal, guildId);
@@ -344,7 +344,7 @@ export class EconomyLeaderboardCommand extends ModuleCommand<EconomyModule> {
         userId: string,
         username: string
     ): Promise<LeaderboardRenderState> {
-        const currentUser = await EconomyService.getUser(userId, username);
+        const currentUser = await UserService.getUser(userId, username);
         const leaderboardData = await this.getLeaderboard(type, isGlobal, guildId);
         const userPosition = this.findUserPosition(leaderboardData, userId, type);
 

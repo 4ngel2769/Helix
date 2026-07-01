@@ -3,7 +3,9 @@ import { Command } from '@sapphire/framework';
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { EconomyModule } from '../../modules/Economy';
 import { EmbedBuilder, MessageFlags, ActionRowBuilder, ButtonBuilder, ButtonStyle, ColorResolvable } from 'discord.js';
-import { EconomyService } from '../../lib/services/EconomyService';
+import { UserService } from '../../lib/services/economy/UserService';
+import { MoneyService } from '../../lib/services/economy/MoneyService';
+import { InventoryService } from '../../lib/services/economy/InventoryService';
 import type { IUser, EconomyItem as InventoryItem } from '../../models/User';
 import config from '../../config';
 
@@ -89,7 +91,7 @@ export class BankUpgradeCommand extends ModuleCommand<EconomyModule> {
         await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
         try {
-            const user = await EconomyService.getUser(interaction.user.id, interaction.user.username);
+            const user = await UserService.getUser(interaction.user.id, interaction.user.username);
             const currentTier = this.getCurrentTier(user.economy.bankLimit);
             const diamonds = this.getUserDiamonds(user);
 
@@ -184,7 +186,7 @@ export class BankUpgradeCommand extends ModuleCommand<EconomyModule> {
         const targetTier = interaction.options.getInteger('tier', true);
 
         try {
-            const user = await EconomyService.getUser(interaction.user.id, interaction.user.username);
+            const user = await UserService.getUser(interaction.user.id, interaction.user.username);
             const currentTier = this.getCurrentTier(user.economy.bankLimit);
             const diamonds = this.getUserDiamonds(user);
 
@@ -403,7 +405,7 @@ export class BankUpgradeCommand extends ModuleCommand<EconomyModule> {
 
     private async performUpgrade(userId: string, targetTier: number): Promise<boolean> {
         try {
-            const user = await EconomyService.getUser(userId, 'User');
+            const user = await UserService.getUser(userId, 'User');
             const upgrade = this.upgradeTiers[targetTier];
             const diamonds = this.getUserDiamonds(user);
 
@@ -413,7 +415,7 @@ export class BankUpgradeCommand extends ModuleCommand<EconomyModule> {
             }
 
             // Remove coins
-            const coinsRemoved = await EconomyService.removeMoney(
+            const coinsRemoved = await MoneyService.removeMoney(
                 userId, 
                 upgrade.coinCost, 
                 'wallet', 
@@ -426,10 +428,10 @@ export class BankUpgradeCommand extends ModuleCommand<EconomyModule> {
 
             // Remove diamonds if required
             if (upgrade.diamondCost > 0) {
-                const diamondRemoved = await EconomyService.removeItem(userId, 'diamond', upgrade.diamondCost);
+                const diamondRemoved = await InventoryService.removeItem(userId, 'diamond', upgrade.diamondCost);
                 if (!diamondRemoved) {
                     // Refund coins if diamond removal failed
-                    await EconomyService.addMoney(userId, upgrade.coinCost, 'wallet', 'Bank upgrade refund');
+                    await MoneyService.addMoney(userId, upgrade.coinCost, 'wallet', 'Bank upgrade refund');
                     return false;
                 }
             }

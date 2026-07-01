@@ -4,7 +4,7 @@ import { ModuleCommand } from '@kbotdev/plugin-modules';
 import type { EconomyModule } from '../../modules/Economy';
 import { EmbedBuilder, MessageFlags, Message } from 'discord.js';
 import config from '../../config';
-import { EconomyService } from '../../lib/services/EconomyService';
+import { ShopService } from '../../lib/services/economy/ShopService';
 
 @ApplyOptions<Command.Options>({
     name: 'sell',
@@ -50,7 +50,7 @@ export class SellCommand extends ModuleCommand<EconomyModule> {
         const quantity = interaction.options.getInteger('quantity') || 1;
 
         try {
-            const result = await EconomyService.sellItem(interaction.user.id, itemName, quantity);
+            const result = await ShopService.sellItem(interaction.user.id, itemName, quantity);
 
             if (!result.success) {
                 const embed = new EmbedBuilder()
@@ -135,7 +135,7 @@ export class SellCommand extends ModuleCommand<EconomyModule> {
         }
 
         try {
-            const result = await EconomyService.sellItem(message.author.id, itemName, quantity);
+            const result = await ShopService.sellItem(message.author.id, itemName, quantity);
 
             if (!result.success) {
                 const embed = new EmbedBuilder()

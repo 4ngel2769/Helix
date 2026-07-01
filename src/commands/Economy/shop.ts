@@ -3,7 +3,8 @@ import { Command } from '@sapphire/framework';
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import type { EconomyModule } from '../../modules/Economy';
 import { EmbedBuilder, MessageFlags, Message, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } from 'discord.js';
-import { EconomyService } from '../../lib/services/EconomyService';
+import { UserService } from '../../lib/services/economy/UserService';
+import { ShopService } from '../../lib/services/economy/ShopService';
 import { EconomyItem, type IEconomyItem } from '../../models/EconomyItem';
 import type { QueryFilter } from 'mongoose';
 import config from '../../config';
@@ -143,7 +144,7 @@ export class ShopCommand extends ModuleCommand<EconomyModule> {
             .setTimestamp();
 
         for (const item of items) {
-            const price = await EconomyService.getItemPrice(item.itemId, 'buy');
+            const price = await ShopService.getItemPrice(item.itemId, 'buy');
             const stockText = item.shop.stock === -1 ? 'Unlimited' : `${item.shop.stock} left`;
             
             embed.addFields({
@@ -160,8 +161,8 @@ export class ShopCommand extends ModuleCommand<EconomyModule> {
         const itemId = interaction.options.getString('item', true);
         const quantity = interaction.options.getInteger('quantity') || 1;
 
-        const user = await EconomyService.getUser(interaction.user.id, interaction.user.username);
-        const result = await EconomyService.purchaseItem(user.userId, itemId, quantity);
+        const user = await UserService.getUser(interaction.user.id, interaction.user.username);
+        const result = await ShopService.purchaseItem(user.userId, itemId, quantity);
 
         const embed = new EmbedBuilder()
             .setColor(result.success ? config.bot.embedColor.success : config.bot.embedColor.err)
@@ -194,8 +195,8 @@ export class ShopCommand extends ModuleCommand<EconomyModule> {
             });
         }
 
-        const price = await EconomyService.getItemPrice(item.itemId, 'buy');
-        const sellPrice = await EconomyService.getItemPrice(item.itemId, 'sell');
+        const price = await ShopService.getItemPrice(item.itemId, 'buy');
+        const sellPrice = await ShopService.getItemPrice(item.itemId, 'sell');
 
         const embed = new EmbedBuilder()
             .setColor(config.bot.embedColor.default)
@@ -298,7 +299,7 @@ export class ShopCommand extends ModuleCommand<EconomyModule> {
             .setTimestamp();
 
         for (const item of items) {
-            const price = await EconomyService.getItemPrice(item.itemId, 'buy');
+            const price = await ShopService.getItemPrice(item.itemId, 'buy');
             const stockText = item.shop.stock === -1 ? 'Unlimited' : `${item.shop.stock} left`;
             
             embed.addFields({
@@ -329,8 +330,8 @@ export class ShopCommand extends ModuleCommand<EconomyModule> {
             return message.reply(`Item "${itemName}" not found in shop.`);
         }
 
-        const user = await EconomyService.getUser(message.author.id, message.author.username);
-        const result = await EconomyService.purchaseItem(user.userId, item.itemId, quantity);
+        const user = await UserService.getUser(message.author.id, message.author.username);
+        const result = await ShopService.purchaseItem(user.userId, item.itemId, quantity);
 
         const embed = new EmbedBuilder()
             .setColor(result.success ? config.bot.embedColor.success : config.bot.embedColor.err)
@@ -363,8 +364,8 @@ export class ShopCommand extends ModuleCommand<EconomyModule> {
             return message.reply(`Item "${itemName}" not found.`);
         }
 
-        const price = await EconomyService.getItemPrice(item.itemId, 'buy');
-        const sellPrice = await EconomyService.getItemPrice(item.itemId, 'sell');
+        const price = await ShopService.getItemPrice(item.itemId, 'buy');
+        const sellPrice = await ShopService.getItemPrice(item.itemId, 'sell');
 
         const embed = new EmbedBuilder()
             .setColor(config.bot.embedColor.default)

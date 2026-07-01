@@ -2,7 +2,7 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { InteractionHandler, InteractionHandlerTypes } from '@sapphire/framework';
 import type { ButtonInteraction, User } from 'discord.js';
 import { EmbedBuilder, ColorResolvable } from 'discord.js';
-import { EconomyService } from '../lib/services/EconomyService';
+import { InventoryService } from '../lib/services/economy/InventoryService';
 import config from '../config';
 import {
     addGroupedInventoryFields,
@@ -60,7 +60,7 @@ export class InventoryButtonHandler extends InteractionHandler {
             }
 
             // Fetch inventory with the selected category
-            const result = await EconomyService.getUserInventory(targetUser.id, category);
+            const result = await InventoryService.getUserInventory(targetUser.id, category);
 
             if (!result.success || !result.inventory || result.inventory.length === 0) {
                 const embed = new EmbedBuilder()
@@ -143,7 +143,7 @@ export class InventoryButtonHandler extends InteractionHandler {
     private async handleRefresh(interaction: ButtonInteraction, targetUser: User) {
         try {
             // Fetch fresh inventory data
-            const result = await EconomyService.getUserInventory(targetUser.id, 'all');
+            const result = await InventoryService.getUserInventory(targetUser.id, 'all');
 
             if (!result.success || !result.inventory || result.inventory.length === 0) {
                 const embed = new EmbedBuilder()

@@ -4,7 +4,8 @@ import { ModuleCommand } from '@kbotdev/plugin-modules';
 import type { EconomyModule } from '../../modules/Economy';
 import { EmbedBuilder, MessageFlags, Message } from 'discord.js';
 import config from '../../config';
-import { EconomyService } from '../../lib/services/EconomyService';
+import { UserService } from '../../lib/services/economy/UserService';
+import { MoneyService } from '../../lib/services/economy/MoneyService';
 
 @ApplyOptions<Command.Options>({
     name: 'withdraw',
@@ -152,7 +153,7 @@ export class WithdrawCommand extends ModuleCommand<EconomyModule> {
 
     private async processWithdraw(userId: string, username: string, amountInput: string) {
         try {
-            const user = await EconomyService.getUser(userId, username);
+            const user = await UserService.getUser(userId, username);
             
             // Parse amount
             let amount: number;
@@ -185,14 +186,14 @@ export class WithdrawCommand extends ModuleCommand<EconomyModule> {
             }
 
             // Perform the withdrawal
-            const transferSuccess = await EconomyService.transferMoney(userId, amount, 'bank', 'wallet');
+            const transferSuccess = await MoneyService.transferMoney(userId, amount, 'bank', 'wallet');
             
             if (!transferSuccess) {
                 return { success: false, message: 'Failed to process withdrawal. Please try again.' };
             }
 
             // Get updated user data
-            const updatedUser = await EconomyService.getUser(userId, username);
+            const updatedUser = await UserService.getUser(userId, username);
 
             return {
                 success: true,

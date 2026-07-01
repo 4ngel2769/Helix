@@ -1,5 +1,7 @@
 import { Auction, type IAuction } from '../../models/Auction';
-import { EconomyService } from './EconomyService';
+import { UserService } from './economy/UserService';
+import { MoneyService } from './economy/MoneyService';
+import { InventoryService } from './economy/InventoryService';
 import { EconomyItem } from '../../models/EconomyItem';
 import { container } from '@sapphire/framework';
 import { randomUUID } from 'crypto';
@@ -59,7 +61,7 @@ export class AuctionService {
             }
 
             // Check if user has the item
-            const userInventory = await EconomyService.getInventory(sellerId);
+            const userInventory = await InventoryService.getInventory(sellerId);
             const userItem = userInventory.find(inv => inv.itemId === item.itemId);
 
             if (!userItem || userItem.quantity < quantity) {
@@ -67,7 +69,7 @@ export class AuctionService {
             }
 
             // Remove items from inventory
-            const itemRemoved = await EconomyService.removeItem(sellerId, item.itemId, quantity);
+            const itemRemoved = await InventoryService.removeItem(sellerId, item.itemId, quantity);
             if (!itemRemoved) {
                 return { success: false, message: 'Failed to remove items from inventory' };
             }
@@ -132,18 +134,18 @@ export class AuctionService {
                 return { success: false, message: `Bid must be higher than current bid of ${auction.currentBid} coins` };
             }
 
-            const user = await EconomyService.getUser(userId, username);
+            const user = await UserService.getUser(userId, username);
             if (user.economy.wallet < amount) {
                 return { success: false, message: 'Insufficient funds' };
             }
 
             // Refund previous highest bidder
             if (auction.highestBidderId && auction.highestBidderId !== userId) {
-                await EconomyService.addMoney(auction.highestBidderId, auction.currentBid, 'wallet', 'Auction bid refund');
+                await MoneyService.addMoney(auction.highestBidderId, auction.currentBid, 'wallet', 'Auction bid refund');
             }
 
             // Remove money from new bidder
-            const moneyRemoved = await EconomyService.removeMoney(userId, amount, 'wallet', `Bid on auction ${auctionId}`);
+            const moneyRemoved = await MoneyService.removeMoney(userId, amount, 'wallet', `Bid on auction ${auctionId}`);
             if (!moneyRemoved) {
                 return { success: false, message: 'Failed to process payment' };
             }
