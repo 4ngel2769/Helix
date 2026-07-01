@@ -69,7 +69,7 @@ export class AuctionHandler extends InteractionHandler {
             return interaction.showModal(modal);
 
         } catch (error) {
-            console.error('Error handling bid modal:', error);
+            this.container.logger.error('Error handling bid modal:', error);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err)
@@ -144,7 +144,7 @@ export class AuctionHandler extends InteractionHandler {
             return interaction.editReply({ embeds: [embed] });
 
         } catch (error) {
-            console.error(isRefresh ? 'Error refreshing auctions:' : 'Error filtering auctions:', error);
+            this.container.logger.error(isRefresh ? 'Error refreshing auctions:' : 'Error filtering auctions:', error);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err)

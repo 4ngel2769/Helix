@@ -44,7 +44,7 @@ export class HelpButtonHandler extends InteractionHandler {
             try {
                 await helpCommand.handlePaginationButton(interaction);
             } catch (error: unknown) {
-                console.error('Error in help pagination:', error);
+                this.container.logger.error('Error in help pagination:', error);
 
                 const errorCode =
                     typeof error === 'object' && error !== null && 'code' in error

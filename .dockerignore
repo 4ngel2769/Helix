@@ -1,0 +1,13 @@
+.git
+.github
+.agents
+.codex
+node_modules
+dist
+docs
+coverage
+*.log
+.env
+.env.*
+config.ts
+config.json

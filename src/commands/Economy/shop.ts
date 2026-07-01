@@ -5,6 +5,7 @@ import type { EconomyModule } from '../../modules/Economy';
 import { EmbedBuilder, MessageFlags, Message, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } from 'discord.js';
 import { EconomyService } from '../../lib/services/EconomyService';
 import { EconomyItem, type IEconomyItem } from '../../models/EconomyItem';
+import type { QueryFilter } from 'mongoose';
 import config from '../../config';
 
 @ApplyOptions<Command.Options>({
@@ -121,9 +122,9 @@ export class ShopCommand extends ModuleCommand<EconomyModule> {
     private async handleShopList(interaction: Command.ChatInputCommandInteraction) {
         const category = interaction.options.getString('category');
         
-        const filter: Record<string, any> = { 'shop.available': true };
+        const filter: QueryFilter<IEconomyItem> = { 'shop.available': true };
         if (category) {
-            filter.category = category;
+            filter.category = category as IEconomyItem['category'];
         }
 
         const items = await EconomyItem.find(filter).limit(10);
@@ -279,9 +280,9 @@ export class ShopCommand extends ModuleCommand<EconomyModule> {
     private async handleTextShopList(message: Message, args: string[]) {
         const category = args[0];
         
-        const filter: Record<string, any> = { 'shop.available': true };
+        const filter: QueryFilter<IEconomyItem> = { 'shop.available': true };
         if (category) {
-            filter.category = category.toLowerCase();
+            filter.category = category.toLowerCase() as IEconomyItem['category'];
         }
 
         const items = await EconomyItem.find(filter).limit(10);

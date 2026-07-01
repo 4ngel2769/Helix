@@ -1,13 +1,19 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
+import { ModuleCommand } from '@kbotdev/plugin-modules';
+import type { GeneralModule } from '../../modules/General';
 import { EmbedBuilder, MessageFlags } from 'discord.js';
 import config from '../../config';
 
 @ApplyOptions<Command.Options>({
     name: 'embed',
-    description: 'Create a custom embed'
+    description: 'Create a custom embed',
+    preconditions: ['ModuleEnabled']
 })
-export class EmbedCommand extends Command {
+export class EmbedCommand extends ModuleCommand<GeneralModule> {
+    public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
+        super(context, { ...options, module: 'General' });
+    }
     public override registerApplicationCommands(registry: Command.Registry) {
         registry.registerChatInputCommand((builder) =>
             builder

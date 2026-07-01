@@ -152,7 +152,7 @@ export class SetupVerificationCommand extends ModuleCommand<VerificationModule> 
             return interaction.editReply({ embeds: [embed] });
 
         } catch (error) {
-            console.error('Setup verification error:', error);
+            this.container.logger.error('Setup verification error:', error);
             return ErrorHandler.sendCommandError(interaction, 
                 'Failed to setup verification. Please try again.');
         }

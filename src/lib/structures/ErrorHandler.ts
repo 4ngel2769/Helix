@@ -9,6 +9,7 @@ import {
     StringSelectMenuInteraction,
     ModalSubmitInteraction
 } from 'discord.js';
+import { container } from '@sapphire/framework';
 import type { ApiResponse } from '@sapphire/plugin-api';
 import config from '../../config';
 
@@ -97,7 +98,7 @@ export class ErrorHandler {
                 botMember.permissionsIn(channel).has(PermissionsBitField.Flags[permission])
             );
         } catch (error) {
-            console.error('Permission check failed:', error);
+            container.logger.error('Permission check failed:', error);
             return false;
         }
     }
@@ -120,7 +121,7 @@ export class ErrorHandler {
 
             return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
         } catch (error) {
-            console.error('Failed to send emoji error:', error);
+            container.logger.error('Failed to send emoji error:', error);
             return interaction.reply({ 
                 content: 'An error occurred while processing your request.', 
                 flags: MessageFlags.Ephemeral 
@@ -130,7 +131,7 @@ export class ErrorHandler {
     
     // Add a general error logger
     static logError(context: string, error: unknown): void {
-        console.error(`[ERROR] ${context}:`, error);
+        container.logger.error(`[ERROR] ${context}:`, error);
     }
     
     // Add a method to handle API errors

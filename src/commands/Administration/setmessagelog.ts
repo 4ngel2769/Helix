@@ -88,10 +88,12 @@ export class SetMessageLogCommand extends ModuleCommand<AdministrationModule> {
                 return this.handleDelete(interaction, guildData, channel);
             } else if (subcommand === 'both') {
                 return this.handleBoth(interaction, guildData, channel);
+            } else {
+                return interaction.reply({ content: '❌ Invalid subcommand.', ephemeral: true });
             }
 
         } catch (error) {
-            console.error('Error setting message log:', error);
+            this.container.logger.error('Error setting message log:', error);
             return interaction.reply({ 
                 content: '❌ An error occurred while setting the message log channel.', 
                 ephemeral: true 

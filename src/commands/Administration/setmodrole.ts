@@ -83,7 +83,7 @@ export class SetModRoleCommand extends ModuleCommand<AdministrationModule> {
             return interaction.reply({ embeds: [embed] });
 
         } catch (error) {
-            console.error('Error setting mod role:', error);
+            this.container.logger.error('Error setting mod role:', error);
             return interaction.reply({ 
                 content: '❌ An error occurred while setting the moderator role.', 
                 ephemeral: true 

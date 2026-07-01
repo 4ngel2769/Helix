@@ -117,7 +117,7 @@ export class AddRoleCommand extends ModuleCommand<ModerationModule> {
             return interaction.reply({ embeds: [embed] });
 
         } catch (error) {
-            console.error('Error adding role:', error);
+            this.container.logger.error('Error adding role:', error);
             return interaction.reply({ 
                 content: '❌ An error occurred while adding the role.', 
                 ephemeral: true 

@@ -54,7 +54,7 @@ export class GetImgCommand extends ModuleCommand<FunModule> {
                 files: [attachment]
             });
         } catch (error) {
-            console.error('Error fetching random image:', error);
+            this.container.logger.error('Error fetching random image:', error);
             return interaction.editReply({ content: 'Failed to fetch a random image. Please try again later.' });
         }
     }

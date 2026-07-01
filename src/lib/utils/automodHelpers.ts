@@ -1,3 +1,4 @@
+import { container } from '@sapphire/framework';
 import { AutoModerationRuleTriggerType } from 'discord.js';
 import { getKeywordsForGuild } from './automodUtils';
 
@@ -139,7 +140,7 @@ export async function getPresetRules(preset: string, guildId: string): Promise<A
 
         return rules;
     } catch (error) {
-        console.error('Error loading keyword filters:', error);
+        container.logger.error('Error loading keyword filters:', error);
         return rules;
     }
 }

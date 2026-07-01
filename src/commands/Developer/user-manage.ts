@@ -400,7 +400,7 @@ export class UserManageCommand extends Command {
             return interaction.editReply({ embeds: [embed] });
 
         } catch (error) {
-            console.error('Error adding money:', error);
+            this.container.logger.error('Error adding money:', error);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err as ColorResolvable)
@@ -452,7 +452,7 @@ export class UserManageCommand extends Command {
             return interaction.editReply({ embeds: [embed] });
 
         } catch (error) {
-            console.error('Error removing money:', error);
+            this.container.logger.error('Error removing money:', error);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err as ColorResolvable)
@@ -525,7 +525,7 @@ export class UserManageCommand extends Command {
             return interaction.editReply({ embeds: [embed] });
 
         } catch (error) {
-            console.error('Error setting money:', error);
+            this.container.logger.error('Error setting money:', error);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err as ColorResolvable)
@@ -578,7 +578,7 @@ export class UserManageCommand extends Command {
             return interaction.editReply({ embeds: [embed] });
 
         } catch (error) {
-            console.error('Error adding diamonds:', error);
+            this.container.logger.error('Error adding diamonds:', error);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err as ColorResolvable)
@@ -642,7 +642,7 @@ export class UserManageCommand extends Command {
             return interaction.editReply({ embeds: [embed] });
 
         } catch (error) {
-            console.error('Error removing diamonds:', error);
+            this.container.logger.error('Error removing diamonds:', error);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err as ColorResolvable)
@@ -704,7 +704,7 @@ export class UserManageCommand extends Command {
             return interaction.editReply({ embeds: [embed] });
 
         } catch (error) {
-            console.error('Error setting diamonds:', error);
+            this.container.logger.error('Error setting diamonds:', error);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err as ColorResolvable)
@@ -770,7 +770,7 @@ export class UserManageCommand extends Command {
             return interaction.editReply({ embeds: [embed] });
 
         } catch (error) {
-            console.error('Error giving item:', error);
+            this.container.logger.error('Error giving item:', error);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err as ColorResolvable)
@@ -831,7 +831,7 @@ export class UserManageCommand extends Command {
             return interaction.editReply({ embeds: [embed] });
 
         } catch (error) {
-            console.error('Error taking item:', error);
+            this.container.logger.error('Error taking item:', error);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err as ColorResolvable)
@@ -892,7 +892,7 @@ export class UserManageCommand extends Command {
             return interaction.editReply({ embeds: [embed] });
 
         } catch (error) {
-            console.error('Error clearing inventory:', error);
+            this.container.logger.error('Error clearing inventory:', error);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err as ColorResolvable)
@@ -975,7 +975,7 @@ export class UserManageCommand extends Command {
             return interaction.editReply({ embeds: [embed] });
 
         } catch (error) {
-            console.error('Error resetting profile:', error);
+            this.container.logger.error('Error resetting profile:', error);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err as ColorResolvable)
@@ -1045,7 +1045,7 @@ export class UserManageCommand extends Command {
             return interaction.editReply({ embeds: [embed] });
 
         } catch (error) {
-            console.error('Error viewing profile:', error);
+            this.container.logger.error('Error viewing profile:', error);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err as ColorResolvable)
@@ -1079,7 +1079,7 @@ export class UserManageCommand extends Command {
 
                 return interaction.respond(choices);
             } catch (error) {
-                console.error('Error in autocomplete:', error);
+                this.container.logger.error('Error in autocomplete:', error);
                 return interaction.respond([]);
             }
         }

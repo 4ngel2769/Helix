@@ -16,8 +16,8 @@
     <a href="https://js.org/">
         <img src="src/db/assets/branding/badges/JS.svg" alt="JavaScript" />
     </a>
-    <a href="https://nodejs.org/">
-        <img src="https://img.shields.io/badge/node.js-6DA55F?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js" />
+    <a href="https://bun.sh/">
+        <img src="https://img.shields.io/badge/Bun-000000?style=for-the-badge&logo=bun&logoColor=white" alt="Bun" />
     </a>
     <a href="https://www.typescriptlang.org/">
         <img src="src/db/assets/branding/badges/TS.svg" alt="TypeScript" />
@@ -127,6 +127,16 @@ Helix is a multipurpose Discord bot designed to help you manage, moderate, and e
 - **[Website](https://helix.angellabs.xyz/)**
 - **[Add Helix to your server](https://discord.com/oauth2/authorize?client_id=723697439638290482&scope=bot&permissions=481684598)**
 - **[Discord Support Server](https://discord.gg/GapmaCt)**
+
+## Development
+
+Helix uses [Bun](https://bun.sh/) for dependency installation, scripts, and runtime.
+
+```bash
+bun install
+bun run build
+bun run start
+```
 
 <h1 align="center" style="color:#00ff00; font-family:monospace;"></h1>
 

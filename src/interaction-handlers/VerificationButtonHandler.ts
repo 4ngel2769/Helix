@@ -20,7 +20,10 @@ export class VerificationButtonHandler extends InteractionHandler {
         await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
         try {
-            const guildId = interaction.guildId!;
+            if (!interaction.guildId) {
+                return interaction.editReply({ content: 'This command can only be used in a server.' });
+            }
+            const guildId = interaction.guildId;
             const guildData = await Guild.findOne({ guildId });
 
             // Check if verification is enabled and configured
@@ -121,7 +124,7 @@ export class VerificationButtonHandler extends InteractionHandler {
             return interaction.editReply({ embeds: [embed] });
 
         } catch (error) {
-            console.error('Failed to verify member:', error);
+            this.container.logger.error('Failed to verify member:', error as Error);
             
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err as ColorResolvable)

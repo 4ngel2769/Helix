@@ -81,7 +81,7 @@ export class DepositCommand extends ModuleCommand<EconomyModule> {
             return interaction.editReply({ embeds: [embed] });
 
         } catch (error) {
-            console.error('Error in deposit command:', error);
+            this.container.logger.error('Error in deposit command:', error);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err)
@@ -153,7 +153,7 @@ export class DepositCommand extends ModuleCommand<EconomyModule> {
             return message.reply({ embeds: [embed] });
 
         } catch (error) {
-            console.error('Error in deposit command:', error);
+            this.container.logger.error('Error in deposit command:', error);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err)
@@ -243,7 +243,7 @@ export class DepositCommand extends ModuleCommand<EconomyModule> {
             };
 
         } catch (error) {
-            console.error('Error processing deposit:', error);
+            this.container.logger.error('Error processing deposit:', error);
             return { success: false, message: 'An error occurred while processing your deposit.' };
         }
     }

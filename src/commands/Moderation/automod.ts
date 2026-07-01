@@ -441,7 +441,7 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
 
             return interaction.editReply({ embeds: [embed] });
         } catch (error) {
-            console.error('Error fetching AutoMod rules:', error);
+            this.container.logger.error('Error fetching AutoMod rules:', error);
             return interaction.editReply({
                 content: 'Failed to fetch AutoMod rules. Make sure the bot has the necessary permissions.'
             });
@@ -490,7 +490,7 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
 
             return interaction.editReply({ embeds: [embed] });
         } catch (error) {
-            console.error('Error creating AutoMod rule:', error);
+            this.container.logger.error('Error creating AutoMod rule:', error);
             return interaction.editReply({
                 content: 'Failed to create AutoMod rule. Make sure the bot has the necessary permissions.'
             });
@@ -508,7 +508,7 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
                 flags: MessageFlags.Ephemeral
             });
         } catch (error) {
-            console.error('Error deleting AutoMod rule:', error);
+            this.container.logger.error('Error deleting AutoMod rule:', error);
             return interaction.reply({
                 content: 'Failed to delete AutoMod rule. Make sure the rule ID is valid and the bot has the necessary permissions.',
                 flags: MessageFlags.Ephemeral
@@ -572,7 +572,7 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
                     createdRules.push(rule);
                     existingTriggerTypes.set(ruleConfig.triggerType, true);
                 } catch (error) {
-                    console.error(`Failed to create rule ${ruleConfig.name}:`, error);
+                    this.container.logger.error(`Failed to create rule ${ruleConfig.name}:`, error);
                     failedRules.push({
                         name: ruleConfig.name, 
                         reason: 'API Error'
@@ -606,7 +606,7 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
 
             return interaction.editReply({ embeds: [embed] });
         } catch (error) {
-            console.error('Error installing AutoMod preset:', error);
+            this.container.logger.error('Error installing AutoMod preset:', error);
             return interaction.editReply({
                 content: 'Failed to install AutoMod preset. Make sure the bot has the necessary permissions.'
             });
@@ -625,7 +625,7 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
                 
                 return interaction.respond(choices);
             } catch (error) {
-                console.error('Error in autocomplete:', error);
+                this.container.logger.error('Error in autocomplete:', error);
                 return interaction.respond([]);
             }
         }
@@ -684,7 +684,7 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
             
             return interaction.editReply({ embeds: [embed] });
         } catch (error) {
-            console.error('Error listing keywords:', error);
+            this.container.logger.error('Error listing keywords:', error);
             return interaction.editReply({
                 content: 'An error occurred while retrieving keywords.'
             });
@@ -720,7 +720,7 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
                 });
             }
         } catch (error) {
-            console.error('Error adding keywords:', error);
+            this.container.logger.error('Error adding keywords:', error);
             return interaction.editReply({
                 content: 'An error occurred while adding keywords.'
             });
@@ -756,7 +756,7 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
                 });
             }
         } catch (error) {
-            console.error('Error removing keywords:', error);
+            this.container.logger.error('Error removing keywords:', error);
             return interaction.editReply({
                 content: 'An error occurred while removing keywords.'
             });
@@ -790,7 +790,7 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
                 });
             }
         } catch (error) {
-            console.error('Error clearing keywords:', error);
+            this.container.logger.error('Error clearing keywords:', error);
             return interaction.editReply({
                 content: 'An error occurred while clearing keywords.'
             });

@@ -73,7 +73,7 @@ export class WithdrawCommand extends ModuleCommand<EconomyModule> {
             return interaction.editReply({ embeds: [embed] });
 
         } catch (error) {
-            console.error('Error in withdraw command:', error);
+            this.container.logger.error('Error in withdraw command:', error);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err)
@@ -138,7 +138,7 @@ export class WithdrawCommand extends ModuleCommand<EconomyModule> {
             return message.reply({ embeds: [embed] });
 
         } catch (error) {
-            console.error('Error in withdraw command:', error);
+            this.container.logger.error('Error in withdraw command:', error);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err)
@@ -205,7 +205,7 @@ export class WithdrawCommand extends ModuleCommand<EconomyModule> {
             };
 
         } catch (error) {
-            console.error('Error processing withdrawal:', error);
+            this.container.logger.error('Error processing withdrawal:', error);
             return { success: false, message: 'An error occurred while processing your withdrawal.' };
         }
     }

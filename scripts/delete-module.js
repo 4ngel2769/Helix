@@ -494,7 +494,7 @@ ${this.selectedModules.map(module => {
 \`\`\`
 
 ### Verification Steps
-1. Run \`npm run build\` to recompile TypeScript
+1. Run \`bun run build\` to recompile TypeScript
 2. Restart the bot to ensure modules are unloaded
 3. Execute the database cleanup commands
 4. Verify that the modules no longer appear in \`/configmodule\`
@@ -539,7 +539,7 @@ To restore these modules, you would need:
             
             console.log('\n🎉 Module deletion completed successfully!');
             console.log('\n📋 Next Steps:');
-            console.log('1. Run `npm run build` to recompile TypeScript');
+            console.log('1. Run `bun run build` to recompile TypeScript');
             console.log('2. Restart your bot to unload the deleted modules');
             console.log('3. Execute the database cleanup commands shown above');
             console.log('4. Check the deletion report for full details');

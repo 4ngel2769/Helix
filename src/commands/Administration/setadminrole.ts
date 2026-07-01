@@ -83,7 +83,7 @@ export class SetAdminRoleCommand extends ModuleCommand<AdministrationModule> {
             return interaction.reply({ embeds: [embed] });
 
         } catch (error) {
-            console.error('Error setting admin role:', error);
+            this.container.logger.error('Error setting admin role:', error);
             return interaction.reply({ 
                 content: '❌ An error occurred while setting the admin role.', 
                 ephemeral: true 

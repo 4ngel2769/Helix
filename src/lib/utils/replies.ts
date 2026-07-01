@@ -14,7 +14,8 @@ export function loadReplies() {
 export function getReply(key: string, vars: Record<string, string> = {}) {
 	let template = replies[key] || '';
 	for (const [k, v] of Object.entries(vars)) {
-		template = template.replace(new RegExp(`\\$${k}`, 'g'), v);
+		const escapedKey = k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+		template = template.replace(new RegExp(`\\$${escapedKey}`, 'g'), v);
 	}
 	return template;
 }

@@ -139,7 +139,7 @@ export class UseCommand extends ModuleCommand<EconomyModule> {
             return interaction.editReply({ embeds: [embed] });
 
         } catch (error) {
-            console.error('Error in use command:', error);
+            this.container.logger.error('Error in use command:', error);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err)
@@ -204,7 +204,7 @@ export class UseCommand extends ModuleCommand<EconomyModule> {
             return message.reply({ embeds: [embed] });
 
         } catch (error) {
-            console.error('Error in use command:', error);
+            this.container.logger.error('Error in use command:', error);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err)
@@ -255,7 +255,7 @@ export class UseCommand extends ModuleCommand<EconomyModule> {
             };
 
         } catch (error) {
-            console.error('Error using item:', error);
+            this.container.logger.error('Error using item:', error);
             return { success: false, message: 'Failed to use item.' };
         }
     }

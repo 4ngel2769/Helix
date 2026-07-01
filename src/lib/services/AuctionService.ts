@@ -1,7 +1,9 @@
 import { Auction, type IAuction } from '../../models/Auction';
 import { EconomyService } from './EconomyService';
 import { EconomyItem } from '../../models/EconomyItem';
+import { container } from '@sapphire/framework';
 import { randomUUID } from 'crypto';
+import type { QueryFilter } from 'mongoose';
 
 // Formatted auction for API responses (different from database model)
 export interface FormattedAuction {
@@ -35,10 +37,12 @@ export class AuctionService {
      */
     static async createAuction(
         sellerId: string,
+        sellerUsername: string,
         itemName: string,
         quantity: number,
         startingBid: number,
-        duration: number
+        duration: number,
+        guildId: string = 'global'
     ): Promise<AuctionResult> {
         try {
             // Find item by name
@@ -75,8 +79,8 @@ export class AuctionService {
             const auction = new Auction({
                 auctionId,
                 sellerId,
-                sellerUsername: 'User', // You might want to get this from the user
-                guildId: 'global', // You might want to pass this in
+                sellerUsername,
+                guildId,
                 itemId: item.itemId,
                 itemName: item.name,
                 quantity,
@@ -100,7 +104,7 @@ export class AuctionService {
             };
 
         } catch (error) {
-            console.error('Error creating auction:', error);
+            container.logger.error('Error creating auction:', error);
             return { success: false, message: 'Failed to create auction' };
         }
     }
@@ -108,7 +112,7 @@ export class AuctionService {
     /**
      * Place a bid on an auction
      */
-    static async placeBid(userId: string, auctionId: string, amount: number): Promise<AuctionResult> {
+    static async placeBid(userId: string, username: string, auctionId: string, amount: number): Promise<AuctionResult> {
         try {
             const auction = await Auction.findOne({ auctionId, status: 'active' });
 
@@ -128,7 +132,7 @@ export class AuctionService {
                 return { success: false, message: `Bid must be higher than current bid of ${auction.currentBid} coins` };
             }
 
-            const user = await EconomyService.getUser(userId, 'User');
+            const user = await EconomyService.getUser(userId, username);
             if (user.economy.wallet < amount) {
                 return { success: false, message: 'Insufficient funds' };
             }
@@ -149,10 +153,10 @@ export class AuctionService {
             // Update auction
             auction.currentBid = amount;
             auction.highestBidderId = userId;
-            auction.highestBidderUsername = 'User';
+            auction.highestBidderUsername = username;
             auction.bidHistory.push({
                 bidderId: userId,
-                bidderUsername: 'User',
+                bidderUsername: username,
                 amount,
                 timestamp: new Date()
             });
@@ -171,7 +175,7 @@ export class AuctionService {
             };
 
         } catch (error) {
-            console.error('Error placing bid:', error);
+            container.logger.error('Error placing bid:', error);
             return { success: false, message: 'Failed to place bid' };
         }
     }
@@ -181,7 +185,7 @@ export class AuctionService {
      */
     static async getAuctions(userId: string, filter: string): Promise<AuctionResult> {
         try {
-            const query: Record<string, any> = { status: 'active' };
+            const query: QueryFilter<IAuction> = { status: 'active' };
 
             switch (filter) {
                 case 'mine':
@@ -221,7 +225,7 @@ export class AuctionService {
             };
 
         } catch (error) {
-            console.error('Error getting auctions:', error);
+            container.logger.error('Error getting auctions:', error);
             return { success: false, message: 'Failed to retrieve auctions' };
         }
     }
@@ -261,7 +265,7 @@ export class AuctionService {
             };
 
         } catch (error) {
-            console.error('Error getting auction:', error);
+            container.logger.error('Error getting auction:', error);
             return { success: false, message: 'Failed to retrieve auction' };
         }
     }

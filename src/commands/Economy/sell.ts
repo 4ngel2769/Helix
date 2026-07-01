@@ -89,7 +89,7 @@ export class SellCommand extends ModuleCommand<EconomyModule> {
             return interaction.editReply({ embeds: [embed] });
 
         } catch (error) {
-            console.error('Error in sell command:', error);
+            this.container.logger.error('Error in sell command:', error);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err)
@@ -174,7 +174,7 @@ export class SellCommand extends ModuleCommand<EconomyModule> {
             return message.reply({ embeds: [embed] });
 
         } catch (error) {
-            console.error('Error in sell command:', error);
+            this.container.logger.error('Error in sell command:', error);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err)

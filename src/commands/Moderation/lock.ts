@@ -247,7 +247,7 @@ export class LockCommand extends ModuleCommand<ModerationModule> {
             }
             
         } catch (error) {
-            console.error('Error saving lock to database:', error);
+            this.container.logger.error('Error saving lock to database:', error);
         }
     }
     
@@ -280,7 +280,7 @@ export class LockCommand extends ModuleCommand<ModerationModule> {
                 await this.removeChannelLock(guildId, channelId);
                 
             } catch (error) {
-                console.error('Error unlocking channel:', error);
+                this.container.logger.error('Error unlocking channel:', error);
             }
         }, durationMs);
     }
@@ -299,7 +299,7 @@ export class LockCommand extends ModuleCommand<ModerationModule> {
             
             await guildData.save();
         } catch (error) {
-            console.error('Error removing channel lock from database:', error);
+            this.container.logger.error('Error removing channel lock from database:', error);
         }
     }
 }

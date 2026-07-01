@@ -1,7 +1,5 @@
 import { Precondition } from '@sapphire/framework';
-import type { Message } from 'discord.js';
-import type { ChatInputCommandInteraction } from 'discord.js';
-import { GuildMember } from 'discord.js';
+import type { Message, ChatInputCommandInteraction, GuildMember } from 'discord.js';
 
 export class ModeratorOnlyPrecondition extends Precondition {
     public override async messageRun(message: Message) {
@@ -9,8 +7,11 @@ export class ModeratorOnlyPrecondition extends Precondition {
     }
 
     public override async chatInputRun(interaction: ChatInputCommandInteraction) {
+        if (!interaction.inGuild() || !interaction.member) {
+            return this.error({ message: 'This command can only be used in a server.' });
+        }
         const member = interaction.member as GuildMember;
-        return this.checkModerator(member?.permissions?.has('ModerateMembers'));
+        return this.checkModerator(member.permissions.has('ModerateMembers'));
     }
 
     private checkModerator(hasPermission: boolean | undefined) {

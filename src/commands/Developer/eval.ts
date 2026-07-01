@@ -15,7 +15,12 @@ const BLOCKED_PATTERNS: Array<{ pattern: RegExp; reason: string }> = [
 	{ pattern: /\bchild_process\b/i, reason: 'Process spawning is blocked.' },
 	{ pattern: /\bfs\b/i, reason: 'File system access is blocked.' },
 	{ pattern: /\bmodule\b/i, reason: 'Module access is blocked.' },
-	{ pattern: /\bglobal\b/i, reason: 'Global object access is blocked.' }
+	{ pattern: /\bglobal\b/i, reason: 'Global object access is blocked.' },
+	{ pattern: /\b.prototype\b/i, reason: 'Prototype manipulation is blocked.' },
+	{ pattern: /\bconstructor\b/i, reason: 'Constructor access is blocked.' },
+	{ pattern: /\b__proto__\b/i, reason: 'Proto access is blocked.' },
+	{ pattern: /\bimport\(/i, reason: 'Dynamic imports are blocked.' },
+	{ pattern: /\beval\b/i, reason: 'Nested eval is blocked.' }
 ];
 
 @ApplyOptions<Command.Options>({
@@ -76,27 +81,28 @@ export class EvalCommand extends Command {
 
 		try {
 			const logs: string[] = [];
-			const sandbox = {
-				Math,
+			const sandbox = Object.freeze({
+				Math: Object.freeze({ ...Math }),
 				Date,
-				JSON,
+				JSON: Object.freeze({ ...JSON }),
 				Number,
 				String,
 				Boolean,
 				Array,
-				Object,
+				Object: Object.freeze({ ...Object }),
 				RegExp,
 				Map,
 				Set,
 				Promise,
-				console: {
+				console: Object.freeze({
 					log: (...args: unknown[]) => logs.push(args.map((arg) => this.toDisplay(arg)).join(' '))
-				}
-			};
+				})
+			});
 
 			const wrappedCode = `(async () => {\n${code}\n})()`;
 			const script = new Script(wrappedCode);
 			const context = createContext(sandbox);
+			Object.freeze(context);
 			const result = await script.runInContext(context, {
 				timeout: EXECUTION_TIMEOUT_MS,
 				displayErrors: true

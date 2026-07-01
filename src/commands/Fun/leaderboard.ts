@@ -93,7 +93,7 @@ export class LeaderboardCommand extends ModuleCommand<FunModule> {
 
             return interaction.reply({ embeds: [embed] });
         } catch (error) {
-            console.error('Error fetching leaderboard data:', error);
+            this.container.logger.error('Error fetching leaderboard data:', error);
             return interaction.reply({
                 content: 'An error occurred while fetching the leaderboard. Please try again later.',
                 ephemeral: true

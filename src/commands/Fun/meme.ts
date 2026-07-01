@@ -80,7 +80,7 @@ export class MemeCommand extends ModuleCommand<FunModule> {
 
             return interaction.editReply({ embeds: [embed], components: [row] });
         } catch (error) {
-            console.error('Error fetching meme:', error);
+            this.container.logger.error('Error fetching meme:', error);
             return interaction.editReply({ content: 'Failed to fetch a meme. Please try again later.' });
         }
     }
@@ -113,7 +113,7 @@ export class MemeCommand extends ModuleCommand<FunModule> {
 
             return reply.edit({ content: null, embeds: [embed], components: [row] });
         } catch (error) {
-            console.error('Error fetching meme:', error);
+            this.container.logger.error('Error fetching meme:', error);
             return reply.edit({ content: 'Failed to fetch a meme. Please try again later.' });
         }
     }

@@ -157,7 +157,7 @@ export class ToggleCommandCommand extends ModuleCommand<AdministrationModule> {
             }
 
         } catch (error) {
-            console.error('Error toggling command:', error);
+            this.container.logger.error('Error toggling command:', error);
             return interaction.reply({ 
                 content: '❌ An error occurred while toggling the command.', 
                 ephemeral: true 

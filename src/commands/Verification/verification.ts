@@ -111,7 +111,7 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
                 components: [this.createVerificationButton(!enabled)]
             });
         } catch (error) {
-            console.error('Failed to update verification message:', error);
+            this.container.logger.error('Failed to update verification message:', error);
         }
     }
 
@@ -499,7 +499,7 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
                 { verificationMessageId: sentMessage.id }
             );
         } catch (error) {
-            console.error('Failed to send verification message:', error);
+            this.container.logger.error('Failed to send verification message:', error);
             throw new Error('Failed to send verification message.');
         }
     }

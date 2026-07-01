@@ -137,6 +137,7 @@ export class AuctionCommand extends ModuleCommand<EconomyModule> {
         try {
             const result = await AuctionService.createAuction(
                 interaction.user.id,
+                interaction.user.username,
                 itemName,
                 quantity,
                 startingBid,
@@ -190,7 +191,7 @@ export class AuctionCommand extends ModuleCommand<EconomyModule> {
             return interaction.editReply({ embeds: [embed] });
 
         } catch (error) {
-            console.error('Error creating auction:', error);
+            this.container.logger.error('Error creating auction:', error);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err)
@@ -209,7 +210,7 @@ export class AuctionCommand extends ModuleCommand<EconomyModule> {
         const bidAmount = interaction.options.getInteger('amount', true);
 
         try {
-            const result = await AuctionService.placeBid(interaction.user.id, auctionId, bidAmount);
+            const result = await AuctionService.placeBid(interaction.user.id, interaction.user.username, auctionId, bidAmount);
 
             if (!result.success) {
                 const embed = new EmbedBuilder()
@@ -253,7 +254,7 @@ export class AuctionCommand extends ModuleCommand<EconomyModule> {
             return interaction.editReply({ embeds: [embed] });
 
         } catch (error) {
-            console.error('Error placing bid:', error);
+            this.container.logger.error('Error placing bid:', error);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err)
@@ -292,7 +293,7 @@ export class AuctionCommand extends ModuleCommand<EconomyModule> {
             return interaction.editReply({ embeds: [embed], components: [this.createAuctionListActionRow()] });
 
         } catch (error) {
-            console.error('Error listing auctions:', error);
+            this.container.logger.error('Error listing auctions:', error);
 
             const embed = this.createAuctionListEmbed(
                 '❌ Error',
@@ -472,7 +473,7 @@ export class AuctionCommand extends ModuleCommand<EconomyModule> {
             });
 
         } catch (error) {
-            console.error('Error viewing auction:', error);
+            this.container.logger.error('Error viewing auction:', error);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err)

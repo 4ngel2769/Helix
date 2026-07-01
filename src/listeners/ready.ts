@@ -8,10 +8,8 @@ import {
 	blueBright, 
 	gray,
 	green,
-	magenta,
-	magentaBright, 
 	redBright, 
-	white, 
+	white,
 	yellow
 } from 'colorette';
 import { ActivityType } from 'discord.js';
@@ -19,10 +17,7 @@ import { ActivityType } from 'discord.js';
 // Import from files
 import { PerformanceMonitor } from '../lib/services/TPSMonitor';
 import { Guild } from '../models/Guild';
-import { Config } from '../config.js';
-import configModule from '../config.js';
-
-const config = configModule as Config;
+import config from '../config.js';
 
 const dev = process.env.NODE_ENV !== 'production';
 
@@ -76,7 +71,7 @@ export class UserEvent extends Listener {
 		| ░  ░  ░   ░  ░    ░  ░ ░   ░    ░  
 		`;
 
-		console.log(banner);
+		this.container.logger.info(banner);
         logger.info(`[${success}] Performance Monitor initialized and tracking started`);
         
         if (dev) logger.warn(`${blc('<')}${llc('/')}${blc('>')} ${llc('DEVELOPMENT MODE')}`);
@@ -145,17 +140,8 @@ export class UserEvent extends Listener {
 				const guildData = await Guild.findOne({ guildId });
 				
 				if (!guildData) {
-					// Create default guild data
-					const newGuild = new Guild({
-						guildId,
-						// Default module settings
-						isGeneralModule: true,
-						isModerationModule: true,
-						isAdministrationModule: true,
-						isFunModule: true,
-						isWelcomingModule: false,
-						isVerificationModule: false
-					});
+					// Create default guild data - modules initialized via schema default
+					const newGuild = new Guild({ guildId });
 					
 					await newGuild.save();
 					created++;

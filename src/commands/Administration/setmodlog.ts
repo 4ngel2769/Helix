@@ -99,7 +99,7 @@ export class SetModLogCommand extends ModuleCommand<AdministrationModule> {
             return interaction.reply({ embeds: [embed] });
 
         } catch (error) {
-            console.error('Error setting mod log:', error);
+            this.container.logger.error('Error setting mod log:', error);
             return interaction.reply({ 
                 content: '❌ An error occurred while setting the mod log channel.', 
                 ephemeral: true 

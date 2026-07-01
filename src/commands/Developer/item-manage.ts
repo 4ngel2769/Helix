@@ -301,7 +301,7 @@ export class ItemManageCommand extends Command {
             return interaction.editReply({ embeds: [embed] });
 
         } catch (error) {
-            console.error('Error creating item:', error);
+            this.container.logger.error('Error creating item:', error);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err)
@@ -407,7 +407,7 @@ export class ItemManageCommand extends Command {
             return interaction.editReply({ embeds: [embed] });
 
         } catch (error) {
-            console.error('Error listing items:', error);
+            this.container.logger.error('Error listing items:', error);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err)
@@ -475,7 +475,7 @@ export class ItemManageCommand extends Command {
             return interaction.editReply({ embeds: [embed], components: [row] });
 
         } catch (error) {
-            console.error('Error editing item:', error);
+            this.container.logger.error('Error editing item:', error);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err)
@@ -522,7 +522,7 @@ export class ItemManageCommand extends Command {
             return interaction.editReply({ embeds: [embed] });
 
         } catch (error) {
-            console.error('Error deleting item:', error);
+            this.container.logger.error('Error deleting item:', error);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err)

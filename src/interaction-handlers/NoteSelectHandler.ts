@@ -91,7 +91,7 @@ export class NoteSelectHandler extends InteractionHandler {
             });
 
         } catch (error) {
-            console.error('Error handling note selection:', error);
+            this.container.logger.error('Error handling note selection:', error);
             return interaction.editReply({
                 content: 'An error occurred while loading the note.',
                 embeds: [],

@@ -23,11 +23,11 @@ import { Module, Modules, type IsEnabledContext, type ModuleError } from '@kbotd
 import { Result } from '@sapphire/result';
 import { ModuleCommand, ModuleCommandUnion } from '@kbotdev/plugin-modules';
 import { GeneralModule } from '../../modules/General';
+import { getInteractionErrorCode } from '../../lib/utils/interactionHelpers';
 import {
     createDefaultGuildData,
     createHelpModuleSelect,
     createHelpPaginationButtons,
-    getInteractionErrorCode,
     paginateItems,
     sendInteractionErrorMessage
 } from '../../lib/utils/helpCommandHelpers';
@@ -142,20 +142,16 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
         embed: EmbedBuilder,
         components: Array<ActionRowBuilder<StringSelectMenuBuilder> | ActionRowBuilder<ButtonBuilder>>
     ) {
-        const buttonCheck = typeof (interaction as ButtonInteraction).isButton === 'function';
-        const selectCheck = typeof (interaction as StringSelectMenuInteraction).isStringSelectMenu === 'function';
-
-        if (buttonCheck || selectCheck) {
-            const componentInteraction = interaction as StringSelectMenuInteraction | ButtonInteraction;
-            if (componentInteraction.deferred || componentInteraction.replied) {
-                await (componentInteraction as any).editReply({ embeds: [embed], components });
+        if (!(interaction instanceof Message) && interaction.isMessageComponent()) {
+            if (interaction.deferred || interaction.replied) {
+                await interaction.editReply({ embeds: [embed], components });
             } else {
                 try {
-                    await componentInteraction.update({ embeds: [embed], components });
+                    await interaction.update({ embeds: [embed], components });
                 } catch (error: unknown) {
                     const code = typeof error === 'object' && error !== null && 'code' in error ? (error as { code?: number }).code : undefined;
                     if (code === 40060 || code === 10062) {
-                        await (componentInteraction as any).editReply({ embeds: [embed], components }).catch(() => null);
+                        await interaction.editReply({ embeds: [embed], components }).catch(() => null);
                     } else {
                         throw error;
                     }
@@ -164,8 +160,8 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
             return;
         }
 
-        if (typeof (interaction as any).editReply === 'function') {
-            await (interaction as any).editReply({ embeds: [embed], components });
+        if (!(interaction instanceof Message) && interaction.isRepliable() && typeof interaction.editReply === 'function') {
+            await interaction.editReply({ embeds: [embed], components });
             return;
         }
 
@@ -233,7 +229,7 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
             const moduleCommand = module.container.stores.get('commands').get(module.name);
             const isEnabled = await module.IsEnabled({
                 guild,
-                interaction: interaction as any,
+                interaction: interaction as unknown as Command.ChatInputCommandInteraction,
                 command: moduleCommand as ModuleCommandUnion
             });
 
@@ -314,7 +310,7 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
                 await this.handleHelp(interaction);
             }
         } catch (error) {
-            console.error('Error in help command:', error);
+            this.container.logger.error('Error in help command:', error);
             // Error handling...
             try {
                 await interaction.editReply({
@@ -328,7 +324,7 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
                         flags: MessageFlags.Ephemeral
                     });
                 } catch (finalError) {
-                    console.error('Failed to respond to interaction:', finalError);
+                    this.container.logger.error('Failed to respond to interaction:', finalError);
                 }
             }
         }
@@ -356,7 +352,7 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
                 )
             ]) as Record<string, unknown> | null;
         } catch (error) {
-            console.error('Database error in help command:', error);
+            this.container.logger.error('Database error in help command:', error);
             // Create default guild data as fallback for errors
             guildData = createDefaultGuildData(guildId);
         }
@@ -419,7 +415,7 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
                     }
                 }
             } catch (error) {
-                console.error('Error handling interaction in collector:', error);
+                this.container.logger.error('Error handling interaction in collector:', error);
                 
                 // More robust error handling
                 if (getInteractionErrorCode(error) === 10062) { // Unknown interaction
@@ -454,7 +450,7 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
                         .catch(() => null);
                 }
             } catch (error) {
-                console.error('Error updating message on collector end:', error);
+                this.container.logger.error('Error updating message on collector end:', error);
             }
         });
     }
@@ -560,7 +556,7 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
                     components: [new ActionRowBuilder<ButtonBuilder>().addComponents(...newButtons)] 
                 });
             } catch (error) {
-                console.error('Error handling DM help pagination:', error);
+                this.container.logger.error('Error handling DM help pagination:', error);
                 // Handle expired interaction
                 if (getInteractionErrorCode(error) === 10062) {
                     this.container.logger.debug('DM help interaction expired, ignoring...');
@@ -578,7 +574,7 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
                         .catch(() => null);
                 }
             } catch (error) {
-                console.error('Error removing components on DM help collector end:', error);
+                this.container.logger.error('Error removing components on DM help collector end:', error);
             }
         });
         
@@ -643,58 +639,58 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
         
         // Check if command has subcommands
         const hasSubcommandOptions = command.options?.options && 
-            Array.isArray(command.options.options) && 
-            command.options.options.some((opt: any) => opt.type === 1);
-            
+        Array.isArray(command.options.options) && 
+        command.options.options.some((opt) => opt.type === 1); // Discord.js ApplicationCommandOptionType.Subcommand is 1
+
         if (hasSubcommandOptions) {
-            description += '\n**Subcommands:**\n';
-            
-            // Try to get application command data for clickable mentions
-            const appCommand = this.container.client.application?.commands.cache
-                .find(c => c.name === command.name);
-                
-            if (appCommand && commandId) {
-                // Get subcommands from application command options
-                const subcommands = appCommand.options
-                    .filter(opt => opt.type === 1) // Type 1 is subcommand
-                    .map(opt => {
-                        // Create clickable subcommand mention
-                        return `</${command.name} ${opt.name}:${commandId}> - ${opt.description}`;
-                    });
-                
-                if (subcommands.length > 0) {
-                    description += subcommands.join('\n');
-                } else {
-                    description += '*No subcommands found in application command data*';
-                }
+        description += '\n**Subcommands:**\n';
+
+        // Try to get application command data for clickable mentions
+        const appCommand = this.container.client.application?.commands.cache
+            .find(c => c.name === command.name);
+
+        if (appCommand && commandId) {
+            // Get subcommands from application command options
+            const subcommands = appCommand.options
+                .filter(opt => opt.type === 1) // Type 1 is subcommand
+                .map(opt => {
+                    // Create clickable subcommand mention
+                    return `</${command.name} ${opt.name}:${commandId}> - ${opt.description}`;
+                });
+
+            if (subcommands.length > 0) {
+                description += subcommands.join('\n');
             } else {
-                // Fallback if we can't get application command data
-                const cmdOptions = command.options?.options;
-                const subcommandOptions = Array.isArray(cmdOptions) 
-                    ? cmdOptions.filter((opt: any) => opt.type === 1)
-                    : [];
-                    
-                if (subcommandOptions && subcommandOptions.length > 0) {
-                    description += subcommandOptions
-                        .map((opt: any) => `\`/${command.name} ${opt.name}\` - ${opt.description || 'No description'}`)
-                        .join('\n');
-                } else {
-                    description += '*Use the command to see available subcommands*';
-                }
+                description += '*No subcommands found in application command data*';
             }
         } else {
-            // Check for regular options
+            // Fallback if we can't get application command data
             const cmdOptions = command.options?.options;
-            if (cmdOptions && Array.isArray(cmdOptions) && cmdOptions.length > 0) {
-                description += '\n**Options:**\n';
-                
-                description += cmdOptions
-                    .map((opt: any) => {
-                        const required = opt.required ? ' *(required)*' : '';
-                        return `\`${opt.name}\` - ${opt.description || 'No description'}${required}`;
-                    })
+            const subcommandOptions = Array.isArray(cmdOptions) 
+                ? cmdOptions.filter((opt) => opt.type === 1)
+                : [];
+
+            if (subcommandOptions && subcommandOptions.length > 0) {
+                description += subcommandOptions
+                    .map((opt) => `\`/${command.name} ${opt.name}\` - ${opt.description || 'No description'}`)
                     .join('\n');
+            } else {
+                description += '*Use the command to see available subcommands*';
             }
+        }
+        } else {
+        // Check for regular options
+        const cmdOptions = command.options?.options;
+        if (cmdOptions && Array.isArray(cmdOptions) && cmdOptions.length > 0) {
+            description += '\n**Options:**\n';
+
+            description += cmdOptions
+                .map((opt) => {
+                    const required = opt.required ? ' *(required)*' : '';
+                    return `\`${opt.name}\` - ${opt.description || 'No description'}${required}`;
+                })
+                .join('\n');
+        }
         }
         
         // Add usage examples section
@@ -802,7 +798,7 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
 
             await interaction.update({ embeds: [embed], components });
         } catch (error) {
-            console.error('Error in handleModuleSelect:', error);
+            this.container.logger.error('Error in handleModuleSelect:', error);
             
             // Handle expired interaction
             if (getInteractionErrorCode(error) === 10062) {
@@ -816,7 +812,7 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
                     components: []
                 }).catch(() => null);
             } catch (updateError) {
-                console.error('Failed to update interaction:', updateError);
+                this.container.logger.error('Failed to update interaction:', updateError);
             }
         }
     }
@@ -894,7 +890,7 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
             }
 
         } catch (error) {
-            console.error('Error in handlePaginationButton:', error);
+            this.container.logger.error('Error in handlePaginationButton:', error);
             
             // Handle expired interaction
             if (getInteractionErrorCode(error) === 10062) {

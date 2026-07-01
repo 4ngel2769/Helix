@@ -304,6 +304,8 @@ export class ReactionRolesCommand extends ModuleCommand<ReactionRolesModule> {
                     flags: MessageFlags.Ephemeral
                 });
         }
+
+        return;
     }
     
     // For autocomplete on menu IDs
@@ -350,7 +352,7 @@ export class ReactionRolesCommand extends ModuleCommand<ReactionRolesModule> {
 
             return interaction.respond([...allChoice, ...menuChoices]);
         } catch (error) {
-            console.error('Error in menu_id autocomplete:', error);
+            this.container.logger.error('Error in menu_id autocomplete:', error);
             return interaction.respond([]);
         }
     }
@@ -389,7 +391,7 @@ export class ReactionRolesCommand extends ModuleCommand<ReactionRolesModule> {
 
             return interaction.respond(choices);
         } catch (error) {
-            console.error('Error in role autocomplete:', error);
+            this.container.logger.error('Error in role autocomplete:', error);
             return interaction.respond([]);
         }
     }
@@ -533,7 +535,7 @@ export class ReactionRolesCommand extends ModuleCommand<ReactionRolesModule> {
             return interaction.editReply(`Successfully created role selection menu in ${channel}.`);
             
         } catch (error) {
-            console.error('Error creating reaction roles menu:', error);
+            this.container.logger.error('Error creating reaction roles menu:', error);
             return interaction.editReply('An error occurred while creating the roles menu.');
         }
     }
@@ -603,7 +605,7 @@ export class ReactionRolesCommand extends ModuleCommand<ReactionRolesModule> {
                     }
                 }
             } catch (error) {
-                console.log('Could not delete message, it might have been deleted already.');
+                this.container.logger.info('Could not delete message, it might have been deleted already.');
             }
             
             // Remove from database
@@ -615,7 +617,7 @@ export class ReactionRolesCommand extends ModuleCommand<ReactionRolesModule> {
             return interaction.editReply(`Successfully deleted reaction roles menu "${menu.title}".`);
             
         } catch (error) {
-            console.error('Error deleting reaction roles menu:', error);
+            this.container.logger.error('Error deleting reaction roles menu:', error);
             return interaction.editReply('An error occurred while deleting the reaction roles menu.');
         }
     }
@@ -708,7 +710,7 @@ export class ReactionRolesCommand extends ModuleCommand<ReactionRolesModule> {
 
             return interaction.editReply(response);
         } catch (error) {
-            console.error(
+            this.container.logger.error(
                 `Error ${makeActive ? 'resuming' : 'pausing'} reaction roles menu:`,
                 error
             );
@@ -943,14 +945,14 @@ export class ReactionRolesCommand extends ModuleCommand<ReactionRolesModule> {
                     return interaction.editReply(`Menu updated in database, but couldn't update the message. It might have been deleted.`);
                 }
             } catch (error) {
-                console.error('Error updating message:', error);
+                this.container.logger.error('Error updating message:', error);
                 return interaction.editReply(`Menu updated in database, but couldn't update the message. It might have been deleted.`);
             }
             
             return interaction.editReply(`Successfully updated reaction roles menu "${newTitle || menu.title}".\nChanges: ${changes.join(', ')}`);
             
         } catch (error) {
-            console.error('Error editing reaction roles menu:', error);
+            this.container.logger.error('Error editing reaction roles menu:', error);
             return interaction.editReply('An error occurred while editing the reaction roles menu.');
         }
     }

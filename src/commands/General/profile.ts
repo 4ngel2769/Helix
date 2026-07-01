@@ -62,7 +62,7 @@ export class ProfileCommand extends ModuleCommand<GeneralModule> {
 
 			return interaction.reply({ embeds: [embed] });
 		} catch (error) {
-			console.error('Error fetching profile data:', error);
+			this.container.logger.error('Error fetching profile data:', error);
 			return interaction.reply({
 				content: 'An error occurred while fetching your profile. Please try again later.',
 				ephemeral: true

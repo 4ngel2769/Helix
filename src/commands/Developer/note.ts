@@ -80,7 +80,7 @@ export class NoteCommand extends Command {
             }
         } catch (error) {
             // Catch-all error handler for subcommands
-            console.error('Error in note command:', error);
+            this.container.logger.error('Error in note command:', error);
             return interaction.reply({
                 content: 'An error occurred while processing your request.',
                 flags: MessageFlags.Ephemeral
@@ -110,7 +110,7 @@ export class NoteCommand extends Command {
                         }))
                     );
                 } catch (error) {
-                    console.error('Autocomplete error:', error);
+                    this.container.logger.error('Autocomplete error:', error);
                     return interaction.respond([]);
                 }
             }
@@ -178,7 +178,7 @@ export class NoteCommand extends Command {
                     // Modal timeout, do nothing
                     return;
                 default:
-                    console.error('Error with note modal:', error);
+                    this.container.logger.error('Error with note modal:', error);
                     return;
             }
         }
@@ -274,7 +274,7 @@ export class NoteCommand extends Command {
                 });
             }
         } catch (error) {
-            console.error('Error listing notes:', error);
+            this.container.logger.error('Error listing notes:', error);
             return interaction.reply({ 
                 content: 'Failed to list notes. Please try again.', 
                 flags: MessageFlags.Ephemeral 
@@ -331,7 +331,7 @@ export class NoteCommand extends Command {
                 flags: MessageFlags.Ephemeral
             });
         } catch (error) {
-            console.error('Error deleting note:', error);
+            this.container.logger.error('Error deleting note:', error);
             return interaction.reply({ 
                 content: 'Failed to delete note. Please try again.', 
                 flags: MessageFlags.Ephemeral 

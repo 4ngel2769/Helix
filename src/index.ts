@@ -1,5 +1,5 @@
 import './lib/setup';
-import { SapphireClient } from '@sapphire/framework';
+import { SapphireClient, container } from '@sapphire/framework';
 import { GatewayIntentBits, OAuth2Scopes, Partials } from 'discord.js';
 import '@sapphire/plugin-api/register';
 import '@kbotdev/plugin-modules/register';
@@ -30,7 +30,7 @@ const client = new SapphireClient({
             const guildData = await Guild.findOne({ guildId: message.guild.id });
             return guildData?.prefix || config.bot.defaultPrefix || 'x';
         } catch (error) {
-            console.error('Error fetching prefix:', error);
+            container.logger.error('Error fetching prefix:', error);
             return config.bot.defaultPrefix || 'x';
         }
     },
@@ -65,7 +65,7 @@ const main = async () => {
         initializePerformanceMonitor(client);
 
         if (!config.bot.token) {
-            console.warn('⚠️ No bot token present in config.bot.token or DISCORD_TOKEN. Aborting login.');
+            container.logger.warn('⚠️ No bot token present in config.bot.token or DISCORD_TOKEN. Aborting login.');
         }
 
         await client.login(config.bot.token);

@@ -66,7 +66,7 @@ export class ElephantCommand extends ModuleCommand<FunModule> {
 
 			return interaction.editReply({ embeds: [embed] });
 		} catch (error) {
-			console.error('Error fetching elephant data:', error);
+			this.container.logger.error('Error fetching elephant data:', error);
 			return interaction.editReply({ content: 'Failed to fetch elephant data. Please try again later.' });
 		}
 	}

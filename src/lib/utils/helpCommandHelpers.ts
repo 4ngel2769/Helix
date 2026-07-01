@@ -10,15 +10,6 @@ import {
 import { getModuleConfig } from '../../config/modules';
 import { GuildConfigService } from '../services/GuildConfigService';
 
-export function getInteractionErrorCode(error: unknown): number | undefined {
-    if (typeof error === 'object' && error !== null && 'code' in error) {
-        const code = (error as { code?: unknown }).code;
-        return typeof code === 'number' ? code : undefined;
-    }
-
-    return undefined;
-}
-
 export function createDefaultGuildData(guildId: string): { guildId: string; modules: Record<string, boolean> } {
     return GuildConfigService.createDefaultGuildData(guildId);
 }
@@ -89,7 +80,7 @@ export async function sendInteractionErrorMessage(interaction: ButtonInteraction
             });
         }
     } catch (error) {
-        console.error('Failed to send error message:', error);
+        container.logger.error('Failed to send error message:', error);
         container.logger.debug('Unable to send error message to user, interaction may have expired');
     }
 }

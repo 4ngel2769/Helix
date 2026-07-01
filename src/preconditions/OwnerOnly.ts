@@ -1,4 +1,4 @@
-import { AllFlowsPrecondition } from '@sapphire/framework';
+import { AllFlowsPrecondition, container } from '@sapphire/framework';
 import { envParseArray } from '@skyra/env-utilities';
 import type { CommandInteraction, ContextMenuCommandInteraction, Message, Snowflake } from 'discord.js';
 import { Config } from '../config'
@@ -23,7 +23,7 @@ export async function fetchDeveloperUsernames(client: { users: { fetch: (id: str
             developerUsernames.push(id);
         }
     } catch (error) {
-        console.error('Error fetching developer usernames:', error);
+        container.logger.error('Error fetching developer usernames:', error);
     }
 }
 export class UserPrecondition extends AllFlowsPrecondition {

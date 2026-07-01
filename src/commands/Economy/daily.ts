@@ -2,7 +2,7 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import type { EconomyModule } from '../../modules/Economy';
-import { EmbedBuilder, MessageFlags, Message } from 'discord.js';
+import { EmbedBuilder, Message } from 'discord.js';
 import config from '../../config';
 import { EconomyService } from '../../lib/services/EconomyService';
 
@@ -109,7 +109,7 @@ export class DailyCommand extends ModuleCommand<EconomyModule> {
             return interaction.editReply({ embeds: [embed] });
 
         } catch (error) {
-            console.error('Error in daily command:', error);
+            this.container.logger.error('Error in daily command:', error);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err)
@@ -186,7 +186,7 @@ export class DailyCommand extends ModuleCommand<EconomyModule> {
             return message.reply({ embeds: [embed] });
 
         } catch (error) {
-            console.error('Error in daily command:', error);
+            this.container.logger.error('Error in daily command:', error);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err)
@@ -247,19 +247,15 @@ export class DailyCommand extends ModuleCommand<EconomyModule> {
 
             // Diamond rewards - VERY RARE (random chance only)
             let diamondsEarned = 0;
-            const diamondRoll = Math.random(); // Roll once for all diamond chances
+            const diamondRoll = Math.random();
             
-            // Base diamond chance: 1% for 1 diamond
-            if (diamondRoll < 0.01) {
-                diamondsEarned = 1;
-            }
-            // Rare chance: 0.3% for 2 diamonds  
-            else if (diamondRoll < 0.004) {
-                diamondsEarned = 2;
-            }
-            // Ultra rare chance: 0.1% for 3 diamonds
-            else if (diamondRoll < 0.001) {
-                diamondsEarned = 3;
+            // Order from rarest to most common to avoid unreachable branches
+            if (diamondRoll < 0.001) {
+                diamondsEarned = 3; // 0.1% chance
+            } else if (diamondRoll < 0.004) {
+                diamondsEarned = 2; // 0.3% chance
+            } else if (diamondRoll < 0.01) {
+                diamondsEarned = 1; // 0.6% chance
             }
             
             // Slight streak bonus to diamond chances (doesn't guarantee, just improves odds slightly)
@@ -338,7 +334,7 @@ export class DailyCommand extends ModuleCommand<EconomyModule> {
             };
 
         } catch (error) {
-            console.error('Error processing daily:', error);
+            this.container.logger.error('Error processing daily:', error);
             return { success: false, message: 'An error occurred while processing your daily reward.' };
         }
     }

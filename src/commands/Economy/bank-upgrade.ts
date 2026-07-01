@@ -166,7 +166,7 @@ export class BankUpgradeCommand extends ModuleCommand<EconomyModule> {
             return interaction.editReply({ embeds: [embed] });
 
         } catch (error) {
-            console.error('Error in bank upgrade info:', error);
+            this.container.logger.error('Error in bank upgrade info:', error);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err as ColorResolvable)
@@ -336,7 +336,7 @@ export class BankUpgradeCommand extends ModuleCommand<EconomyModule> {
                             throw new Error('Upgrade failed');
                         }
                     } catch (error) {
-                        console.error('Error performing bank upgrade:', error);
+                        this.container.logger.error('Error performing bank upgrade:', error);
                         
                         const errorEmbed = new EmbedBuilder()
                             .setColor(config.bot.embedColor.err as ColorResolvable)
@@ -347,6 +347,8 @@ export class BankUpgradeCommand extends ModuleCommand<EconomyModule> {
                         return i.update({ embeds: [errorEmbed], components: [] });
                     }
                 }
+
+                return;
             });
 
             collector.on('end', (collected) => {
@@ -362,7 +364,7 @@ export class BankUpgradeCommand extends ModuleCommand<EconomyModule> {
             });
 
         } catch (error) {
-            console.error('Error in bank upgrade buy:', error);
+            this.container.logger.error('Error in bank upgrade buy:', error);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err as ColorResolvable)
@@ -372,6 +374,8 @@ export class BankUpgradeCommand extends ModuleCommand<EconomyModule> {
 
             return interaction.editReply({ embeds: [embed] });
         }
+
+        return;
     }
 
     private getCurrentTier(bankLimit: number): number {
@@ -436,7 +440,7 @@ export class BankUpgradeCommand extends ModuleCommand<EconomyModule> {
 
             return true;
         } catch (error) {
-            console.error('Error performing bank upgrade:', error);
+            this.container.logger.error('Error performing bank upgrade:', error);
             return false;
         }
     }

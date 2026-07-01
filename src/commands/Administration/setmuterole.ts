@@ -90,7 +90,7 @@ export class SetMuteRoleCommand extends ModuleCommand<AdministrationModule> {
             return interaction.reply({ embeds: [embed] });
 
         } catch (error) {
-            console.error('Error setting mute role:', error);
+            this.container.logger.error('Error setting mute role:', error);
             return interaction.reply({ 
                 content: '❌ An error occurred while setting the mute role.', 
                 ephemeral: true 

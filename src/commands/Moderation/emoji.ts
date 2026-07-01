@@ -99,7 +99,7 @@ export class EmojiCommand extends ModuleCommand<ModerationModule> {
                 });
 
             } catch (error) {
-                console.error('Failed to create emoji:', error);
+                this.container.logger.error('Failed to create emoji:', error);
                 
                 // Handle specific error cases
                 if ((error as { code: number }).code === 50035) {
@@ -113,6 +113,8 @@ export class EmojiCommand extends ModuleCommand<ModerationModule> {
                     'Failed to create emoji. Please check the image URL and try again.'
                 );
             }
+        } else {
+            return interaction.reply({ content: '❌ Invalid subcommand.', ephemeral: true });
         }
     }
 } 

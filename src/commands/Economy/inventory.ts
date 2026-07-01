@@ -103,7 +103,7 @@ export class InventoryCommand extends ModuleCommand<EconomyModule> {
             });
 
         } catch (error) {
-            console.error('Error viewing inventory:', error);
+            this.container.logger.error('Error viewing inventory:', error);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err as ColorResolvable)
@@ -163,7 +163,7 @@ export class InventoryCommand extends ModuleCommand<EconomyModule> {
             return message.reply({ embeds: [embed] });
 
         } catch (error) {
-            console.error('Error viewing inventory:', error);
+            this.container.logger.error('Error viewing inventory:', error);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err as ColorResolvable)

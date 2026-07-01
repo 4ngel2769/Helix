@@ -11,6 +11,7 @@ import {
 import { MessageFlags } from 'discord-api-types/v10';
 import { getGameStatsModel } from '../../models/GameStats';
 import { getGameControlRow, getReplayRow } from '../../components/GameControls';
+import { container } from '@sapphire/framework';
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { safeDeferUpdate, safeEditReply, safeReply } from '../utils/interactionHelpers';
 
@@ -546,7 +547,7 @@ export async function startSinglePlayerGame(
             await handleSingleplayerReplay(interaction, player, bot, board);
         });
     } catch (error) {
-        console.error('Error in startSinglePlayerGame:', error);
+        container.logger.error('Error in startSinglePlayerGame:', error);
         await safeReply(interaction, {
             content: 'An error occurred while starting the game. Please try again later.',
             ephemeral: true
@@ -798,7 +799,7 @@ export async function startMultiplayerGame(
             }
         });
     } catch (error) {
-        console.error('Error in startMultiplayerGame:', error);
+        container.logger.error('Error in startMultiplayerGame:', error);
         await safeReply(interaction, {
             content: 'An error occurred while starting the game. Please try again later.',
             ephemeral: true

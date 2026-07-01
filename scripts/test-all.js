@@ -26,8 +26,12 @@ class BotTester {
   async testTypeScriptCompilation() {
     this.log('Checking TypeScript compilation...', 'info');
     try {
-      const { stderr } = await execP('npm run build', { cwd: this.rootDir, env: { ...process.env, NODE_ENV: 'test' } });
-      if (stderr && !stderr.includes('npm WARN')) { this.addWarning('TypeScript', 'Build warnings detected'); console.log(stderr); }
+      const { stderr } = await execP('bun run build', { cwd: this.rootDir, env: { ...process.env, NODE_ENV: 'test' } });
+      const meaningfulStderr = stderr.split('\n').some((line) => {
+        const text = line.trim();
+        return text.length > 0 && !text.startsWith('$ bun ');
+      });
+      if (meaningfulStderr) { this.addWarning('TypeScript', 'Build warnings detected'); console.log(stderr); }
       this.log('TypeScript compilation successful', 'success');
     } catch (e) { throw new Error(`TypeScript compilation failed: ${e.message}`); }
   }

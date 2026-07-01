@@ -105,7 +105,7 @@ export class AskCommand extends ModuleCommand<GeneralModule> {
 					});
 					lastUpdate = now;
 				} catch (updateError) {
-					console.error('Error updating stream reply:', updateError);
+					this.container.logger.error('Error updating stream reply:', updateError);
 				}
 			});
 
@@ -118,7 +118,7 @@ export class AskCommand extends ModuleCommand<GeneralModule> {
 				embeds: [this.createResponseEmbed(interaction, model, this.formatResponseText(fullResponse, false))]
 			});
 		} catch (error) {
-			console.error('Ollama API error:', error);
+			this.container.logger.error('Ollama API error:', error);
 			const errorMessage = this.getOllamaErrorMessage(error, model);
 
 			const errorEmbed = new EmbedBuilder()
@@ -176,7 +176,7 @@ export class AskCommand extends ModuleCommand<GeneralModule> {
 					responseText += data.response;
 				}
 			} catch (parseError) {
-				console.error('Error parsing stream chunk:', parseError);
+				this.container.logger.error('Error parsing stream chunk:', parseError);
 			}
 		}
 

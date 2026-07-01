@@ -117,7 +117,7 @@ export class RemoveRoleCommand extends ModuleCommand<ModerationModule> {
             return interaction.reply({ embeds: [embed] });
 
         } catch (error) {
-            console.error('Error removing role:', error);
+            this.container.logger.error('Error removing role:', error);
             return interaction.reply({ 
                 content: '❌ An error occurred while removing the role.', 
                 ephemeral: true 

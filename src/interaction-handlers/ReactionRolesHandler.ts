@@ -84,7 +84,7 @@ export class ReactionRolesHandler extends InteractionHandler {
                         addedRoles.push(role.name);
                     }
                 } catch (error) {
-                    console.error(`Error adding role ${roleId} to user ${member.id}:`, error);
+                    this.container.logger.error(`Error adding role ${roleId} to user ${member.id}:`, error);
                 }
             }
             
@@ -96,7 +96,7 @@ export class ReactionRolesHandler extends InteractionHandler {
                         removedRoles.push(role.name);
                     }
                 } catch (error) {
-                    console.error(`Error removing role ${roleId} from user ${member.id}:`, error);
+                    this.container.logger.error(`Error removing role ${roleId} from user ${member.id}:`, error);
                 }
             }
             
@@ -114,7 +114,7 @@ export class ReactionRolesHandler extends InteractionHandler {
             return interaction.editReply(responseMessage);
             
         } catch (error) {
-            console.error('Error processing reaction roles selection:', error);
+            this.container.logger.error('Error processing reaction roles selection:', error);
             return interaction.editReply('An error occurred while processing your role selection. Please try again later.');
         }
     }

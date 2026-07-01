@@ -2,9 +2,10 @@ import type { ChatInputCommandSuccessPayload, Command, ContextMenuCommandSuccess
 import { container } from '@sapphire/framework';
 import { send } from '@sapphire/plugin-editable-commands';
 import { cyan, greenBright } from 'colorette';
-import { EmbedBuilder, type APIUser, type Guild, type Message, type User } from 'discord.js';
+import { EmbedBuilder, type APIUser, type Message, type User } from 'discord.js';
 import { RandomLoadingMessage } from './constants';
 import { promises as fs } from 'fs';
+import path from 'path';
 import YAML from 'yaml';
 
 /**
@@ -15,7 +16,7 @@ import YAML from 'yaml';
  */
 export function pickRandom<T>(array: readonly T[]): T {
 	const { length } = array;
-	return array[Math.floor(Math.random() * length)];
+	return array[Math.floor(Math.random() * length)] as T;
 }
 
 /**
@@ -38,7 +39,7 @@ export function logSuccessCommand(payload: ContextMenuCommandSuccessPayload | Ch
 	container.logger.debug(`${successLoggerData.shard} - ${successLoggerData.commandName} ${successLoggerData.author} ${successLoggerData.sentAt}`);
 }
 
-export function getSuccessLoggerData(guild: Guild | null, user: User, command: Command) {
+export function getSuccessLoggerData(guild: import('discord.js').Guild | null, user: User, command: Command) {
 	const shard = getShardInfo(guild?.shardId ?? 0);
 	const commandName = getCommandInfo(command);
 	const author = getAuthorInfo(user);
@@ -59,7 +60,7 @@ function getAuthorInfo(author: User | APIUser) {
 	return `${author.username}[${cyan(author.id)}]`;
 }
 
-function getGuildInfo(guild: Guild | null) {
+function getGuildInfo(guild: import('discord.js').Guild | null) {
 	if (guild === null) return 'Direct Messages';
 	return `${guild.name}[${cyan(guild.id)}]`;
 }
@@ -75,14 +76,15 @@ async function readYamlFile<T>(filePath: string): Promise<T> {
 	return YAML.parse(replyContent) as T;
 }
 
-async function loadReply(filePath: string = './defaultreplies.yaml'): Promise<Replies> {
+async function loadReply(filePath?: string): Promise<Replies> {
 	if (!cachedReplies) {
-		cachedReplies = await readYamlFile<Replies>(filePath);
+		const resolvedPath = filePath || path.join(__dirname, '../../defaultreplies.yaml');
+		cachedReplies = await readYamlFile<Replies>(resolvedPath);
 	}
 	return cachedReplies;
 }
 
-export async function getDefReply(key: string, filePath: string = './defaultreplies.yaml'): Promise<string | undefined> {
+export async function getDefReply(key: string, filePath?: string): Promise<string | undefined> {
 	const replies = await loadReply(filePath);
 	return replies[key];
 }

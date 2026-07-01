@@ -3,6 +3,7 @@ import { EconomyItem as EconomyItemModel, type IEconomyItem } from '../../models
 import { Auction, type IAuction } from '../../models/Auction';
 import type { PipelineStage } from 'mongoose';
 import { randomUUID } from 'crypto';
+import { container } from '@sapphire/framework';
 
 export class EconomyService {
   /**
@@ -145,7 +146,7 @@ export class EconomyService {
 
       return !!updatedUser;
     } catch (error) {
-      console.error('Error adding money:', error);
+      container.logger.error('Error adding money:', error);
       return false;
     }
   }
@@ -178,7 +179,7 @@ export class EconomyService {
 
       return !!updatedUser;
     } catch (error) {
-      console.error('Error removing money:', error);
+      container.logger.error('Error removing money:', error);
       return false;
     }
   }
@@ -264,7 +265,7 @@ export class EconomyService {
 
       return !!updatedUser;
     } catch (error) {
-      console.error('Error transferring money:', error);
+      container.logger.error('Error transferring money:', error);
       return false;
     }
   }
@@ -285,7 +286,7 @@ export class EconomyService {
 
       return inventory;
     } catch (error) {
-      console.error('Error getting inventory:', error);
+      container.logger.error('Error getting inventory:', error);
       return [];
     }
   }
@@ -313,7 +314,7 @@ export class EconomyService {
         const economyItem = economyItemMap.get(invItem.itemId);
 
         if (!economyItem) {
-          console.warn(`Item ${invItem.itemId} not found in EconomyItem collection`);
+          container.logger.warn(`Item ${invItem.itemId} not found in EconomyItem collection`);
           return {
             ...invItem,
             name: invItem.name || 'Unknown Item',
@@ -362,7 +363,7 @@ export class EconomyService {
 
       return { success: true, inventory: validInventory };
     } catch (error) {
-      console.error('Error getting user inventory:', error);
+      container.logger.error('Error getting user inventory:', error);
       return { success: false, message: 'Failed to retrieve inventory' };
     }
   }
@@ -375,7 +376,7 @@ export class EconomyService {
       // Get the complete item data from EconomyItem collection
       const economyItem = await EconomyItemModel.findOne({ itemId });
       if (!economyItem) {
-        console.error(`Item ${itemId} not found in EconomyItem collection`);
+        container.logger.error(`Item ${itemId} not found in EconomyItem collection`);
         return false;
       }
 
@@ -411,7 +412,7 @@ export class EconomyService {
       await user.save();
       return true;
     } catch (error) {
-      console.error('Error adding item to inventory:', error);
+      container.logger.error('Error adding item to inventory:', error);
       return false;
     }
   }
@@ -439,7 +440,7 @@ export class EconomyService {
       await user.save();
       return true;
     } catch (error) {
-      console.error('Error removing item:', error);
+      container.logger.error('Error removing item:', error);
       return false;
     }
   }
@@ -481,7 +482,7 @@ export class EconomyService {
       const finalPrice = Math.floor(price);
       return isNaN(finalPrice) ? 0 : finalPrice;
     } catch (error) {
-      console.error('Error calculating item price for', itemId, ':', error);
+      container.logger.error('Error calculating item price for', itemId, ':', error);
       return 0;
     }
   }
@@ -530,7 +531,7 @@ export class EconomyService {
 
       return { success: true, message: `Successfully purchased ${quantity}x ${item.name}`, cost: totalCost };
     } catch (error) {
-      console.error('Error purchasing item:', error);
+      container.logger.error('Error purchasing item:', error);
       return { success: false, message: 'An error occurred during purchase' };
     }
   }
@@ -583,7 +584,7 @@ export class EconomyService {
         remainingQuantity: remainingItem?.quantity || 0
       };
     } catch (error) {
-      console.error('Error selling item:', error);
+      container.logger.error('Error selling item:', error);
       return { success: false, message: 'An error occurred during sale' };
     }
   }
@@ -640,7 +641,7 @@ export class EconomyService {
       await auction.save();
       return { success: true, message: 'Auction created successfully', auctionId };
     } catch (error) {
-      console.error('Error creating auction:', error);
+      container.logger.error('Error creating auction:', error);
       return { success: false, message: 'Failed to create auction' };
     }
   }
@@ -688,7 +689,7 @@ export class EconomyService {
       await auction.save();
       return { success: true, message: 'Bid placed successfully' };
     } catch (error) {
-      console.error('Error placing bid:', error);
+      container.logger.error('Error placing bid:', error);
       return { success: false, message: 'Failed to place bid' };
     }
   }
@@ -727,7 +728,7 @@ export class EconomyService {
       const users = await User.aggregate(pipeline);
       return users;
     } catch (error) {
-      console.error('Error getting leaderboard:', error);
+      container.logger.error('Error getting leaderboard:', error);
       return [];
     }
   }
@@ -765,7 +766,7 @@ export class EconomyService {
 
       return await this.addItem(userId, 'diamond', amount, 0);
     } catch (error) {
-      console.error('Error adding diamonds:', error);
+      container.logger.error('Error adding diamonds:', error);
       return false;
     }
   }
@@ -784,7 +785,7 @@ export class EconomyService {
       
       return diamondItem ? diamondItem.quantity : 0;
     } catch (error) {
-      console.error('Error getting diamonds:', error);
+      container.logger.error('Error getting diamonds:', error);
       return 0;
     }
   }
@@ -825,7 +826,7 @@ export class EconomyService {
       
       return true;
     } catch (error) {
-      console.error('Error refreshing user inventory:', error);
+      container.logger.error('Error refreshing user inventory:', error);
       return false;
     }
   }

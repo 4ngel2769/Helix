@@ -96,7 +96,7 @@ export class UnlockCommand extends ModuleCommand<ModerationModule> {
                 flags: MessageFlags.Ephemeral
             });
         } catch (error) {
-            console.error('Error unlocking channel:', error);
+            this.container.logger.error('Error unlocking channel:', error);
             return ErrorHandler.sendCommandError(
                 interaction,
                 'Failed to unlock the channel. Please check my permissions and try again.'
@@ -118,7 +118,7 @@ export class UnlockCommand extends ModuleCommand<ModerationModule> {
             
             await guildData.save();
         } catch (error) {
-            console.error('Error removing channel lock from database:', error);
+            this.container.logger.error('Error removing channel lock from database:', error);
         }
     }
 }

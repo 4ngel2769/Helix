@@ -50,7 +50,7 @@ export class MemeButtonHandler extends InteractionHandler {
 
             return interaction.editReply({ embeds: [embed], components: [row] });
         } catch (error) {
-            console.error('Error fetching meme:', error);
+            this.container.logger.error('Error fetching meme:', error);
             return interaction.editReply({ content: 'Failed to fetch a meme. Please try again later.' });
         }
     }

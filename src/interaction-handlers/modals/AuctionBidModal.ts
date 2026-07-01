@@ -32,7 +32,7 @@ export class AuctionBidModal extends InteractionHandler {
         }
 
         try {
-            const result = await AuctionService.placeBid(interaction.user.id, auctionId, bidAmount);
+            const result = await AuctionService.placeBid(interaction.user.id, interaction.user.username, auctionId, bidAmount);
 
             if (!result.success) {
                 const embed = new EmbedBuilder()
@@ -76,7 +76,7 @@ export class AuctionBidModal extends InteractionHandler {
             return interaction.editReply({ embeds: [embed] });
 
         } catch (error) {
-            console.error('Error placing bid:', error);
+            this.container.logger.error('Error placing bid:', error);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err)

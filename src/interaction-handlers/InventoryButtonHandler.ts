@@ -108,7 +108,7 @@ export class InventoryButtonHandler extends InteractionHandler {
             return interaction.editReply({ embeds: [embed], components: originalComponents });
 
         } catch (error) {
-            console.error('Error handling inventory button:', error);
+            this.container.logger.error('Error handling inventory button:', error);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err as ColorResolvable)
@@ -181,7 +181,7 @@ export class InventoryButtonHandler extends InteractionHandler {
             });
 
         } catch (error) {
-            console.error('Error refreshing inventory:', error);
+            this.container.logger.error('Error refreshing inventory:', error);
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err as ColorResolvable)

@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 
 /**
  * Runs essential tests before committing code
@@ -23,7 +23,14 @@ async function runCommand(name, command) {
     try {
         const { stdout, stderr } = await execPromise(command);
         
-        if (stderr && !stderr.includes('npm WARN')) {
+        const meaningfulStderr = stderr
+            .split('\n')
+            .some((line) => {
+                const text = line.trim();
+                return text.length > 0 && !text.startsWith('$ bun ');
+            });
+
+        if (meaningfulStderr) {
             console.log(`${colors.yellow} ⚠ Warnings${colors.reset}`);
             if (stderr) console.log(stderr);
             return { success: true, warnings: true };
@@ -45,7 +52,7 @@ async function main() {
     
     const results = [];
     
-    results.push(await runCommand('TypeScript Build', 'npm run build'));
+    results.push(await runCommand('TypeScript Build', 'bun run build'));
     
     console.log(`\n${colors.cyan}${'='.repeat(50)}${colors.reset}`);
     

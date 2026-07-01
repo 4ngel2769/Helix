@@ -908,7 +908,7 @@ ${this.moduleData.createSample ? `
 
             console.log('\n🎉 Advanced Module created successfully!');
             console.log('\n📋 Next Steps:');
-            console.log('1. Run `npm run build` to compile the TypeScript');
+            console.log('1. Run `bun run build` to compile the TypeScript');
             console.log('2. Restart your bot to load the new module');
             console.log('3. Use `/configmodule` to enable the module in your server');
             if (this.moduleData.createSample) {

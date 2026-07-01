@@ -1,6 +1,7 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { PermissionFlagsBits, EmbedBuilder } from 'discord.js';
+import { IGuild } from '../../models/Guild';
 import { Guild } from '../../models/Guild';
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { AdministrationModule } from '../../modules/Administration';
@@ -120,7 +121,7 @@ export class SettingsCommand extends ModuleCommand<AdministrationModule> {
             }
 
         } catch (error) {
-            console.error('Error fetching settings:', error);
+            this.container.logger.error('Error fetching settings:', error);
             return interaction.reply({ 
                 content: '❌ An error occurred while fetching server settings.', 
                 ephemeral: true 
@@ -128,7 +129,7 @@ export class SettingsCommand extends ModuleCommand<AdministrationModule> {
         }
     }
 
-    private formatRoleSettings(guildData: any, guildId: string): string {
+    private formatRoleSettings(guildData: IGuild, guildId: string): string {
         const roles = [];
         if (guildData.adminRoleId) roles.push(`Admin: <@&${guildData.adminRoleId}>`);
         if (guildData.modRoleId) roles.push(`Mod: <@&${guildData.modRoleId}>`);
@@ -136,7 +137,7 @@ export class SettingsCommand extends ModuleCommand<AdministrationModule> {
         return roles.length > 0 ? roles.join('\n') : '*Not configured*';
     }
 
-    private formatLoggingSettings(guildData: any, guildId: string): string {
+    private formatLoggingSettings(guildData: IGuild, guildId: string): string {
         const logs = [];
         if (guildData.modLogChannelId) logs.push(`Mod: <#${guildData.modLogChannelId}>`);
         if (guildData.memberLogChannelId) logs.push(`Member: <#${guildData.memberLogChannelId}>`);
@@ -145,7 +146,7 @@ export class SettingsCommand extends ModuleCommand<AdministrationModule> {
         return logs.length > 0 ? logs.join('\n') : '*Not configured*';
     }
 
-    private formatModuleSettings(guildData: any): string {
+    private formatModuleSettings(guildData: IGuild): string {
         const modules = guildData.modules || {};
         const enabled = Object.keys(modules).filter(key => modules[key] === true);
         const disabled = Object.keys(modules).filter(key => modules[key] === false);
@@ -153,7 +154,7 @@ export class SettingsCommand extends ModuleCommand<AdministrationModule> {
         return `**Enabled:** ${enabled.length}\n**Disabled:** ${disabled.length}`;
     }
 
-    private async showRoleSettings(interaction: Command.ChatInputCommandInteraction, guildData: any) {
+    private async showRoleSettings(interaction: Command.ChatInputCommandInteraction, guildData: IGuild) {
         const embed = new EmbedBuilder()
             .setColor('#49e358')
             .setTitle('👥 Role Settings')
@@ -185,7 +186,7 @@ export class SettingsCommand extends ModuleCommand<AdministrationModule> {
         return interaction.reply({ embeds: [embed] });
     }
 
-    private async showLoggingSettings(interaction: Command.ChatInputCommandInteraction, guildData: any) {
+    private async showLoggingSettings(interaction: Command.ChatInputCommandInteraction, guildData: IGuild) {
         const embed = new EmbedBuilder()
             .setColor('#49e358')
             .setTitle('📊 Logging Settings')
@@ -232,7 +233,7 @@ export class SettingsCommand extends ModuleCommand<AdministrationModule> {
         return interaction.reply({ embeds: [embed] });
     }
 
-    private async showModuleSettings(interaction: Command.ChatInputCommandInteraction, guildData: any) {
+    private async showModuleSettings(interaction: Command.ChatInputCommandInteraction, guildData: IGuild) {
         const modules = guildData.modules || {};
         const modulesList = Object.entries(modules)
             .map(([key, value]) => `${value ? '✅' : '❌'} **${this.capitalizeFirst(key)}**`)
@@ -259,7 +260,7 @@ export class SettingsCommand extends ModuleCommand<AdministrationModule> {
         return interaction.reply({ embeds: [embed] });
     }
 
-    private async showGeneralSettings(interaction: Command.ChatInputCommandInteraction, guildData: any, currentPrefix: string) {
+    private async showGeneralSettings(interaction: Command.ChatInputCommandInteraction, guildData: IGuild, currentPrefix: string) {
         const disabledCommands = guildData.disabledCommands || [];
         const commandsList = disabledCommands.length > 0 
             ? disabledCommands.map((cmd: string) => `\`${cmd}\``).join(', ')

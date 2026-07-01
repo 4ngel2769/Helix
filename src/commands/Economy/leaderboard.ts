@@ -157,12 +157,12 @@ export class EconomyLeaderboardCommand extends ModuleCommand<EconomyModule> {
                 try {
                     interaction.editReply({ components: [] }).catch(() => null);
                 } catch (error) {
-                    console.error('Error removing components:', error);
+                    this.container.logger.error('Error removing components:', error);
                 }
             });
 
         } catch (error) {
-            console.error('Error in economy leaderboard command:', error);
+            this.container.logger.error('Error in economy leaderboard command:', error);
             
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err as ColorResolvable)
@@ -172,6 +172,8 @@ export class EconomyLeaderboardCommand extends ModuleCommand<EconomyModule> {
 
             await interaction.editReply({ embeds: [embed] });
         }
+
+        return;
     }
 
     private async getLeaderboard(
@@ -260,7 +262,7 @@ export class EconomyLeaderboardCommand extends ModuleCommand<EconomyModule> {
             
             return users as LeaderboardUser[];
         } catch (error) {
-            console.error('Error getting leaderboard:', error);
+            this.container.logger.error('Error getting leaderboard:', error);
             return [];
         }
     }
@@ -310,14 +312,14 @@ export class EconomyLeaderboardCommand extends ModuleCommand<EconomyModule> {
         interaction: ButtonInteraction | StringSelectMenuInteraction,
         error: unknown
     ): Promise<void> {
-        console.error('Error handling leaderboard interaction:', error);
+        this.container.logger.error('Error handling leaderboard interaction:', error);
         const errorCode =
             typeof error === 'object' && error !== null && 'code' in error
                 ? (error as { code?: unknown }).code
                 : undefined;
 
         if (errorCode === 10062) {
-            console.log('Leaderboard interaction expired, ignoring...');
+            this.container.logger.info('Leaderboard interaction expired, ignoring...');
             return;
         }
 
@@ -327,7 +329,7 @@ export class EconomyLeaderboardCommand extends ModuleCommand<EconomyModule> {
                 ephemeral: true
             });
         } catch (replyError) {
-            console.error('Failed to send error message:', replyError);
+            this.container.logger.error('Failed to send error message:', replyError);
         }
     }
 
@@ -540,7 +542,7 @@ export class EconomyLeaderboardCommand extends ModuleCommand<EconomyModule> {
             const newIsGlobal = interaction.customId === 'leaderboard_scope' ? !isGlobal : isGlobal;
             await this.updateLeaderboardReply(interaction, currentType as LeaderboardType, newIsGlobal, guildId, userId);
         } catch (error) {
-            console.error('Error handling button interaction:', error);
+            this.container.logger.error('Error handling button interaction:', error);
             throw error;
         }
     }
@@ -557,7 +559,7 @@ export class EconomyLeaderboardCommand extends ModuleCommand<EconomyModule> {
             const newType = interaction.values[0] as LeaderboardType;
             await this.updateLeaderboardReply(interaction, newType, isGlobal, guildId, userId);
         } catch (error) {
-            console.error('Error handling select menu interaction:', error);
+            this.container.logger.error('Error handling select menu interaction:', error);
             throw error;
         }
     }

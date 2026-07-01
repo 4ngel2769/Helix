@@ -25,7 +25,7 @@ export async function initializeDatabase(): Promise<boolean> {
 		const mongoUrl = process.env.MONGODB_URI || config.bot.mongoUri;
 
 		if (!mongoUrl) {
-			console.error('No MongoDB connection URL found in config or environment');
+			container.logger.error('No MongoDB connection URL found in config or environment');
 			return false;
 		}
 
@@ -33,7 +33,7 @@ export async function initializeDatabase(): Promise<boolean> {
 		if (mongoose.connection.readyState === 1) {
 			// Already connected - using logger for proper logging
 			if (process.env.NODE_ENV !== 'production') {
-				console.log('MongoDB is already connected');
+				container.logger.info('MongoDB is already connected');
 			}
 			return true;
 		}
@@ -43,13 +43,13 @@ export async function initializeDatabase(): Promise<boolean> {
 			// Connection options are automatically handled in newer mongoose versions
 		});
 
-		// Using console.log for startup messages as logger may not be initialized yet
+		// Using container.logger.info for startup messages as logger may not be initialized yet
 		if (process.env.NODE_ENV !== 'production') {
-			console.log('Successfully connected to MongoDB');
+			container.logger.info('Successfully connected to MongoDB');
 		}
 		return true;
 	} catch (error) {
-		console.error('Failed to connect to MongoDB:', error);
+		container.logger.error('Failed to connect to MongoDB:', error);
 		return false;
 	}
 }
@@ -63,13 +63,13 @@ export async function checkDatabaseConnection(): Promise<boolean> {
 	const isConnected = mongoose.connection.readyState === 1;
 
 	if (!isConnected) {
-		console.error('MongoDB is not connected! Connection state:', mongoose.connection.readyState);
+		container.logger.error('MongoDB is not connected! Connection state:', mongoose.connection.readyState);
 
 		// Try to reconnect if not connected
 		try {
 			return await initializeDatabase();
 		} catch (error) {
-			console.error('Failed to reconnect to MongoDB:', error);
+			container.logger.error('Failed to reconnect to MongoDB:', error);
 			return false;
 		}
 	}
@@ -87,9 +87,9 @@ export async function ensureCollectionsExist(): Promise<string[]> {
 		const collections = await mongoose.connection.db?.listCollections().toArray();
 		const collectionNames = collections?.map((c) => c.name);
 
-		// Using console.log for DB setup logs as logger may not be initialized
+		// Using container.logger.info for DB setup logs as logger may not be initialized
 		if (process.env.NODE_ENV !== 'production') {
-			console.log('Existing collections:', collectionNames);
+			container.logger.info('Existing collections:', collectionNames);
 		}
 
 		// Define required models and their initialization functions
@@ -102,7 +102,7 @@ export async function ensureCollectionsExist(): Promise<string[]> {
 		for (const { name, model } of requiredModels) {
 			if (!collectionNames?.includes(name)) {
 				if (process.env.NODE_ENV !== 'production') {
-					console.log(`Collection '${name}' doesn't exist, initializing...`);
+					container.logger.info(`Collection '${name}' doesn't exist, initializing...`);
 				}
 
 				// Create the collection by saving and then removing a test document
@@ -115,7 +115,7 @@ export async function ensureCollectionsExist(): Promise<string[]> {
 				await testDoc.deleteOne();
 
 				if (process.env.NODE_ENV !== 'production') {
-					console.log(`Successfully initialized collection '${name}'`);
+					container.logger.info(`Successfully initialized collection '${name}'`);
 				}
 			}
 		}
@@ -124,7 +124,7 @@ export async function ensureCollectionsExist(): Promise<string[]> {
 		const updatedCollections = await mongoose.connection.db?.listCollections().toArray();
 		return updatedCollections?.map((c) => c.name) || [];
 	} catch (error) {
-		console.error('Error ensuring collections exist:', error);
+		container.logger.error('Error ensuring collections exist:', error);
 		return [];
 	}
 }
@@ -158,9 +158,9 @@ export async function verifyDatabaseConnection(): Promise<void> {
 			//         '❌ Failed to connect to MongoDB')
 			//     .setTimestamp();
 
-			// Using console.log for final status message
+			// Using container.logger.info for final status message
 			if (process.env.NODE_ENV !== 'production') {
-				console.log(
+				container.logger.info(
 					isConnected ? `✅ Connected to MongoDB successfully. Collections: ${collections.join(', ')}` : '❌ Failed to connect to MongoDB'
 				);
 			}
@@ -170,10 +170,10 @@ export async function verifyDatabaseConnection(): Promise<void> {
 				collections: []
 			};
 
-			console.error('❌ Failed to connect to MongoDB');
+			container.logger.error('❌ Failed to connect to MongoDB');
 		}
 	} catch (error) {
-		console.error('Error verifying database connection:', error);
+		container.logger.error('Error verifying database connection:', error);
 		container.database = {
 			isConnected: false,
 			collections: []

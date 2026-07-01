@@ -1,3 +1,4 @@
+import { container } from '@sapphire/framework';
 import { User, type ActiveEffect, type IUser } from '../../models/User';
 import { EconomyItem, type ItemEffect } from '../../models/EconomyItem';
 
@@ -63,7 +64,7 @@ export class EffectService {
       };
 
     } catch (error) {
-      console.error('Error applying item effects:', error);
+      container.logger.error('Error applying item effects:', error);
       return { success: false, message: 'Failed to apply effects' };
     }
   }
@@ -212,8 +213,10 @@ export class EffectService {
       const allowedPermanentStats = ['strength', 'intelligence', 'charisma', 'speed', 'stealth', 'luck'];
       
       if (allowedPermanentStats.includes(effect.type)) {
-        const statKey = effect.type as keyof typeof user.economy.stats;
-        (user.economy.stats as any)[statKey] += effect.value;
+        const stats = user.economy.stats;
+        if (effect.type in stats) {
+          stats[effect.type as keyof typeof stats] += effect.value;
+        }
         return { 
           success: true, 
           message: `Permanently ${effect.value >= 0 ? 'increased' : 'decreased'} ${effect.type} by ${Math.abs(effect.value)}`,
@@ -449,7 +452,7 @@ export class EffectService {
       await user.save();
 
     } catch (error) {
-      console.error('Error processing active effects:', error);
+      container.logger.error('Error processing active effects:', error);
     }
   }
 
@@ -467,7 +470,7 @@ export class EffectService {
       return user.economy.activeEffects;
 
     } catch (error) {
-      console.error('Error getting active effects:', error);
+      container.logger.error('Error getting active effects:', error);
       return [];
     }
   }
@@ -508,7 +511,7 @@ export class EffectService {
       return false;
 
     } catch (error) {
-      console.error('Error removing effect:', error);
+      container.logger.error('Error removing effect:', error);
       return false;
     }
   }

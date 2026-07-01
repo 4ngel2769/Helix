@@ -6,7 +6,7 @@ import type {
     InteractionReplyOptions,
     MessagePayload
 } from 'discord.js';
-import { MessageFlags } from 'discord-api-types/v10';
+import { MessageFlags } from 'discord.js';
 
 export type RepliableInteraction = ChatInputCommandInteraction | ButtonInteraction;
 export type RepliableReplyOptions = string | MessagePayload | InteractionReplyOptions;

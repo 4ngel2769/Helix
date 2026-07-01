@@ -117,7 +117,7 @@ export class SetPrefixCommand extends ModuleCommand<AdministrationModule> {
             return interaction.reply({ embeds: [embed] });
 
         } catch (error) {
-            console.error('Error setting prefix:', error);
+            this.container.logger.error('Error setting prefix:', error);
             return interaction.reply({ 
                 content: '❌ An error occurred while setting the prefix.', 
                 ephemeral: true 

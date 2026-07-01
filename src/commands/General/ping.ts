@@ -10,7 +10,6 @@ import {
 	EmbedBuilder,
 	ColorResolvable
 } from 'discord.js';
-import { env } from 'process';
 import { getDefReply } from '../../lib/utils';
 import mongoose from 'mongoose';
 import config from '../../config';
@@ -25,18 +24,18 @@ import config from '../../config';
 	fullCategory: ['General'],
 	cooldownDelay: 5000,
 	cooldownLimit: 3,
-	cooldownFilteredUsers: [env.OWNERS],
+	cooldownFilteredUsers: (process.env.OWNER_IDS || '').split(',').filter(Boolean),
 	flags: true,
 })
 export class UserCommand extends ModuleCommand<GeneralModule> {
 	public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
 		super(context, {
 			...options,
-			// module: 'General',
+			module: 'General',
 			description: 'ping command',
 			enabled: true,
 			nsfw: false,
-			// preconditions: ['ModuleEnabled']
+			preconditions: ['ModuleEnabled']
 		});
 	}
 
@@ -176,7 +175,8 @@ export class UserCommand extends ModuleCommand<GeneralModule> {
 		// Measure database latency
 		const dbStartTime = Date.now();
 		try {
-			await mongoose.connection.db?.admin().ping();
+			const db = mongoose.connection.db;
+			if (db) await db.admin().ping();
 		} catch (error) {
 			// If database ping fails, continue without it
 		}

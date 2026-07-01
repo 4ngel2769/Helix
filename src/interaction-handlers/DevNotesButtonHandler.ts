@@ -139,7 +139,7 @@ export class DevNotesButtonHandler extends InteractionHandler {
             
             return interaction.editReply({ embeds: [embed], components });
         } catch (error) {
-            console.error('Error navigating notes:', error);
+            this.container.logger.error('Error navigating notes:', error);
             return interaction.editReply({ 
                 content: 'Failed to navigate notes. Please try again.',
                 embeds: [],
@@ -232,7 +232,7 @@ export class DevNotesButtonHandler extends InteractionHandler {
             
             return interaction.editReply({ embeds: [embed], components });
         } catch (error) {
-            console.error('Error returning to notes list:', error);
+            this.container.logger.error('Error returning to notes list:', error);
             return interaction.editReply({ 
                 content: 'Failed to return to notes list. Please try again.',
                 embeds: [],
@@ -275,7 +275,7 @@ export class DevNotesButtonHandler extends InteractionHandler {
                 components: []
             });
         } catch (error) {
-            console.error('Error deleting note:', error);
+            this.container.logger.error('Error deleting note:', error);
             return interaction.editReply({
                 content: 'An error occurred while deleting the note.',
                 embeds: [],

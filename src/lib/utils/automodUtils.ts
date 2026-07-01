@@ -1,3 +1,4 @@
+import { container } from '@sapphire/framework';
 import fs from 'fs/promises';
 import path from 'path';
 import { Guild } from '../../models/Guild';
@@ -22,7 +23,7 @@ export async function loadAutomodFilters(): Promise<AutomodPresets> {
     const fileContent = await fs.readFile(filePath, 'utf-8');
     return JSON.parse(fileContent);
   } catch (error) {
-    console.error('Error loading automod filters:', error);
+    container.logger.error('Error loading automod filters:', error);
     // Return empty defaults if file can't be loaded
     return { presets: { low: {}, medium: {}, high: {} } };
   }
@@ -49,7 +50,7 @@ export async function getKeywordsForGuild(
     const mergedKeywords = [...new Set([...defaultKeywords, ...customKeywords])];
     return mergedKeywords;
   } catch (error) {
-    console.error(`Error getting keywords for guild ${guildId}, category ${category}:`, error);
+    container.logger.error(`Error getting keywords for guild ${guildId}, category ${category}:`, error);
     return [];
   }
 }
@@ -91,7 +92,7 @@ export async function addCustomKeywords(
     await guildData.save();
     return true;
   } catch (error) {
-    console.error(`Error adding custom keywords for guild ${guildId}, category ${category}:`, error);
+    container.logger.error(`Error adding custom keywords for guild ${guildId}, category ${category}:`, error);
     return false;
   }
 }
@@ -123,7 +124,7 @@ export async function removeCustomKeywords(
     await guildData.save();
     return true;
   } catch (error) {
-    console.error(`Error removing custom keywords for guild ${guildId}, category ${category}:`, error);
+    container.logger.error(`Error removing custom keywords for guild ${guildId}, category ${category}:`, error);
     return false;
   }
 }
@@ -148,7 +149,7 @@ export async function clearCustomKeywords(
     await guildData.save();
     return true;
   } catch (error) {
-    console.error(`Error clearing custom keywords for guild ${guildId}, category ${category}:`, error);
+    container.logger.error(`Error clearing custom keywords for guild ${guildId}, category ${category}:`, error);
     return false;
   }
 }

@@ -6,7 +6,7 @@ import {
     StringSelectMenuOptionBuilder,
     TextChannel
 } from 'discord.js';
-import { Command } from '@sapphire/framework';
+import { Command, container } from '@sapphire/framework';
 import type { ReactionRole } from '../../models/Guild';
 import config from '../../config';
 
@@ -109,7 +109,7 @@ export async function updateReactionRoleMenuMessage({
 
         return true;
     } catch (error) {
-        console.error('Error updating menu message:', error);
+        container.logger.error('Error updating menu message:', error);
         return false;
     }
 }

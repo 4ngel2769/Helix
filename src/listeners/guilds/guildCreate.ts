@@ -13,23 +13,14 @@ export class GuildCreateListener extends Listener {
             const existingGuild = await GuildModel.findOne({ guildId: guild.id });
             
             if (!existingGuild) {
-                // Create default guild data
-                const newGuild = new GuildModel({
-                    guildId: guild.id,
-                    // Default module settings
-                    isGeneralModule: true,
-                    isModerationModule: true,
-                    isAdministrationModule: true,
-                    isFunModule: true,
-                    isWelcomingModule: false,
-                    isVerificationModule: false
-                });
+                // Create default guild data - modules initialized via schema default
+                const newGuild = new GuildModel({ guildId: guild.id });
                 
                 await newGuild.save();
-                console.log(`Created default settings for new guild: ${guild.name} (${guild.id})`);
+                this.container.logger.info(`Created default settings for new guild: ${guild.name} (${guild.id})`);
             }
         } catch (error) {
-            console.error(`Failed to create default settings for guild ${guild.id}:`, error);
+            this.container.logger.error(`Failed to create default settings for guild ${guild.id}:`, error as Error);
         }
     }
 }

@@ -62,7 +62,8 @@ export const moduleConfigs = {
         description: 'Play music in voice channels',
         emoji: '901302164004171787', // Custom emoji ID for "music" (replace with your own)
         defaultEnabled: true
-    },leveling: {
+    },
+    leveling: {
         name: 'Leveling',
         description: 'XP and level tracking system',
         emoji: '466042779273920514', // Custom emoji ID for "leveling" (replace with your own)
