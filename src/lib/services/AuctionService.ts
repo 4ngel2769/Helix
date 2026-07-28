@@ -34,6 +34,7 @@ export interface AuctionResult {
 }
 
 export class AuctionService {
+    private static isProcessingExpiredAuctions = false;
     /**
      * Create a new auction
      */
@@ -276,6 +277,9 @@ export class AuctionService {
      * Process expired auctions
      */
     static async processExpiredAuctions(): Promise<void> {
+        if (this.isProcessingExpiredAuctions) return;
+
+        this.isProcessingExpiredAuctions = true;
         try {
             const expiredAuctions = await Auction.find({
                 status: 'active',
@@ -296,6 +300,8 @@ export class AuctionService {
             }
         } catch (error) {
             container.logger.error('Error processing expired auctions:', error);
+        } finally {
+            this.isProcessingExpiredAuctions = false;
         }
     }
 }

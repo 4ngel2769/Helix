@@ -2,7 +2,7 @@ import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { GeneralModule } from '../../../modules/General';
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
-import { EmbedBuilder, type ColorResolvable } from 'discord.js';
+import { EmbedBuilder, type ColorResolvable, type Guild, type Message } from 'discord.js';
 import config from '../../../config';
 
 @ApplyOptions<Command.Options>({
@@ -21,19 +21,43 @@ export class ServerinfoCommand extends ModuleCommand<GeneralModule> {
   public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
     await interaction.deferReply();
     try {
-      const guild = interaction.guild; if (!guild) return interaction.editReply('This command can only be used in a server.'); const embed = new EmbedBuilder().setColor(config.bot.embedColor.default as ColorResolvable).setTitle(guild.name).setThumbnail(guild.iconURL({ size: 1024 })).addFields({ name: 'Owner', value: (await guild.fetchOwner()).user.tag, inline: true },{ name: 'Members', value: guild.memberCount.toString(), inline: true },{ name: 'Channels', value: guild.channels.cache.size.toString(), inline: true },{ name: 'Roles', value: guild.roles.cache.size.toString(), inline: true },{ name: 'Created', value: '<t:' + Math.floor(guild.createdTimestamp / 1000) + ':R>', inline: true },{ name: 'ID', value: guild.id, inline: true }).setFooter({ text: 'Requested by ' + interaction.user.tag }); return interaction.editReply({ embeds: [embed] });
+      const guild = interaction.guild;
+      if (!guild) return interaction.editReply('This command can only be used in a server.');
+
+      return interaction.editReply({ embeds: [await this.buildServerInfoEmbed(guild, interaction.user.tag)] });
     } catch (error) {
       this.container.logger.error('Error in serverinfo:', error);
       return interaction.editReply({ content: 'An error occurred.' });
     }
   }
 
-  public override async messageRun(message: import('discord.js').Message) {
+  public override async messageRun(message: Message) {
     try {
-      const guild = message.guild; if (!guild) return message.reply('This command can only be used in a server.'); const embed = new EmbedBuilder().setColor(config.bot.embedColor.default as ColorResolvable).setTitle(guild.name).setThumbnail(guild.iconURL({ size: 1024 })).addFields({ name: 'Owner', value: (await guild.fetchOwner()).user.tag, inline: true },{ name: 'Members', value: guild.memberCount.toString(), inline: true },{ name: 'Channels', value: guild.channels.cache.size.toString(), inline: true },{ name: 'Roles', value: guild.roles.cache.size.toString(), inline: true },{ name: 'Created', value: '<t:' + Math.floor(guild.createdTimestamp / 1000) + ':R>', inline: true },{ name: 'ID', value: guild.id, inline: true }).setFooter({ text: 'Requested by ' + message.author.tag }); return message.reply({ embeds: [embed] });
+      const guild = message.guild;
+      if (!guild) return message.reply('This command can only be used in a server.');
+
+      return message.reply({ embeds: [await this.buildServerInfoEmbed(guild, message.author.tag)] });
     } catch (error) {
       this.container.logger.error('Error in serverinfo:', error);
       return message.reply('An error occurred.');
     }
+  }
+
+  private async buildServerInfoEmbed(guild: Guild, requesterTag: string) {
+    const owner = await guild.fetchOwner();
+
+    return new EmbedBuilder()
+      .setColor(config.bot.embedColor.default as ColorResolvable)
+      .setTitle(guild.name)
+      .setThumbnail(guild.iconURL({ size: 1024 }))
+      .addFields(
+        { name: 'Owner', value: owner.user.tag, inline: true },
+        { name: 'Members', value: guild.memberCount.toString(), inline: true },
+        { name: 'Channels', value: guild.channels.cache.size.toString(), inline: true },
+        { name: 'Roles', value: guild.roles.cache.size.toString(), inline: true },
+        { name: 'Created', value: `<t:${Math.floor(guild.createdTimestamp / 1000)}:R>`, inline: true },
+        { name: 'ID', value: guild.id, inline: true }
+      )
+      .setFooter({ text: `Requested by ${requesterTag}` });
   }
 }

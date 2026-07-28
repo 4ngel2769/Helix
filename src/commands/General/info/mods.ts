@@ -2,8 +2,7 @@ import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { GeneralModule } from '../../../modules/General';
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
-import { EmbedBuilder, type ColorResolvable } from 'discord.js';
-import config from '../../../config';
+import { PermissionFlagsBits, type Message } from 'discord.js';
 
 @ApplyOptions<Command.Options>({
   name: 'mods',
@@ -21,19 +20,29 @@ export class ModsCommand extends ModuleCommand<GeneralModule> {
   public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
     await interaction.deferReply();
     try {
-      const guild = interaction.guild; if (!guild) return interaction.editReply('This command can only be used in a server.'); const mods = guild.members.cache.filter((m: any) => m.permissions.has('ModerateMembers') && !m.user.bot); return interaction.editReply('Server moderators: ' + (mods.map(m => m.user.tag).join(', ') || 'None found'));
+      return interaction.editReply(this.getModeratorsText(interaction.guild));
     } catch (error) {
       this.container.logger.error('Error in mods:', error);
       return interaction.editReply({ content: 'An error occurred.' });
     }
   }
 
-  public override async messageRun(message: import('discord.js').Message) {
+  public override async messageRun(message: Message) {
     try {
-      const guild = message.guild; if (!guild) return message.reply('This command can only be used in a server.'); const mods = guild.members.cache.filter((m: any) => m.permissions.has('ModerateMembers') && !m.user.bot); return message.reply('Server moderators: ' + (mods.map(m => m.user.tag).join(', ') || 'None found'));
+      return message.reply(this.getModeratorsText(message.guild));
     } catch (error) {
       this.container.logger.error('Error in mods:', error);
       return message.reply('An error occurred.');
     }
+  }
+
+  private getModeratorsText(guild: Message['guild'] | Command.ChatInputCommandInteraction['guild']): string {
+    if (!guild) return 'This command can only be used in a server.';
+
+    const moderators = guild.members.cache
+      .filter((member) => member.permissions.has(PermissionFlagsBits.ModerateMembers) && !member.user.bot)
+      .map((member) => member.user.tag);
+
+    return `Server moderators: ${moderators.join(', ') || 'None found'}`;
   }
 }

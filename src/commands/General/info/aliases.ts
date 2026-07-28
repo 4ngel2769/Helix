@@ -2,8 +2,7 @@ import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { GeneralModule } from '../../../modules/General';
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
-import { EmbedBuilder, type ColorResolvable } from 'discord.js';
-import config from '../../../config';
+import type { Message } from 'discord.js';
 
 @ApplyOptions<Command.Options>({
   name: 'aliases',
@@ -21,19 +20,36 @@ export class AliasesCommand extends ModuleCommand<GeneralModule> {
   public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
     await interaction.deferReply();
     try {
-      const aliasesList = interaction.client.stores.get('commands').map((c: any) => c.aliases?.length ? c.name + ': ' + c.aliases.join(', ') : null).filter((x: any) => x); return interaction.editReply(aliasesList.length ? 'Command aliases:\n' + aliasesList.join('\n') : 'No aliases configured.');
+      return interaction.editReply(this.buildAliasesText(interaction.client.stores.get('commands').values()));
     } catch (error) {
       this.container.logger.error('Error in aliases:', error);
       return interaction.editReply({ content: 'An error occurred.' });
     }
   }
 
-  public override async messageRun(message: import('discord.js').Message) {
+  public override async messageRun(message: Message) {
     try {
-      const aliasesList = message.client.stores.get('commands').map((c: any) => c.aliases?.length ? c.name + ': ' + c.aliases.join(', ') : null).filter((x: any) => x); return message.reply(aliasesList.length ? 'Command aliases:\n' + aliasesList.join('\n') : 'No aliases configured.');
+      return message.reply(this.buildAliasesText(message.client.stores.get('commands').values()));
     } catch (error) {
       this.container.logger.error('Error in aliases:', error);
       return message.reply('An error occurred.');
     }
+  }
+
+  private buildAliasesText(commands: Iterable<unknown>): string {
+    const aliasesList: string[] = [];
+
+    for (const command of commands) {
+      if (!command || typeof command !== 'object') continue;
+      if (!('name' in command) || !('aliases' in command)) continue;
+
+      const name = command.name;
+      const aliases = command.aliases;
+      if (typeof name !== 'string' || !Array.isArray(aliases) || aliases.length === 0) continue;
+
+      aliasesList.push(`${name}: ${aliases.join(', ')}`);
+    }
+
+    return aliasesList.length > 0 ? `Command aliases:\n${aliasesList.join('\n')}` : 'No aliases configured.';
   }
 }

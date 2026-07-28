@@ -2,7 +2,7 @@ import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { GeneralModule } from '../../../modules/General';
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
-import { EmbedBuilder, type ColorResolvable } from 'discord.js';
+import { EmbedBuilder, type ColorResolvable, type Message, type User } from 'discord.js';
 import config from '../../../config';
 
 @ApplyOptions<Command.Options>({
@@ -21,19 +21,28 @@ export class AvatarCommand extends ModuleCommand<GeneralModule> {
   public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
     await interaction.deferReply();
     try {
-      const user = interaction.options.getUser('user') || interaction.user; const embed = new EmbedBuilder().setColor(config.bot.embedColor.default as ColorResolvable).setTitle(user.tag + "'s Avatar").setImage(user.displayAvatarURL({ size: 1024, extension: 'png' })); return interaction.editReply({ embeds: [embed] });
+      const user = interaction.options.getUser('user') || interaction.user;
+      return interaction.editReply({ embeds: [this.buildAvatarEmbed(user)] });
     } catch (error) {
       this.container.logger.error('Error in avatar:', error);
       return interaction.editReply({ content: 'An error occurred.' });
     }
   }
 
-  public override async messageRun(message: import('discord.js').Message) {
+  public override async messageRun(message: Message) {
     try {
-      const user = message.mentions.users.first() || message.author; const embed = new EmbedBuilder().setColor(config.bot.embedColor.default as ColorResolvable).setTitle(user.tag + "'s Avatar").setImage(user.displayAvatarURL({ size: 1024, extension: 'png' })); return message.reply({ embeds: [embed] });
+      const user = message.mentions.users.first() || message.author;
+      return message.reply({ embeds: [this.buildAvatarEmbed(user)] });
     } catch (error) {
       this.container.logger.error('Error in avatar:', error);
       return message.reply('An error occurred.');
     }
+  }
+
+  private buildAvatarEmbed(user: User) {
+    return new EmbedBuilder()
+      .setColor(config.bot.embedColor.default as ColorResolvable)
+      .setTitle(`${user.tag}'s Avatar`)
+      .setImage(user.displayAvatarURL({ size: 1024, extension: 'png' }));
   }
 }

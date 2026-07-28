@@ -2,8 +2,7 @@ import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { GeneralModule } from '../../../modules/General';
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
-import { EmbedBuilder, type ColorResolvable } from 'discord.js';
-import config from '../../../config';
+import type { Message } from 'discord.js';
 
 @ApplyOptions<Command.Options>({
   name: 'emojis',
@@ -21,19 +20,26 @@ export class EmojisCommand extends ModuleCommand<GeneralModule> {
   public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
     await interaction.deferReply();
     try {
-      const guild = interaction.guild; if (!guild) return interaction.editReply('This command can only be used in a server.'); const emojis = guild.emojis.cache; if (!emojis.size) return interaction.editReply('No custom emojis in this server.'); return interaction.editReply('Emojis: ' + emojis.map(e => e.toString()).join(' '));
+      return interaction.editReply(this.getEmojisText(interaction.guild));
     } catch (error) {
       this.container.logger.error('Error in emojis:', error);
       return interaction.editReply({ content: 'An error occurred.' });
     }
   }
 
-  public override async messageRun(message: import('discord.js').Message) {
+  public override async messageRun(message: Message) {
     try {
-      const guild = message.guild; if (!guild) return message.reply('This command can only be used in a server.'); const emojis = guild.emojis.cache; if (!emojis.size) return message.reply('No custom emojis in this server.'); return message.reply('Emojis: ' + emojis.map(e => e.toString()).join(' '));
+      return message.reply(this.getEmojisText(message.guild));
     } catch (error) {
       this.container.logger.error('Error in emojis:', error);
       return message.reply('An error occurred.');
     }
+  }
+
+  private getEmojisText(guild: Message['guild'] | Command.ChatInputCommandInteraction['guild']): string {
+    if (!guild) return 'This command can only be used in a server.';
+    if (!guild.emojis.cache.size) return 'No custom emojis in this server.';
+
+    return `Emojis: ${guild.emojis.cache.map((emoji) => emoji.toString()).join(' ')}`;
   }
 }

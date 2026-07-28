@@ -2,8 +2,8 @@ import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { GeneralModule } from '../../../modules/General';
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
-import { EmbedBuilder, type ColorResolvable } from 'discord.js';
-import config from '../../../config';
+import { Guild } from '../../../models/Guild';
+import { getGuildPrefixFromCache, setGuildPrefixInCache } from '../../../lib/utils/prefixCache';
 
 @ApplyOptions<Command.Options>({
   name: 'prefix',
@@ -21,7 +21,8 @@ export class PrefixCommand extends ModuleCommand<GeneralModule> {
   public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
     await interaction.deferReply();
     try {
-      const guild = interaction.guild; const GuildModel = require('../../models/Guild').Guild; const g = guild ? await GuildModel.findOne({ guildId: guild.id }) : null; const prefix = g?.prefix || 'x'; return interaction.editReply('Current prefix: `' + prefix + '`');
+      const prefix = await this.resolvePrefix(interaction.guildId);
+      return interaction.editReply(`Current prefix: \`${prefix}\``);
     } catch (error) {
       this.container.logger.error('Error in prefix:', error);
       return interaction.editReply({ content: 'An error occurred.' });
@@ -30,10 +31,28 @@ export class PrefixCommand extends ModuleCommand<GeneralModule> {
 
   public override async messageRun(message: import('discord.js').Message) {
     try {
-      const guild = message.guild; const GuildModel = require('../../models/Guild').Guild; const g = guild ? await GuildModel.findOne({ guildId: guild.id }) : null; const prefix = g?.prefix || 'x'; return message.reply('Current prefix: `' + prefix + '`');
+      const prefix = await this.resolvePrefix(message.guildId);
+      return message.reply(`Current prefix: \`${prefix}\``);
     } catch (error) {
       this.container.logger.error('Error in prefix:', error);
       return message.reply('An error occurred.');
     }
+  }
+
+  private async resolvePrefix(guildId: string | null): Promise<string> {
+    const configuredDefaultPrefix = this.container.client.options.defaultPrefix;
+    const defaultPrefix =
+      (Array.isArray(configuredDefaultPrefix) ? configuredDefaultPrefix[0] : configuredDefaultPrefix) || 'x';
+
+    if (!guildId) return defaultPrefix;
+
+    const cached = getGuildPrefixFromCache(guildId);
+    if (cached) return cached;
+
+    const guildData = await Guild.findOne({ guildId }, { prefix: 1 }).lean();
+    const resolvedPrefix = guildData?.prefix || defaultPrefix;
+    setGuildPrefixInCache(guildId, resolvedPrefix);
+
+    return resolvedPrefix;
   }
 }

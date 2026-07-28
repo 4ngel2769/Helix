@@ -2,7 +2,7 @@ import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { GeneralModule } from '../../../modules/General';
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
-import { EmbedBuilder, type ColorResolvable } from 'discord.js';
+import { EmbedBuilder, type ColorResolvable, type Message } from 'discord.js';
 import config from '../../../config';
 
 @ApplyOptions<Command.Options>({
@@ -21,19 +21,27 @@ export class InvitemeCommand extends ModuleCommand<GeneralModule> {
   public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
     await interaction.deferReply();
     try {
-      const embed = new EmbedBuilder().setColor(config.bot.embedColor.default as ColorResolvable).setTitle('Invite Me').setDescription('Add Helix to your server!').setURL('https://discord.com/oauth2/authorize?client_id=' + config.bot.client.id + '&scope=bot+applications.commands&permissions=8'); return interaction.editReply({ embeds: [embed] });
+      return interaction.editReply({ embeds: [this.buildInviteEmbed()] });
     } catch (error) {
       this.container.logger.error('Error in inviteme:', error);
       return interaction.editReply({ content: 'An error occurred.' });
     }
   }
 
-  public override async messageRun(message: import('discord.js').Message) {
+  public override async messageRun(message: Message) {
     try {
-      const embed = new EmbedBuilder().setColor(config.bot.embedColor.default as ColorResolvable).setTitle('Invite Me').setDescription('Add Helix to your server!').setURL('https://discord.com/oauth2/authorize?client_id=' + config.bot.client.id + '&scope=bot+applications.commands&permissions=8'); return message.reply({ embeds: [embed] });
+      return message.reply({ embeds: [this.buildInviteEmbed()] });
     } catch (error) {
       this.container.logger.error('Error in inviteme:', error);
       return message.reply('An error occurred.');
     }
+  }
+
+  private buildInviteEmbed() {
+    return new EmbedBuilder()
+      .setColor(config.bot.embedColor.default as ColorResolvable)
+      .setTitle('Invite Me')
+      .setDescription('Add Helix to your server!')
+      .setURL(`https://discord.com/oauth2/authorize?client_id=${config.bot.client.id}&scope=bot+applications.commands&permissions=8`);
   }
 }
