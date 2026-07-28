@@ -1,6 +1,7 @@
 import { User, type EconomyItem } from '../../../models/User';
 import { EconomyItem as EconomyItemModel } from '../../../models/EconomyItem';
 import { container } from '@sapphire/framework';
+import type { ClientSession } from 'mongoose';
 
 export class InventoryService {
   static async getInventory(userId: string, category?: string): Promise<EconomyItem[]> {
@@ -93,15 +94,15 @@ export class InventoryService {
     }
   }
 
-  static async addItem(userId: string, itemId: string, quantity: number, purchasePrice: number = 0): Promise<boolean> {
+  static async addItem(userId: string, itemId: string, quantity: number, purchasePrice: number = 0, session?: ClientSession): Promise<boolean> {
     try {
-      const economyItem = await EconomyItemModel.findOne({ itemId });
+      const economyItem = await EconomyItemModel.findOne({ itemId }, null, { session });
       if (!economyItem) {
         container.logger.error(`Item ${itemId} not found in EconomyItem collection`);
         return false;
       }
 
-      const user = await User.findOne({ userId });
+      const user = await User.findOne({ userId }, null, { session });
       if (!user) return false;
 
       const existingItemIndex = user.economy.inventory.findIndex(item => item.itemId === itemId);
@@ -127,7 +128,7 @@ export class InventoryService {
         user.economy.inventory.push(newInventoryItem);
       }
 
-      await user.save();
+      await user.save({ session });
       return true;
     } catch (error) {
       container.logger.error('Error adding item to inventory:', error);
@@ -135,9 +136,9 @@ export class InventoryService {
     }
   }
 
-  static async removeItem(userId: string, itemId: string, quantity: number = 1): Promise<boolean> {
+  static async removeItem(userId: string, itemId: string, quantity: number = 1, session?: ClientSession): Promise<boolean> {
     try {
-      const user = await User.findOne({ userId });
+      const user = await User.findOne({ userId }, null, { session });
       if (!user) return false;
 
       const itemIndex = user.economy.inventory.findIndex(inv => inv.itemId === itemId);
@@ -152,7 +153,7 @@ export class InventoryService {
         user.economy.inventory.splice(itemIndex, 1);
       }
 
-      await user.save();
+      await user.save({ session });
       return true;
     } catch (error) {
       container.logger.error('Error removing item:', error);

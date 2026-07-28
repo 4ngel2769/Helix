@@ -271,4 +271,31 @@ export class AuctionService {
             return { success: false, message: 'Failed to retrieve auction' };
         }
     }
+
+    /**
+     * Process expired auctions
+     */
+    static async processExpiredAuctions(): Promise<void> {
+        try {
+            const expiredAuctions = await Auction.find({
+                status: 'active',
+                endTime: { $lte: new Date() }
+            });
+
+            for (const auction of expiredAuctions) {
+                if (auction.highestBidderId) {
+                    await InventoryService.addItem(auction.highestBidderId, auction.itemId, auction.quantity);
+                    auction.status = 'completed';
+                } else {
+                    await InventoryService.addItem(auction.sellerId, auction.itemId, auction.quantity);
+                    auction.status = 'expired';
+                }
+                auction.winnerNotified = false;
+                auction.sellerNotified = false;
+                await auction.save();
+            }
+        } catch (error) {
+            container.logger.error('Error processing expired auctions:', error);
+        }
+    }
 }

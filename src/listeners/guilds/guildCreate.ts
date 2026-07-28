@@ -9,14 +9,12 @@ import { Guild as GuildModel } from '../../models/Guild';
 export class GuildCreateListener extends Listener {
     public async run(guild: Guild) {
         try {
-            // Check if guild data already exists
-            const existingGuild = await GuildModel.findOne({ guildId: guild.id });
-            
-            if (!existingGuild) {
-                // Create default guild data - modules initialized via schema default
-                const newGuild = new GuildModel({ guildId: guild.id });
-                
-                await newGuild.save();
+            const result = await GuildModel.updateOne(
+                { guildId: guild.id },
+                { $setOnInsert: { guildId: guild.id } },
+                { upsert: true }
+            );
+            if (result.upsertedCount > 0) {
                 this.container.logger.info(`Created default settings for new guild: ${guild.name} (${guild.id})`);
             }
         } catch (error) {

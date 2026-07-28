@@ -128,29 +128,18 @@ export class UserEvent extends Listener {
 		}
 		
 		try {
-			// Get all guilds the bot is in
-			const guilds = client.guilds.cache;
-			logger.info(`Starting guild database sync for ${guilds.size} guilds...`);
+			const guildIds = client.guilds.cache.map(g => g.id);
+			logger.info(`Starting guild database sync for ${guildIds.length} guilds...`);
 			
-			let created = 0;
-			let existing = 0;
+			const existing = await Guild.find({ guildId: { $in: guildIds } }, { guildId: 1 });
+			const existingIds = new Set(existing.map(g => g.guildId));
+			const toCreate = guildIds.filter(id => !existingIds.has(id));
 			
-			// Check each guild and create database entry if it doesn't exist
-			for (const [guildId] of guilds) {
-				const guildData = await Guild.findOne({ guildId });
-				
-				if (!guildData) {
-					// Create default guild data - modules initialized via schema default
-					const newGuild = new Guild({ guildId });
-					
-					await newGuild.save();
-					created++;
-				} else {
-					existing++;
-				}
+			if (toCreate.length > 0) {
+				await Guild.insertMany(toCreate.map(guildId => ({ guildId })));
 			}
 			
-			logger.info(`Guild database sync complete: ${created} created, ${existing} existing`);
+			logger.info(`Guild database sync complete: ${toCreate.length} created, ${existingIds.size} existing`);
 		} catch (error) {
 			logger.error(`Error syncing guild database: ${error}`);
 		}

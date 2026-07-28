@@ -105,14 +105,7 @@ export async function ensureCollectionsExist(): Promise<string[]> {
 					container.logger.info(`Collection '${name}' doesn't exist, initializing...`);
 				}
 
-				// Create the collection by saving and then removing a test document
-				const testDoc = new model({
-					guildId: 'test-initialization-' + Date.now()
-					// Add any required fields here
-				});
-
-				await testDoc.save();
-				await testDoc.deleteOne();
+				await model.createCollection();
 
 				if (process.env.NODE_ENV !== 'production') {
 					container.logger.info(`Successfully initialized collection '${name}'`);

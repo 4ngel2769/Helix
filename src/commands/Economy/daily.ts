@@ -33,15 +33,37 @@ export class DailyCommand extends ModuleCommand<EconomyModule> {
 
     public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
         await interaction.deferReply();
+        return this.buildDailyResponse(
+            interaction.user.id,
+            interaction.user.username,
+            interaction.user.displayAvatarURL(),
+            (embed) => interaction.editReply({ embeds: [embed] })
+        );
+    }
 
+    public override async messageRun(message: Message) {
+        return this.buildDailyResponse(
+            message.author.id,
+            message.author.username,
+            message.author.displayAvatarURL(),
+            (embed) => message.reply({ embeds: [embed] })
+        );
+    }
+
+    private async buildDailyResponse(
+        userId: string,
+        username: string,
+        avatarUrl: string,
+        reply: (embed: EmbedBuilder) => Promise<any>
+    ) {
         try {
-            const result = await this.processDaily(interaction.user.id, interaction.user.username);
+            const result = await this.processDaily(userId, username);
 
             const embed = new EmbedBuilder()
                 .setColor(result.success ? config.bot.embedColor.success : config.bot.embedColor.warn)
                 .setTitle(result.success ? '💰 Daily Reward Claimed!' : '⏰ Daily Already Claimed')
                 .setDescription(result.message)
-                .setThumbnail(interaction.user.displayAvatarURL())
+                .setThumbnail(avatarUrl)
                 .setTimestamp();
 
             if (result.success && result.data) {
@@ -108,7 +130,7 @@ export class DailyCommand extends ModuleCommand<EconomyModule> {
                 });
             }
 
-            return interaction.editReply({ embeds: [embed] });
+            return reply(embed);
 
         } catch (error) {
             this.container.logger.error('Error in daily command:', error);
@@ -119,84 +141,7 @@ export class DailyCommand extends ModuleCommand<EconomyModule> {
                 .setDescription('An error occurred while processing your daily reward. Please try again.')
                 .setTimestamp();
 
-            return interaction.editReply({ embeds: [embed] });
-        }
-    }
-
-    public override async messageRun(message: Message) {
-        try {
-            const result = await this.processDaily(message.author.id, message.author.username);
-
-            const embed = new EmbedBuilder()
-                .setColor(result.success ? config.bot.embedColor.success : config.bot.embedColor.warn)
-                .setTitle(result.success ? '💰 Daily Reward Claimed!' : '⏰ Daily Already Claimed')
-                .setDescription(result.message)
-                .setThumbnail(message.author.displayAvatarURL())
-                .setTimestamp();
-
-            if (result.success && result.data) {
-                embed.addFields(
-                    {
-                        name: '💸 Coins Earned',
-                        value: `**${result.data.coinsEarned.toLocaleString()}** coins`,
-                        inline: true
-                    },
-                    {
-                        name: '🔥 Current Streak',
-                        value: `**${result.data.newStreak}** day${result.data.newStreak !== 1 ? 's' : ''}`,
-                        inline: true
-                    },
-                    {
-                        name: '💎 New Balance',
-                        value: `**${result.data.newBalance.toLocaleString()}** coins`,
-                        inline: true
-                    }
-                );
-
-                // Show diamonds earned if any
-                if (result.data.diamondsEarned > 0) {
-                    embed.addFields({
-                        name: '💎 Rare Find!',
-                        value: `**+${result.data.diamondsEarned}** diamond${result.data.diamondsEarned > 1 ? 's' : ''}! ✨`,
-                        inline: true
-                    });
-                }
-
-                if (result.data.bonusXP > 0) {
-                    embed.addFields({
-                        name: '⭐ Bonus XP',
-                        value: `**+${result.data.bonusXP}** experience`,
-                        inline: true
-                    });
-                }
-
-                if (result.data.streakBonus > 0) {
-                    embed.addFields({
-                        name: '🎁 Streak Bonus',
-                        value: `**+${result.data.streakBonus}** coins (${result.data.newStreak} day streak!)`,
-                        inline: false
-                    });
-                }
-            } else if (!result.success && result.nextDailyTime) {
-                embed.addFields({
-                    name: '⏰ Next Daily Available',
-                    value: `<t:${Math.floor(result.nextDailyTime.getTime() / 1000)}:R>`,
-                    inline: false
-                });
-            }
-
-            return message.reply({ embeds: [embed] });
-
-        } catch (error) {
-            this.container.logger.error('Error in daily command:', error);
-
-            const embed = new EmbedBuilder()
-                .setColor(config.bot.embedColor.err)
-                .setTitle('❌ Error')
-                .setDescription('An error occurred while processing your daily reward. Please try again.')
-                .setTimestamp();
-
-            return message.reply({ embeds: [embed] });
+            return reply(embed);
         }
     }
 

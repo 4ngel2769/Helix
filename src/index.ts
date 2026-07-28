@@ -4,10 +4,24 @@ import { GatewayIntentBits, OAuth2Scopes, Partials } from 'discord.js';
 import '@sapphire/plugin-api/register';
 import '@kbotdev/plugin-modules/register';
 import '@sapphire/plugin-hmr/register';
+import rateLimit from 'express-rate-limit';
 import config from './config';
 import { verifyDatabaseConnection } from './lib/utils/dbCheck';
 import { Guild } from './models/Guild';
 import { initializePerformanceMonitor } from './lib/services/TPSMonitor';
+import { AuctionService } from './lib/services/AuctionService';
+
+function validateEnv() {
+    if (!config.bot.token) {
+        throw new Error('DISCORD_TOKEN is not set');
+    }
+    if (!config.bot.mongoUri) {
+        throw new Error('MONGO_URI is not set');
+    }
+    if (!config.bot.client.id || !config.bot.client.secret) {
+        container.logger.warn('⚠️ DISCORD_CLIENT_ID or DISCORD_CLIENT_SECRET is missing. Dashboard authentication will not work.');
+    }
+}
 
 const hmrOptions = {
     enabled: process.env.NODE_ENV !== 'production'
@@ -59,18 +73,26 @@ const client = new SapphireClient({
     }
 });
 
+if ((client as any).api?.server) {
+    (client as any).api.server.use(rateLimit({ windowMs: 60000, max: 30, standardHeaders: true, legacyHeaders: false }));
+}
+
 const main = async () => {
     try {
+        validateEnv();
         await verifyDatabaseConnection();
         initializePerformanceMonitor(client);
-
-        if (!config.bot.token) {
-            container.logger.warn('⚠️ No bot token present in config.bot.token or DISCORD_TOKEN. Aborting login.');
-        }
 
         await client.login(config.bot.token);
         client.logger.info('✅ Logged in');
         client.logger.info('🍪 Using @sapphire/plugin-api built-in cookies/auth middlewares');
+
+        setInterval(() => {
+            void AuctionService.processExpiredAuctions().catch((err) => {
+                container.logger.error('Error in expired auctions background job:', err);
+            });
+        }, 60000);
+        client.logger.info('Started expired auctions processor interval (every 60s)');
     } catch (error) {
         client.logger.fatal(error);
         await client.destroy();
@@ -78,4 +100,7 @@ const main = async () => {
     }
 };
 
-void main();
+void main().catch((error) => {
+    container.logger.fatal('Unhandled rejection in main():', error);
+    process.exit(1);
+});

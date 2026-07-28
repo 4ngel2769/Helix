@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { User } from '../../../models/User';
 import { EconomyItem as EconomyItemModel } from '../../../models/EconomyItem';
 import { container } from '@sapphire/framework';
@@ -42,43 +43,68 @@ export class ShopService {
   }
 
   static async purchaseItem(userId: string, itemId: string, quantity: number = 1): Promise<{ success: boolean; message: string; cost?: number }> {
+    const session = await mongoose.startSession();
+    let result: { success: boolean; message: string; cost?: number } = { success: false, message: 'An error occurred during purchase' };
+
     try {
-      const user = await User.findOne({ userId });
-      const item = await EconomyItemModel.findOne({ itemId });
+      await session.withTransaction(async () => {
+        const user = await User.findOne({ userId }, null, { session });
+        const item = await EconomyItemModel.findOne({ itemId }, null, { session });
 
-      if (!user) return { success: false, message: 'User not found' };
-      if (!item) return { success: false, message: 'Item not found' };
-      if (!item.shop.available) return { success: false, message: 'Item not available in shop' };
+        if (!user) {
+          result = { success: false, message: 'User not found' };
+          throw new Error('User not found');
+        }
+        if (!item) {
+          result = { success: false, message: 'Item not found' };
+          throw new Error('Item not found');
+        }
+        if (!item.shop.available) {
+          result = { success: false, message: 'Item not available in shop' };
+          throw new Error('Item not available in shop');
+        }
 
-      if (item.shop.stock !== -1 && item.shop.stock < quantity) {
-        return { success: false, message: 'Insufficient stock' };
+        if (item.shop.stock !== -1 && item.shop.stock < quantity) {
+          result = { success: false, message: 'Insufficient stock' };
+          throw new Error('Insufficient stock');
+        }
+
+        const unitPrice = await this.getItemPrice(itemId, 'buy');
+        const totalCost = unitPrice * quantity;
+
+        if (user.economy.wallet < totalCost) {
+          result = { success: false, message: 'Insufficient funds', cost: totalCost };
+          throw new Error('Insufficient funds');
+        }
+
+        const moneyRemoved = await MoneyService.removeMoney(userId, totalCost, 'wallet', `Purchased ${quantity}x ${item.name}`, session);
+        if (!moneyRemoved) {
+          result = { success: false, message: 'Failed to process payment' };
+          throw new Error('Failed to process payment');
+        }
+
+        const itemAdded = await InventoryService.addItem(userId, itemId, quantity, unitPrice, session);
+        if (!itemAdded) {
+          result = { success: false, message: 'Failed to add item to inventory' };
+          throw new Error('Failed to add item to inventory');
+        }
+
+        if (item.shop.stock !== -1) {
+          item.shop.stock -= quantity;
+          await item.save({ session });
+        }
+
+        result = { success: true, message: `Successfully purchased ${quantity}x ${item.name}`, cost: totalCost };
+      });
+      return result;
+    } catch (error: any) {
+      if (result.message && result.message !== 'An error occurred during purchase') {
+        return result;
       }
-
-      const unitPrice = await this.getItemPrice(itemId, 'buy');
-      const totalCost = unitPrice * quantity;
-
-      if (user.economy.wallet < totalCost) {
-        return { success: false, message: 'Insufficient funds', cost: totalCost };
-      }
-
-      const moneyRemoved = await MoneyService.removeMoney(userId, totalCost, 'wallet', `Purchased ${quantity}x ${item.name}`);
-      if (!moneyRemoved) return { success: false, message: 'Failed to process payment' };
-
-      const itemAdded = await InventoryService.addItem(userId, itemId, quantity, unitPrice);
-      if (!itemAdded) {
-        await MoneyService.addMoney(userId, totalCost, 'wallet', 'Refund for failed purchase');
-        return { success: false, message: 'Failed to add item to inventory' };
-      }
-
-      if (item.shop.stock !== -1) {
-        item.shop.stock -= quantity;
-        await item.save();
-      }
-
-      return { success: true, message: `Successfully purchased ${quantity}x ${item.name}`, cost: totalCost };
-    } catch (error) {
       container.logger.error('Error purchasing item:', error);
       return { success: false, message: 'An error occurred during purchase' };
+    } finally {
+      await session.endSession();
     }
   }
 
@@ -91,41 +117,79 @@ export class ShopService {
     newBalance?: number;
     remainingQuantity?: number;
   }> {
+    const session = await mongoose.startSession();
+    let result: {
+      success: boolean;
+      message: string;
+      earned?: number;
+      item?: { name: string };
+      totalValue?: number;
+      newBalance?: number;
+      remainingQuantity?: number;
+    } = { success: false, message: 'An error occurred during sale' };
+
     try {
-      const user = await User.findOne({ userId });
-      if (!user) return { success: false, message: 'User not found' };
+      await session.withTransaction(async () => {
+        const user = await User.findOne({ userId }, null, { session });
+        if (!user) {
+          result = { success: false, message: 'User not found' };
+          throw new Error('User not found');
+        }
 
-      const userItem = user.economy.inventory.find(inv =>
-        inv.name.toLowerCase().includes(itemName.toLowerCase())
-      );
+        const userItem = user.economy.inventory.find(inv =>
+          inv.name.toLowerCase().includes(itemName.toLowerCase())
+        );
 
-      if (!userItem) return { success: false, message: 'You don\'t have this item' };
-      if (userItem.quantity < quantity) return { success: false, message: 'Insufficient quantity' };
-      if (!userItem.sellable) return { success: false, message: 'This item cannot be sold' };
+        if (!userItem) {
+          result = { success: false, message: 'You don\'t have this item' };
+          throw new Error('Item not found');
+        }
+        if (userItem.quantity < quantity) {
+          result = { success: false, message: 'Insufficient quantity' };
+          throw new Error('Insufficient quantity');
+        }
+        if (!userItem.sellable) {
+          result = { success: false, message: 'This item cannot be sold' };
+          throw new Error('This item cannot be sold');
+        }
 
-      const unitPrice = await this.getItemPrice(userItem.itemId, 'sell');
-      const totalEarned = unitPrice * quantity;
+        const unitPrice = await this.getItemPrice(userItem.itemId, 'sell');
+        const totalEarned = unitPrice * quantity;
 
-      const itemRemoved = await InventoryService.removeItem(userId, userItem.itemId, quantity);
-      if (!itemRemoved) return { success: false, message: 'Failed to remove item' };
+        const itemRemoved = await InventoryService.removeItem(userId, userItem.itemId, quantity, session);
+        if (!itemRemoved) {
+          result = { success: false, message: 'Failed to remove item' };
+          throw new Error('Failed to remove item');
+        }
 
-      await MoneyService.addMoney(userId, totalEarned, 'wallet', `Sold ${quantity}x ${userItem.name}`);
+        const moneyAdded = await MoneyService.addMoney(userId, totalEarned, 'wallet', `Sold ${quantity}x ${userItem.name}`, session);
+        if (!moneyAdded) {
+          result = { success: false, message: 'Failed to add money' };
+          throw new Error('Failed to add money');
+        }
 
-      const updatedUser = await User.findOne({ userId });
-      const remainingItem = updatedUser?.economy.inventory.find(inv => inv.itemId === userItem.itemId);
+        const updatedUser = await User.findOne({ userId }, null, { session });
+        const remainingItem = updatedUser?.economy.inventory.find(inv => inv.itemId === userItem.itemId);
 
-      return {
-        success: true,
-        message: `Successfully sold ${quantity}x ${userItem.name}`,
-        earned: totalEarned,
-        item: { name: userItem.name },
-        totalValue: totalEarned,
-        newBalance: updatedUser?.economy.wallet || 0,
-        remainingQuantity: remainingItem?.quantity || 0
-      };
-    } catch (error) {
+        result = {
+          success: true,
+          message: `Successfully sold ${quantity}x ${userItem.name}`,
+          earned: totalEarned,
+          item: { name: userItem.name },
+          totalValue: totalEarned,
+          newBalance: updatedUser?.economy.wallet || 0,
+          remainingQuantity: remainingItem?.quantity || 0
+        };
+      });
+      return result;
+    } catch (error: any) {
+      if (result.message && result.message !== 'An error occurred during sale') {
+        return result;
+      }
       container.logger.error('Error selling item:', error);
       return { success: false, message: 'An error occurred during sale' };
+    } finally {
+      await session.endSession();
     }
   }
 }

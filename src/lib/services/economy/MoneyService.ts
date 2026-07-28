@@ -1,6 +1,7 @@
 import { User } from '../../../models/User';
 import { container } from '@sapphire/framework';
 import type { Transaction } from '../../../models/User';
+import type { ClientSession } from 'mongoose';
 
 export class MoneyService {
   private static createTransaction(
@@ -18,7 +19,7 @@ export class MoneyService {
     };
   }
 
-  static async addMoney(userId: string, amount: number, location: 'wallet' | 'bank' = 'wallet', reason: string = 'Unknown'): Promise<boolean> {
+  static async addMoney(userId: string, amount: number, location: 'wallet' | 'bank' = 'wallet', reason: string = 'Unknown', session?: ClientSession): Promise<boolean> {
     try {
       if (amount <= 0) return false;
 
@@ -35,7 +36,8 @@ export class MoneyService {
                 $slice: -100
               }
             }
-          }
+          },
+          { session }
         );
 
         return !!updatedUser;
@@ -97,7 +99,8 @@ export class MoneyService {
           {
             $unset: ['_availableBankSpace', '_bankAmountToAdd', '_walletOverflow']
           }
-        ]
+        ],
+        { session }
       );
 
       return !!updatedUser;
@@ -107,7 +110,7 @@ export class MoneyService {
     }
   }
 
-  static async removeMoney(userId: string, amount: number, location: 'wallet' | 'bank' = 'wallet', reason: string = 'Unknown'): Promise<boolean> {
+  static async removeMoney(userId: string, amount: number, location: 'wallet' | 'bank' = 'wallet', reason: string = 'Unknown', session?: ClientSession): Promise<boolean> {
     try {
       if (amount <= 0) return false;
 
@@ -127,7 +130,8 @@ export class MoneyService {
               $slice: -100
             }
           }
-        }
+        },
+        { session }
       );
 
       return !!updatedUser;

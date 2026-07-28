@@ -273,6 +273,7 @@ guildSchema.pre('save', function(next) {
   }
 });
 
+guildSchema.index({ guildId: 1 });
 guildSchema.index({ guildId: 1, 'reactionRolesMenus.messageId': 1 });
 
 export const Guild = model<IGuild>('Guild', guildSchema);
