@@ -15,7 +15,6 @@ import {
 import { ActivityType } from 'discord.js';
 
 // Import from files
-import { PerformanceMonitor } from '../lib/services/TPSMonitor';
 import { Guild } from '../models/Guild';
 import config from '../config.js';
 
@@ -33,10 +32,6 @@ export class UserEvent extends Listener {
 		this.checkDatabaseStatus();
 		this.syncGuildDatabase();
 		this.botStartupFinish();
-		
-		// Initialize performance monitor
-		PerformanceMonitor.getInstance(this.container.client);
-		this.container.logger.info('Performance Monitor initialized');
 	}
 
 	// Experimental

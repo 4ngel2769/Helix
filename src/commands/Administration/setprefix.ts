@@ -4,6 +4,7 @@ import { PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
 import { Guild } from '../../models/Guild';
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { AdministrationModule } from '../../modules/Administration';
+import { clearGuildPrefixCache, setGuildPrefixInCache } from '../../lib/utils/prefixCache';
 
 @ApplyOptions<Command.Options>({
     name: 'setprefix',
@@ -57,6 +58,7 @@ export class SetPrefixCommand extends ModuleCommand<AdministrationModule> {
                 // Reset to default
                 guildData.prefix = undefined;
                 await guildData.save();
+                clearGuildPrefixCache(interaction.guild.id);
 
                 const embed = new EmbedBuilder()
                     .setColor('#49e358')
@@ -90,6 +92,7 @@ export class SetPrefixCommand extends ModuleCommand<AdministrationModule> {
             // Set new prefix
             guildData.prefix = prefix;
             await guildData.save();
+            setGuildPrefixInCache(interaction.guild.id, prefix);
 
             const embed = new EmbedBuilder()
                 .setColor('#49e358')

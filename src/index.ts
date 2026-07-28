@@ -10,6 +10,7 @@ import { verifyDatabaseConnection } from './lib/utils/dbCheck';
 import { Guild } from './models/Guild';
 import { initializePerformanceMonitor } from './lib/services/TPSMonitor';
 import { AuctionService } from './lib/services/AuctionService';
+import { getGuildPrefixFromCache, setGuildPrefixInCache } from './lib/utils/prefixCache';
 
 function validateEnv() {
     if (!config.bot.token) {
@@ -26,6 +27,7 @@ function validateEnv() {
 const hmrOptions = {
     enabled: process.env.NODE_ENV !== 'production'
 };
+const defaultPrefix = config.bot.defaultPrefix || 'x';
 
 const client = new SapphireClient({
     intents: [
@@ -34,18 +36,23 @@ const client = new SapphireClient({
         GatewayIntentBits.MessageContent
     ],
     partials: [Partials.Channel],
-    defaultPrefix: config.bot.defaultPrefix || 'x',
+    defaultPrefix: defaultPrefix,
     fetchPrefix: async (message) => {
         // If in DMs, use default prefix
-        if (!message.guild) return config.bot.defaultPrefix || 'x';
+        if (!message.guild) return defaultPrefix;
+
+        const cachedPrefix = getGuildPrefixFromCache(message.guild.id);
+        if (cachedPrefix) return cachedPrefix;
         
         try {
             // Fetch guild-specific prefix from database
-            const guildData = await Guild.findOne({ guildId: message.guild.id });
-            return guildData?.prefix || config.bot.defaultPrefix || 'x';
+            const guildData = await Guild.findOne({ guildId: message.guild.id }, { prefix: 1 }).lean();
+            const resolvedPrefix = guildData?.prefix || defaultPrefix;
+            setGuildPrefixInCache(message.guild.id, resolvedPrefix);
+            return resolvedPrefix;
         } catch (error) {
             container.logger.error('Error fetching prefix:', error);
-            return config.bot.defaultPrefix || 'x';
+            return getGuildPrefixFromCache(message.guild.id) || defaultPrefix;
         }
     },
     regexPrefix: /^(hey +)?bot[,! ]/i,

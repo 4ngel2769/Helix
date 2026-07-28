@@ -233,7 +233,7 @@ const guildSchema = new Schema<IGuild>({
 });
 
 // Add a pre-save middleware to sync legacy module flags with new module system
-guildSchema.pre('save', function(next) {
+guildSchema.pre('save', function() {
   // Sync from legacy to new system
   if (this.isModified('isAdministration')) {
     this.modules.administration = this.isAdministration ?? true;
