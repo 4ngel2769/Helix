@@ -92,6 +92,25 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
     }
   }
 
+  public override async messageRun(message: Message, args: Args) {
+    try {
+      const commandName = await args.pick('string').catch(() => null);
+
+      if (commandName) {
+        return this.showMessageCommandHelp(message, commandName);
+      }
+
+      await this.handleHelp(message);
+      return;
+    } catch (error) {
+      this.container.logger.error('Error in help message command:', error);
+      return message.reply({
+        content: 'An error occurred while loading the help menu. Please try again later.',
+        allowedMentions: { repliedUser: false }
+      });
+    }
+  }
+
   private async handleHelp(interaction: Command.ChatInputCommandInteraction | Message) {
     const isSlash = 'options' in interaction;
     const guildId = isSlash ? interaction.guildId : interaction.guild?.id;
@@ -384,6 +403,33 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
 
     embed.setDescription(description);
     return interaction.editReply({ embeds: [embed] });
+  }
+
+  private async showMessageCommandHelp(message: Message, commandName: string) {
+    const commandStore = this.container.client.stores.get('commands');
+    const command = Array.from(commandStore.values()).find(
+      cmd => cmd.name.toLowerCase() === commandName.toLowerCase()
+    ) as ExtendedCommand | undefined;
+
+    if (!command) {
+      return message.reply({
+        content: `Command \`${commandName}\` was not found.`,
+        allowedMentions: { repliedUser: false }
+      });
+    }
+
+    const commandId = this.container.client.application?.commands.cache.find(c => c.name === command.name)?.id;
+
+    const embed = new EmbedBuilder()
+      .setColor(config.bot.embedColor.default as ColorResolvable)
+      .setTitle(`Command: ${command.name}`)
+      .setDescription(command.description || 'No description available')
+      .addFields({
+        name: 'Usage',
+        value: commandId ? `\`${message.content.split(/\s+/)[0]}\` • </${command.name}:${commandId}>` : `\`${message.content.split(/\s+/)[0]}\``
+      });
+
+    return message.reply({ embeds: [embed], allowedMentions: { repliedUser: false } });
   }
 
   private async handleModuleSelect(interaction: StringSelectMenuInteraction, filteredModules: string[], categories: string[]) {

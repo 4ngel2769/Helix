@@ -85,7 +85,8 @@ export async function ensureCollectionsExist(): Promise<string[]> {
 	try {
 		// Get list of all collections
 		const collections = await mongoose.connection.db?.listCollections().toArray();
-		const collectionNames = collections?.map((c) => c.name);
+		const collectionNames = collections?.map((c) => c.name) ?? [];
+		const normalizedCollectionNames = new Set(collectionNames.map((name) => name.toLowerCase()));
 
 		// Using container.logger.info for DB setup logs as logger may not be initialized
 		if (process.env.NODE_ENV !== 'production') {
@@ -93,22 +94,20 @@ export async function ensureCollectionsExist(): Promise<string[]> {
 		}
 
 		// Define required models and their initialization functions
-		const requiredModels = [
-			{ name: 'guilds', model: Guild },
-			{ name: 'customMessages', model: CustomMessage }
-		];
+		const requiredModels = [Guild, CustomMessage];
 
 		// Create a test document for each model that doesn't exist
-		for (const { name, model } of requiredModels) {
-			if (!collectionNames?.includes(name)) {
+		for (const model of requiredModels) {
+			const collectionName = model.collection.collectionName;
+			if (!normalizedCollectionNames.has(collectionName.toLowerCase())) {
 				if (process.env.NODE_ENV !== 'production') {
-					container.logger.info(`Collection '${name}' doesn't exist, initializing...`);
+					container.logger.info(`Collection '${collectionName}' doesn't exist, initializing...`);
 				}
 
 				await model.createCollection();
 
 				if (process.env.NODE_ENV !== 'production') {
-					container.logger.info(`Successfully initialized collection '${name}'`);
+					container.logger.info(`Successfully initialized collection '${collectionName}'`);
 				}
 			}
 		}
