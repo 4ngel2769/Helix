@@ -20,7 +20,7 @@ export class VerificationModule extends Module {
         PermissionFlagsBits.ModerateMembers
     ];
 
-    public async IsEnabled(context: IsEnabledContext): Promise<Result<Boolean, ModuleError>> {
+    public async isEnabled(context: IsEnabledContext): Promise<Result<boolean, ModuleError>> {
         const isEnabled = await GuildConfigService.resolveModuleState({
             guildId: context.guild?.id,
             moduleKey: 'verification',

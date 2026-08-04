@@ -12,7 +12,7 @@ export class GeneralModule extends Module {
         });
     }
 
-    public IsEnabled(_context: IsEnabledContext): Result<Boolean, ModuleError> {
+    public isEnabled(_context: IsEnabledContext): Result<boolean, ModuleError> {
         return this.ok(true);
     }
 }

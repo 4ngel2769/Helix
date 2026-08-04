@@ -12,7 +12,7 @@ import { Result } from '@sapphire/result';
 
 interface ExtendedModule {
   name: string;
-  IsEnabled: (context: IsEnabledContext) => Promise<Result<boolean, ModuleError>>;
+  isEnabled: (context: IsEnabledContext) => Promise<Result<boolean, ModuleError>>;
   requiredPermissions?: bigint[];
 }
 
@@ -73,9 +73,9 @@ export async function isModuleEnabledForContext(
 
   if (module?.requiredPermissions && !hasAnyPermission(memberPermissions, module.requiredPermissions)) return false;
 
-  if (module && typeof module.IsEnabled === 'function' && guild) {
+  if (module && typeof module.isEnabled === 'function' && guild) {
     const moduleCommand = (module as any).container?.stores?.get('commands')?.get(module.name);
-    const isEnabled = await module.IsEnabled({
+    const isEnabled = await module.isEnabled({
       guild,
       interaction: interaction as unknown as Command.ChatInputCommandInteraction,
       command: moduleCommand as ModuleCommandUnion

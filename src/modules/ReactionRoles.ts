@@ -13,7 +13,7 @@ export class ReactionRolesModule extends Module {
         });
     }
 
-    public async IsEnabled(context: IsEnabledContext): Promise<Result<Boolean, ModuleError>> {
+    public async isEnabled(context: IsEnabledContext): Promise<Result<boolean, ModuleError>> {
         const isEnabled = await GuildConfigService.resolveModuleState({
             guildId: context.guild?.id,
             moduleKey: 'reactionRoles',

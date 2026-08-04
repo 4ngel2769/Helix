@@ -8,7 +8,7 @@ import config from '../../../config';
 @ApplyOptions<Command.Options>({
   name: 'botinfo',
   description: 'Show bot information',
-  aliases: ['stats'],
+  aliases: ['info'],
   fullCategory: ['General'],
   enabled: true,
   flags: true
