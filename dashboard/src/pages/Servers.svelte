@@ -75,6 +75,13 @@
 			</button>
 		</PageHeader>
 
+		{#if withBot.length === 0 && withoutBot.length === 0}
+			<div class="notice notice-info">
+				You don't manage any servers — so there's nothing to configure here. Your own data is still available under
+				<a href="/panel/me" onclick={go('/panel/me')}>My data</a>, and the shared <a href="/panel/economy" onclick={go('/panel/economy')}>Economy</a> pages are read-only for everyone.
+			</div>
+		{/if}
+
 		<div class="section-title">With Helix ({withBot.length})</div>
 		{#if withBot.length === 0}
 			<div class="empty">Helix isn't in any of your servers yet — add it below.</div>

@@ -82,6 +82,17 @@ export interface ReactionRolesMenu {
   createdAt: Date;
 }
 
+export interface RedditFeed {
+  channelId: string;
+  subreddit: string;
+  intervalMinutes: number;
+  lastPostedAt?: Date | null;
+  lastPostLink?: string | null;
+  active: boolean;
+  createdBy: string;
+  createdAt: Date;
+}
+
 export interface IGuild extends Document, LegacyModuleFlags, VerificationSettings {
   guildId: string;
   prefix?: string;
@@ -105,6 +116,7 @@ export interface IGuild extends Document, LegacyModuleFlags, VerificationSetting
   modules: ModuleSettings;
   automodKeywords?: AutoModKeywords;
   reactionRolesMenus?: ReactionRolesMenu[];
+  redditFeeds?: RedditFeed[];
   warnSettings?: {
     thresholds: Array<{ count: number; action: 'kick' | 'ban' | 'timeout'; duration?: number }>;
     modChannelId?: string;
@@ -226,6 +238,18 @@ const guildSchema = new Schema<IGuild>({
       emoji: { type: String, default: null }
     }],
     maxSelections: { type: Number, default: 0 }, // 0 for unlimited
+    active: { type: Boolean, default: true },
+    createdBy: { type: String, default: null },
+    createdAt: { type: Date, default: Date.now }
+  }],
+
+  // Reddit auto-feed subscriptions (max 10 per guild, enforced in the API)
+  redditFeeds: [{
+    channelId: { type: String, required: true },
+    subreddit: { type: String, required: true },
+    intervalMinutes: { type: Number, default: 60 },
+    lastPostedAt: { type: Date, default: null },
+    lastPostLink: { type: String, default: null },
     active: { type: Boolean, default: true },
     createdBy: { type: String, default: null },
     createdAt: { type: Date, default: Date.now }

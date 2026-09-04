@@ -22,7 +22,7 @@ export class SetfarewellmessageCommand extends ModuleCommand<AdministrationModul
         .setDescription('Set the farewell message')
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
         .addStringOption((option) =>
-          option.setName('message').setDescription('Supports {{user.mention}}, {{user.name}}, {{user.tag}}, {{prefix}}, {{server.name}}, {{server.members}}').setRequired(true)
+          option.setName('message').setDescription('Supports {{placeholders}} — full list on the dashboard').setRequired(true)
         )
     );
   }

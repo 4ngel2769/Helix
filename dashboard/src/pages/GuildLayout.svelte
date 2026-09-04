@@ -12,6 +12,7 @@
 	import Automod from './guild/Automod.svelte';
 	import Moderation from './guild/Moderation.svelte';
 	import ReactionRoles from './guild/ReactionRoles.svelte';
+	import RedditFeeds from './guild/RedditFeeds.svelte';
 	import Messages from './guild/Messages.svelte';
 
 	let { guildId, section }: { guildId: string; section: string } = $props();
@@ -26,6 +27,7 @@
 		{ id: 'automod', label: 'AutoMod' },
 		{ id: 'moderation', label: 'Moderation' },
 		{ id: 'reaction-roles', label: 'Reaction Roles' },
+		{ id: 'reddit-feeds', label: 'Reddit Feeds' },
 		{ id: 'messages', label: 'Messages' }
 	];
 
@@ -96,6 +98,8 @@
 					<Moderation {guildId} />
 				{:else if section === 'reaction-roles'}
 					<ReactionRoles {guildId} />
+				{:else if section === 'reddit-feeds'}
+					<RedditFeeds {guildId} />
 				{:else if section === 'messages'}
 					<Messages {guildId} />
 				{/if}

@@ -6,7 +6,7 @@ import { Guild } from '../../models/Guild';
 import { GuildConfigService } from '../../lib/services/GuildConfigService';
 import { clearGuildPrefixCache, setGuildPrefixInCache } from '../../lib/utils/prefixCache';
 import { clearDisabledCommandsCache } from '../../lib/utils/disabledCommandsCache';
-import { readBody, requireAuth, requireManageableGuild } from '../../lib/utils/apiAuth';
+import { isSnowflake, readBody, readStringArray, requireAuth, requireManageableGuild } from '../../lib/utils/apiAuth';
 
 const UPDATABLE_FIELDS = [
 	'prefix',
@@ -56,8 +56,19 @@ function validateConfigUpdate(update: Record<string, unknown>): string | null {
 			return 'prefix must be null or a string of 1-5 characters';
 		}
 	}
-	if ('disabledCommands' in update && !Array.isArray(update.disabledCommands)) {
-		return 'disabledCommands must be an array of command names';
+	if ('disabledCommands' in update) {
+		const arr = readStringArray({ v: update.disabledCommands }, 'v');
+		if (!arr) return 'disabledCommands must be an array of up to 500 command names';
+		update.disabledCommands = arr.map((s) => s.toLowerCase());
+	}
+	// All stored IDs must be null or Discord snowflakes.
+	for (const field of UPDATABLE_FIELDS) {
+		if (!field.endsWith('Id') && field !== 'verificationThumb') continue;
+		if (!(field in update)) continue;
+		const value = update[field];
+		if (value !== null && (typeof value !== 'string' || (field.endsWith('Id') && !isSnowflake(value)))) {
+			return `${field} must be null or a valid Discord id`;
+		}
 	}
 	if ('automodKeywords' in update) {
 		const v = update.automodKeywords as Record<string, unknown> | null;
@@ -85,7 +96,7 @@ export class ApiGuildConfigRoute extends Route {
 		if (!auth) return undefined;
 
 		const { guildId } = request.params as { guildId?: string };
-		if (!guildId) return response.status(400).json({ error: 'Missing guildId parameter' });
+		if (!guildId || !isSnowflake(guildId)) return response.status(400).json({ error: 'Invalid guildId parameter' });
 
 		const manageable = requireManageableGuild(auth, guildId, response);
 		if (!manageable) return undefined;

@@ -208,7 +208,10 @@ const server = Bun.serve({
 				headers['Set-Cookie'] = sessionCookie(await sealSession(fresh.session), 7 * 24 * 3600);
 			}
 			return json(
-				{ user: { ...fresh.session.u, avatarUrl: avatarUrl(fresh.session.u.id, fresh.session.u.avatar) } },
+				{
+					user: { ...fresh.session.u, avatarUrl: avatarUrl(fresh.session.u.id, fresh.session.u.avatar) },
+					isDeveloper: dashboardConfig.devUserIds.includes(fresh.session.u.id)
+				},
 				200,
 				headers
 			);

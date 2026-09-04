@@ -196,3 +196,85 @@ export function readBody<T = Record<string, unknown>>(request: ApiRequest): T {
 	const body = (request as unknown as Record<string, unknown>).body;
 	return ((body ?? {}) as T);
 }
+
+/** Discord snowflake shape check — rejects objects/arrays used for operator injection. */
+export function isSnowflake(value: unknown): value is string {
+	return typeof value === 'string' && /^\d{16,22}$/.test(value);
+}
+
+/** Read a required plain-string field; returns null when missing or not a string. */
+export function readString(body: Record<string, unknown>, key: string, maxLength = 2000): string | null {
+	const value = body[key];
+	if (typeof value !== 'string') return null;
+	const trimmed = value.trim();
+	if (trimmed.length === 0 || trimmed.length > maxLength) return null;
+	return trimmed;
+}
+
+/** Optional variant — undefined when absent, null when present-but-invalid. */
+export function readOptionalString(body: Record<string, unknown>, key: string, maxLength = 2000): string | undefined | null {
+	if (!(key in body) || body[key] === undefined || body[key] === null) return undefined;
+	const value = body[key];
+	if (typeof value !== 'string' || value.length > maxLength) return null;
+	return value;
+}
+
+/** Validate an array-of-strings field (e.g. disabledCommands). */
+export function readStringArray(body: Record<string, unknown>, key: string, maxItems = 500, maxItemLength = 64): string[] | null {
+	const value = body[key];
+	if (!Array.isArray(value)) return null;
+	if (value.length > maxItems) return null;
+	if (!value.every((v) => typeof v === 'string' && v.length <= maxItemLength)) return null;
+	return [...value];
+}
+
+// ---- Discord identity (for self/dev scoping) ----
+
+const DISCORD_ME_URL = 'https://discord.com/api/users/@me';
+const USER_ID_CACHE_TTL_MS = 10 * 60_000;
+
+const userIdCache = new Map<string, { id: string; expiresAt: number }>();
+
+/** Resolve the Discord user id behind an OAuth token (cached 10 min). */
+export async function getTokenUserId(token: string): Promise<string | null> {
+	const cached = userIdCache.get(token);
+	if (cached && cached.expiresAt > Date.now()) return cached.id;
+	try {
+		const response = await fetch(DISCORD_ME_URL, { headers: { Authorization: `Bearer ${token}` } });
+		if (!response.ok) return null;
+		const payload = (await response.json()) as { id?: unknown };
+		if (typeof payload.id !== 'string' || !isSnowflake(payload.id)) return null;
+		if (userIdCache.size > 2000) userIdCache.clear();
+		userIdCache.set(token, { id: payload.id, expiresAt: Date.now() + USER_ID_CACHE_TTL_MS });
+		return payload.id;
+	} catch {
+		return null;
+	}
+}
+
+function botOwnerIds(): string[] {
+	return (process.env.OWNER_IDS ?? process.env.DASHBOARD_OWNER_IDS ?? '')
+		.split(',')
+		.map((s) => s.trim())
+		.filter((s) => isSnowflake(s));
+}
+
+export function isBotOwner(userId: string): boolean {
+	return botOwnerIds().includes(userId);
+}
+
+/**
+ * Require the caller to be a bot developer (OWNER_IDS).
+ * Used by dev-only dashboard endpoints.
+ */
+export async function requireDev(
+	auth: AuthContext,
+	response: ApiResponse
+): Promise<{ userId: string } | null> {
+	const userId = await getTokenUserId(auth.token);
+	if (!userId || !isBotOwner(userId)) {
+		response.status(403).json({ error: 'Forbidden', message: 'Bot developer access required' });
+		return null;
+	}
+	return { userId };
+}

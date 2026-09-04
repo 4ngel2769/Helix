@@ -4,7 +4,7 @@ import type { ApiRequest, ApiResponse } from '@sapphire/plugin-api';
 import type { RouteOptions } from '@sapphire/plugin-api';
 import { ChannelType } from 'discord.js';
 import { GuildConfigService } from '../../lib/utils/../services/GuildConfigService';
-import { canManageGuild, requireAuth, requireGuildMembership } from '../../lib/utils/apiAuth';
+import { canManageGuild, isSnowflake, requireAuth, requireGuildMembership } from '../../lib/utils/apiAuth';
 
 /**
  * Live guild detail: Discord state + stored config summary.
@@ -22,7 +22,7 @@ export class ApiGuildDetailRoute extends Route {
 		if (!auth) return undefined;
 
 		const { guildId } = request.params as { guildId?: string };
-		if (!guildId) return response.status(400).json({ error: 'Missing guildId parameter' });
+		if (!guildId || !isSnowflake(guildId)) return response.status(400).json({ error: 'Invalid guildId parameter' });
 
 		const oauthGuild = requireGuildMembership(auth, guildId, response);
 		if (!oauthGuild) return undefined;

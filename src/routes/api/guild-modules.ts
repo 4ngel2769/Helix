@@ -5,7 +5,7 @@ import type { RouteOptions } from '@sapphire/plugin-api';
 import { Guild } from '../../models/Guild';
 import { GuildConfigService } from '../../lib/services/GuildConfigService';
 import { getAllModuleKeys, getModuleConfig } from '../../config/modules';
-import { readBody, requireAuth, requireManageableGuild } from '../../lib/utils/apiAuth';
+import { isSnowflake, readBody, requireAuth, requireManageableGuild } from '../../lib/utils/apiAuth';
 
 /**
  * Per-guild module toggles.
@@ -22,7 +22,7 @@ export class ApiGuildModulesRoute extends Route {
 		if (!auth) return undefined;
 
 		const { guildId } = request.params as { guildId?: string };
-		if (!guildId) return response.status(400).json({ error: 'Missing guildId parameter' });
+		if (!guildId || !isSnowflake(guildId)) return response.status(400).json({ error: 'Invalid guildId parameter' });
 
 		const manageable = requireManageableGuild(auth, guildId, response);
 		if (!manageable) return undefined;

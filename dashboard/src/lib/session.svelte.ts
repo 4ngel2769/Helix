@@ -15,24 +15,28 @@ function retryAfterMs(error: unknown, fallbackMs: number): number | null {
 }
 
 // ---- Current user ----
-export const session = $state<{ user: DashboardUser | null; loaded: boolean; error: string | null }>({
+export const session = $state<{ user: DashboardUser | null; isDeveloper: boolean; loaded: boolean; error: string | null }>({
 	user: null,
+	isDeveloper: false,
 	loaded: false,
 	error: null
 });
 
 export async function loadSession(): Promise<void> {
 	try {
-		const data = (await (await fetch('/api/me')).json()) as { user?: DashboardUser; error?: string };
+		const data = (await (await fetch('/api/me')).json()) as { user?: DashboardUser; isDeveloper?: boolean; error?: string };
 		if (data.user) {
 			session.user = data.user;
+			session.isDeveloper = data.isDeveloper === true;
 			session.error = null;
 		} else {
 			session.user = null;
+			session.isDeveloper = false;
 			session.error = data.error ?? 'Unauthorized';
 		}
 	} catch {
 		session.user = null;
+		session.isDeveloper = false;
 		session.error = 'Unreachable';
 	}
 	session.loaded = true;
@@ -41,6 +45,7 @@ export async function loadSession(): Promise<void> {
 export async function logout(): Promise<void> {
 	await fetch('/api/auth/logout', { method: 'POST' });
 	session.user = null;
+	session.isDeveloper = false;
 }
 
 // ---- Per-guild cache (detail + raw config) ----

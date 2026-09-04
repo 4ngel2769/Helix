@@ -10,6 +10,7 @@ import { verifyDatabaseConnection } from './lib/utils/dbCheck';
 import { Guild } from './models/Guild';
 import { initializePerformanceMonitor } from './lib/services/TPSMonitor';
 import { AuctionService } from './lib/services/AuctionService';
+import { RedditFeedService } from './lib/services/RedditFeedService';
 import { getGuildPrefixFromCache, setGuildPrefixInCache } from './lib/utils/prefixCache';
 
 function validateEnv() {
@@ -101,6 +102,12 @@ const main = async () => {
             });
         }, 60000);
         client.logger.info('Started expired auctions processor interval (every 60s)');
+        setInterval(() => {
+            void RedditFeedService.processDueFeeds().catch((err) => {
+                container.logger.error('Error in reddit feeds background job:', err);
+            });
+        }, 5 * 60000);
+        client.logger.info('Started reddit feeds processor interval (every 5m)');
     } catch (error) {
         client.logger.fatal(error);
         await client.destroy();

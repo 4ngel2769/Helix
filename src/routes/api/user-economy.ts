@@ -3,7 +3,7 @@ import { ApplyOptions } from '@sapphire/decorators';
 import type { ApiRequest, ApiResponse } from '@sapphire/plugin-api';
 import type { RouteOptions } from '@sapphire/plugin-api';
 import { User } from '../../models/User';
-import { readQueryParam } from '../../lib/utils/apiAuth';
+import { isSnowflake, readQueryParam } from '../../lib/utils/apiAuth';
 
 /**
  * Public user economy profile.
@@ -18,7 +18,7 @@ import { readQueryParam } from '../../lib/utils/apiAuth';
 export class ApiUserEconomyRoute extends Route {
 	public override async run(request: ApiRequest, response: ApiResponse) {
 		const { userId } = request.params as { userId?: string };
-		if (!userId) return response.status(400).json({ error: 'Missing userId parameter' });
+		if (!userId || !isSnowflake(userId)) return response.status(400).json({ error: 'Invalid userId parameter' });
 
 		try {
 			const user = await User.findOne({ userId }).lean();
@@ -32,12 +32,7 @@ export class ApiUserEconomyRoute extends Route {
 			};
 
 			if (user.economy?.settings?.publicProfile === false) {
-				return response.json({
-					...identity,
-					private: true,
-					level: user.economy.level,
-					experience: user.economy.experience
-				});
+				return response.json({ ...identity, private: true });
 			}
 
 			const inventoryLimit = Math.min(Math.max(parseInt(readQueryParam(request, 'inventoryLimit') ?? '20', 10) || 20, 0), 100);
