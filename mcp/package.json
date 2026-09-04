@@ -1,0 +1,22 @@
+{
+	"name": "helix-mcp",
+	"version": "1.0.0",
+	"description": "MCP server exposing Helix Discord bot API endpoints to AI agents",
+	"type": "module",
+	"bin": {
+		"helix-mcp": "./dist/index.js"
+	},
+	"scripts": {
+		"build": "tsc",
+		"typecheck": "tsc --noEmit",
+		"start": "node ./dist/index.js"
+	},
+	"dependencies": {
+		"@modelcontextprotocol/sdk": "^1.17.0",
+		"zod": "^3.25.0"
+	},
+	"devDependencies": {
+		"@types/node": "^22.0.0",
+		"typescript": "^5.6.0"
+	}
+}
