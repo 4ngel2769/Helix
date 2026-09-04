@@ -13,7 +13,7 @@ import { canManageGuild, requireAuth, requireGuildMembership } from '../../lib/u
  */
 @ApplyOptions<RouteOptions>({
 	name: 'api-guild-detail',
-	route: 'guilds/:guildId',
+	route: 'guilds/[guildId]',
 	methods: ['GET']
 })
 export class ApiGuildDetailRoute extends Route {
@@ -84,3 +84,4 @@ export class ApiGuildDetailRoute extends Route {
 		return response.json({ guild: { ...base, config: configSummary, channels, roles } });
 	}
 }
+

@@ -14,7 +14,7 @@ const ACTIONS: ModerationAction[] = ['timeout', 'untimeout', 'kick', 'ban', 'unb
  */
 @ApplyOptions<RouteOptions>({
 	name: 'api-guild-moderation',
-	route: 'guilds/:guildId/moderation',
+	route: 'guilds/[guildId]/moderation',
 	methods: ['POST']
 })
 export class ApiGuildModerationRoute extends Route {
@@ -83,3 +83,4 @@ export class ApiGuildModerationRoute extends Route {
 		}
 	}
 }
+

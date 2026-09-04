@@ -13,7 +13,7 @@ import { readBody, requireAuth, requireManageableGuild } from '../../lib/utils/a
  */
 @ApplyOptions<RouteOptions>({
 	name: 'api-guild-modules',
-	route: 'guilds/:guildId/modules',
+	route: 'guilds/[guildId]/modules',
 	methods: ['GET', 'PATCH']
 })
 export class ApiGuildModulesRoute extends Route {
@@ -75,3 +75,4 @@ export class ApiGuildModulesRoute extends Route {
 		}
 	}
 }
+

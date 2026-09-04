@@ -10,7 +10,17 @@ import { version } from '../../../package.json';
 	methods: ['GET']
 })
 export class ApiHealthRoute extends Route {
-	public override async run(_request: ApiRequest, response: ApiResponse) {
+	/** Set once the dashboard handshake has been acknowledged (avoids log spam). */
+	private hookLogged = false;
+
+	public override async run(request: ApiRequest, response: ApiResponse) {
+		const headers = (request as unknown as { headers?: Record<string, unknown> }).headers;
+		const hook = headers?.['x-helix-dashboard'];
+		if (typeof hook === 'string' && hook.length > 0 && !this.hookLogged) {
+			this.hookLogged = true;
+			this.container.logger.info(`🔗 Successfully hooked into dashboard (${hook})!`);
+		}
+
 		let database = 'unknown';
 		try {
 			const mongoose = (await import('mongoose')).default;

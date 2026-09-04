@@ -11,7 +11,7 @@ import { readBody, requireAuth, requireManageableGuild } from '../../lib/utils/a
  */
 @ApplyOptions<RouteOptions>({
 	name: 'api-guild-messages',
-	route: 'guilds/:guildId/messages',
+	route: 'guilds/[guildId]/messages',
 	methods: ['GET', 'PATCH']
 })
 export class ApiGuildMessagesRoute extends Route {
@@ -52,3 +52,4 @@ export class ApiGuildMessagesRoute extends Route {
 		}
 	}
 }
+

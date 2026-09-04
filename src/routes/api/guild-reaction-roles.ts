@@ -19,7 +19,7 @@ interface ReactionRoleInput {
  */
 @ApplyOptions<RouteOptions>({
 	name: 'api-guild-reaction-roles',
-	route: 'guilds/:guildId/reaction-roles',
+	route: 'guilds/[guildId]/reaction-roles',
 	methods: ['GET', 'POST', 'PATCH', 'DELETE']
 })
 export class ApiGuildReactionRolesRoute extends Route {
@@ -137,3 +137,4 @@ export class ApiGuildReactionRolesRoute extends Route {
 		}
 	}
 }
+

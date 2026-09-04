@@ -11,7 +11,7 @@ import { readBody, readQueryParam, requireAuth, requireManageableGuild } from '.
  */
 @ApplyOptions<RouteOptions>({
 	name: 'api-guild-warnings',
-	route: 'guilds/:guildId/warnings',
+	route: 'guilds/[guildId]/warnings',
 	methods: ['GET', 'POST', 'DELETE']
 })
 export class ApiGuildWarningsRoute extends Route {
@@ -88,3 +88,4 @@ export class ApiGuildWarningsRoute extends Route {
 		}
 	}
 }
+

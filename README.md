@@ -138,6 +138,19 @@ bun run build
 bun run start
 ```
 
+### Dashboard (Svelte + Bun)
+
+The web dashboard lives in `dashboard/` — a Svelte SPA served by a Bun server that handles Discord login and proxies the bot API.
+
+```bash
+bun run dashboard:install   # install dashboard deps
+bun run dashboard:dev       # dev: Vite (5173) + Bun server (3000)
+bun run dashboard:build     # production frontend build
+bun run dashboard:start     # serve production build
+```
+
+Configure via `DASHBOARD_WEB_PORT`, `DASHBOARD_WEB_URL` (e.g. `https://dash.domain.tld`), `BOT_API_URL`, plus the usual `DISCORD_CLIENT_ID`/`DISCORD_CLIENT_SECRET`/`SESSION_SECRET`. Register `{DASHBOARD_WEB_URL}/api/auth/callback` as an OAuth2 redirect in the Discord developer portal. See `dashboard/README.md`.
+
 <h1 align="center" style="color:#00ff00; font-family:monospace;"></h1>
 
 ## Credits

@@ -8,11 +8,11 @@ import { readQueryParam } from '../../lib/utils/apiAuth';
 /**
  * Public user economy profile.
  * Private profiles (settings.publicProfile=false) only expose identity + level.
- * GET /users/:userId/economy?inventoryLimit=20
+ * GET /users/[userId]/economy?inventoryLimit=20
  */
 @ApplyOptions<RouteOptions>({
 	name: 'api-user-economy',
-	route: 'users/:userId/economy',
+	route: 'users/[userId]/economy',
 	methods: ['GET']
 })
 export class ApiUserEconomyRoute extends Route {
@@ -64,3 +64,4 @@ export class ApiUserEconomyRoute extends Route {
 		}
 	}
 }
+

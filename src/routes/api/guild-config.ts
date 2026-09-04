@@ -75,7 +75,7 @@ function validateConfigUpdate(update: Record<string, unknown>): string | null {
  */
 @ApplyOptions<RouteOptions>({
 	name: 'api-guild-config',
-	route: 'guilds/:guildId/config',
+	route: 'guilds/[guildId]/config',
 	methods: ['GET', 'PATCH']
 })
 export class ApiGuildConfigRoute extends Route {
@@ -120,3 +120,4 @@ export class ApiGuildConfigRoute extends Route {
 		}
 	}
 }
+
