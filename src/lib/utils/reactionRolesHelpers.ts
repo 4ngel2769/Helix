@@ -21,6 +21,69 @@ interface UpdateReactionRoleMenuMessageParams {
     isActive: boolean;
 }
 
+export interface PostReactionRoleMenuParams {
+    guildId: string;
+    channelId: string;
+    title: string;
+    description: string;
+    roles: ReactionRole[];
+    maxSelections: number;
+    active: boolean;
+}
+
+/**
+ * Post a fresh reaction-role menu message to a channel (used by the dashboard
+ * "let the bot post it" flow). Returns the sent message id.
+ */
+export async function postReactionRoleMenuMessage({
+    guildId,
+    channelId,
+    title,
+    description,
+    roles,
+    maxSelections,
+    active
+}: PostReactionRoleMenuParams): Promise<string> {
+    const guild = container.client.guilds.cache.get(guildId);
+    if (!guild) throw new Error('Bot is not in this guild');
+    const channel = (await guild.channels.fetch(channelId).catch(() => null)) as TextChannel | null;
+    if (!channel || !channel.isTextBased()) throw new Error('Channel not found or not a text channel');
+
+    const me = guild.members.me;
+    if (!me?.permissions.has('SendMessages') || !channel.permissionsFor(me)?.has(['SendMessages', 'EmbedLinks'])) {
+        throw new Error('I need Send Messages + Embed Links in the target channel');
+    }
+
+    const embed = new EmbedBuilder()
+        .setColor(config.bot.embedColor.default as ColorResolvable)
+        .setTitle(title)
+        .setDescription(description || 'Select your roles below')
+        .setFooter({
+            text: active ? 'Select roles from the dropdown menu below' : 'This role selection menu is currently paused'
+        });
+
+    const options = roles.map((role) => {
+        const option = new StringSelectMenuOptionBuilder()
+            .setLabel(role.label)
+            .setValue(role.roleId)
+            .setDescription(`Get the ${guild.roles.cache.get(role.roleId)?.name || 'Unknown'} role`);
+        if (role.emoji) applyEmojiToOption(option, role.emoji);
+        return option;
+    });
+
+    const selectMenu = new StringSelectMenuBuilder()
+        .setCustomId('reaction-roles-select')
+        .setPlaceholder(active ? 'Select roles...' : 'Menu is currently paused')
+        .addOptions(options)
+        .setDisabled(!active)
+        .setMinValues(0)
+        .setMaxValues(maxSelections > 0 ? Math.min(maxSelections, roles.length) : roles.length);
+
+    const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu);
+    const sent = await (channel as TextChannel).send({ embeds: [embed], components: [row] });
+    return sent.id;
+}
+
 export function parseReactionRoleEmoji(emojiInput: string | null): string | undefined {
     if (!emojiInput) return undefined;
 

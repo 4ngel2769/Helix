@@ -39,6 +39,7 @@ export interface GuildDetail {
 	canManage: boolean;
 	joinedAt: string | null;
 	ownerId: string | null;
+	defaultPrefix?: string | null;
 	config?: Record<string, unknown> | null;
 	channels?: GuildChannel[];
 	roles?: GuildRole[];
@@ -77,4 +78,5 @@ export interface CommandEntry {
 	name: string;
 	description: string;
 	category: string | null;
+	module?: string | null;
 }

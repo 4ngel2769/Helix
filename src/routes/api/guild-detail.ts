@@ -40,6 +40,8 @@ export class ApiGuildDetailRoute extends Route {
 		}
 
 		const manageable = canManageGuild(oauthGuild);
+		const configuredDefault = this.container.client.options.defaultPrefix;
+		const defaultPrefix = (Array.isArray(configuredDefault) ? configuredDefault[0] : configuredDefault) || 'x';
 		const base: Record<string, unknown> = {
 			id: guild.id,
 			name: guild.name,
@@ -48,7 +50,8 @@ export class ApiGuildDetailRoute extends Route {
 			hasBot: true,
 			canManage: manageable,
 			joinedAt: guild.joinedAt?.toISOString() ?? null,
-			ownerId: guild.ownerId ?? null
+			ownerId: guild.ownerId ?? null,
+			defaultPrefix
 		};
 
 		if (!manageable) return response.json({ guild: base });

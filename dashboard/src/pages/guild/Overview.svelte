@@ -8,6 +8,19 @@
 
 	const modules = $derived((entry.config?.modules as Record<string, boolean> | undefined) ?? {});
 	const enabledCount = $derived(Object.values(modules).filter(Boolean).length);
+
+	function channelLabel(id: unknown): string {
+		if (typeof id !== 'string' || id === '') return 'Not set up';
+		const found = entry.detail?.channels?.find((c) => c.id === id);
+		return found ? `#${found.name}` : id;
+	}
+
+	function channelOrNotSet(id: unknown): string {
+		return typeof id === 'string' && id !== '' ? channelLabel(id) : 'Not set up';
+	}
+
+	const prefixText = $derived(typeof entry.config?.prefix === 'string' && entry.config.prefix !== '' ? entry.config.prefix : null);
+	const defaultPrefix = $derived(entry.detail?.defaultPrefix ?? 'x');
 </script>
 
 <PageHeader title="Overview" description="Server state at a glance. Jump into a section from the sidebar to change anything." />
@@ -26,9 +39,9 @@
 			<p class="card-desc">Core identifiers currently stored for this server.</p>
 			<table class="table">
 				<tbody>
-					<tr><td class="muted">Prefix</td><td><span class="mono">{String(entry.config?.prefix ?? '(default)')}</span></td></tr>
-					<tr><td class="muted">Welcome channel</td><td><span class="mono">{String(entry.config?.welcomeChannelId ?? '—')}</span></td></tr>
-					<tr><td class="muted">Mod log</td><td><span class="mono">{String(entry.config?.modLogChannelId ?? '—')}</span></td></tr>
+					<tr><td class="muted">Prefix</td><td>{#if prefixText}<code>{prefixText}</code> <span class="muted small">(custom)</span>{:else}<code>{defaultPrefix}</code> <span class="muted small">(default)</span>{/if}</td></tr>
+					<tr><td class="muted">Welcome channel</td><td>{channelOrNotSet(entry.config?.welcomeChannelId)}</td></tr>
+					<tr><td class="muted">Mod log</td><td>{channelOrNotSet(entry.config?.modLogChannelId)}</td></tr>
 					<tr><td class="muted">Verification</td><td>{entry.config?.verificationChannelId ? 'Enabled' : 'Not set up'}</td></tr>
 				</tbody>
 			</table>

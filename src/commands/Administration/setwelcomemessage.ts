@@ -22,7 +22,7 @@ export class SetwelcomemessageCommand extends ModuleCommand<AdministrationModule
         .setDescription('Set the welcome message')
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
         .addStringOption((option) =>
-          option.setName('message').setDescription('The welcome message (use {user} for mention)').setRequired(true)
+          option.setName('message').setDescription('Supports {{user.mention}}, {{user.name}}, {{user.tag}}, {{prefix}}, {{server.name}}, {{server.members}}').setRequired(true)
         )
     );
   }

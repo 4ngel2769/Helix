@@ -5,6 +5,7 @@ import type { RouteOptions } from '@sapphire/plugin-api';
 import { Guild } from '../../models/Guild';
 import { GuildConfigService } from '../../lib/services/GuildConfigService';
 import { clearGuildPrefixCache, setGuildPrefixInCache } from '../../lib/utils/prefixCache';
+import { clearDisabledCommandsCache } from '../../lib/utils/disabledCommandsCache';
 import { readBody, requireAuth, requireManageableGuild } from '../../lib/utils/apiAuth';
 
 const UPDATABLE_FIELDS = [
@@ -114,6 +115,7 @@ export class ApiGuildConfigRoute extends Route {
 				if (typeof update.prefix === 'string') setGuildPrefixInCache(guildId, update.prefix);
 				else clearGuildPrefixCache(guildId);
 			}
+			if ('disabledCommands' in update) clearDisabledCommandsCache(guildId);
 			return response.json({ guildId, updated: Object.keys(update), config: data });
 		} catch {
 			return response.status(500).json({ error: 'Failed to update guild config' });

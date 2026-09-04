@@ -60,6 +60,12 @@
 
 <PageHeader title="Messages" description="Custom per-server texts the bot can use (command replies, announcements). Keys are free-form." />
 
+<div class="notice notice-info">
+	<strong>Placeholders you can use in any message:</strong>
+	<code>&#123;&#123;user.mention&#125;&#125;</code>, <code>&#123;&#123;user.name&#125;&#125;</code>, <code>&#123;&#123;user.tag&#125;&#125;</code>,
+	<code>&#123;&#123;prefix&#125;&#125;</code>, <code>&#123;&#123;server.name&#125;&#125;</code>, <code>&#123;&#123;server.members&#125;&#125;</code>.
+</div>
+
 {#if error}<div class="notice notice-error">{error}</div>{/if}
 {#if notice}<div class="notice notice-ok">{notice}</div>{/if}
 

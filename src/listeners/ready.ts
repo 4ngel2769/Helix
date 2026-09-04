@@ -29,6 +29,7 @@ export class UserEvent extends Listener {
 
 		this.printBanner();
 		this.printStoreDebugInformation();
+		this.applyGlobalCommandGuard();
 		this.checkDatabaseStatus();
 		this.syncGuildDatabase();
 		this.botStartupFinish();
@@ -77,8 +78,27 @@ export class UserEvent extends Listener {
         logger.info(`[${success}] Logger`);
 	}
 
-	private printStoreDebugInformation() {
-		const { client, logger } = this.container;
+	private applyGlobalCommandGuard() {
+		// Enforce per-guild `disabledCommands` (dashboard + /togglecommand) for every
+		// command without editing each command file. The precondition itself is a
+		// no-op for DMs and critical commands; failures here must never crash boot.
+		try {
+			const store = this.container.stores.get('commands');
+			let count = 0;
+			for (const command of store.values()) {
+				const preconditions = (command as unknown as { preconditions?: { append?: (entry: unknown) => void } }).preconditions;
+				if (preconditions && typeof preconditions.append === 'function') {
+					preconditions.append({ name: 'GuildCommandEnabled' });
+					count += 1;
+				}
+			}
+			this.container.logger.info(`Applied GuildCommandEnabled guard to ${count} commands`);
+		} catch (error) {
+			this.container.logger.warn('Failed to apply global GuildCommandEnabled guard:', error);
+		}
+	}
+
+	private printStoreDebugInformation() {		const { client, logger } = this.container;
 		const stores = [...client.stores.values()];
 		const last = stores.pop()!;
 

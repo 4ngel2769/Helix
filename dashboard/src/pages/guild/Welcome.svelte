@@ -31,6 +31,19 @@
 		return JSON.stringify({ welcomeChannelId, welcomeMessage, farewellChannelId, farewellMessage });
 	}
 
+	const DEFAULT_WELCOME = 'Welcome {{user.mention}} to **{{server.name}}**! You are member #{{server.members}}.';
+	const DEFAULT_FAREWELL = '**{{user.name}}** has left {{server.name}}.';
+
+	function useDefaultWelcome(): void {
+		saved = false;
+		welcomeMessage = DEFAULT_WELCOME;
+	}
+
+	function useDefaultFarewell(): void {
+		saved = false;
+		farewellMessage = DEFAULT_FAREWELL;
+	}
+
 	$effect(() => {
 		if (entry.config && baseline === '') syncFromCache();
 	});
@@ -61,16 +74,24 @@
 
 <PageHeader title="Welcome" description="Greet arrivals and say goodbye to leavers. Empty channel disables the message." />
 
-<div class="card">
-	<div class="card-title"><h2>Welcome</h2></div>
-	<Select label="Welcome channel" bind:value={welcomeChannelId} options={channelOptions} />
-	<TextArea label="Welcome message" bind:value={welcomeMessage} hint={'Supports {user}, {server}, {memberCount} placeholders.'} />
+<div class="notice notice-info">
+	<strong>Placeholders you can use:</strong>
+	<code>&#123;&#123;user.mention&#125;&#125;</code> pings the user, <code>&#123;&#123;user.name&#125;&#125;</code> is their display name,
+	<code>&#123;&#123;user.tag&#125;&#125;</code> is their username, <code>&#123;&#123;prefix&#125;&#125;</code> is this server's prefix,
+	<code>&#123;&#123;server.name&#125;&#125;</code> is the server name, <code>&#123;&#123;server.members&#125;&#125;</code> is the current member count.
+	Leave the message empty to use the built-in default.
 </div>
 
 <div class="card">
-	<div class="card-title"><h2>Farewell</h2></div>
+	<div class="card-title"><h2>Welcome</h2><button class="btn btn-ghost btn-sm" onclick={useDefaultWelcome}>Use default</button></div>
+	<Select label="Welcome channel" bind:value={welcomeChannelId} options={channelOptions} />
+	<TextArea label="Welcome message" bind:value={welcomeMessage} hint="Supports user/prefix/server placeholders (see box above). Empty = default." />
+</div>
+
+<div class="card">
+	<div class="card-title"><h2>Farewell</h2><button class="btn btn-ghost btn-sm" onclick={useDefaultFarewell}>Use default</button></div>
 	<Select label="Farewell channel" bind:value={farewellChannelId} options={channelOptions} />
-	<TextArea label="Farewell message" bind:value={farewellMessage} hint={'Supports {user} and {server} placeholders.'} />
+	<TextArea label="Farewell message" bind:value={farewellMessage} hint="Supports user/prefix/server placeholders (see box above). Empty = default." />
 </div>
 
 <SaveBar {dirty} {saving} {error} {saved} onsave={() => void save()} onreset={syncFromCache} />

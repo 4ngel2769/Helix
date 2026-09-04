@@ -17,7 +17,15 @@
 		{ key: 'systemChannelId', label: 'System channel', hint: 'General bot notices.' }
 	] as const;
 
-	let values = $state<Record<string, string>>({});
+	let values = $state<Record<string, string>>({
+		modLogChannelId: '',
+		memberLogChannelId: '',
+		messageEditLogChannelId: '',
+		messageDeleteLogChannelId: '',
+		nicknameLogChannelId: '',
+		roleLogChannelId: '',
+		systemChannelId: ''
+	});
 	let baseline = $state('');
 	let saving = $state(false);
 	let error = $state<string | null>(null);
@@ -62,7 +70,7 @@
 <div class="card">
 	<div class="grid-2">
 		{#each FIELDS as f (f.key)}
-			<Select label={f.label} bind:value={values[f.key]} options={channelOptions} hint={f.hint} />
+			<Select label={f.label} value={values[f.key] ?? ''} options={channelOptions} hint={f.hint} onchange={(v) => { values[f.key] = v; saved = false; }} />
 		{/each}
 	</div>
 </div>

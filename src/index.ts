@@ -32,6 +32,7 @@ const defaultPrefix = config.bot.defaultPrefix || 'x';
 const client = new SapphireClient({
     intents: [
         GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMembers,
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent
     ],

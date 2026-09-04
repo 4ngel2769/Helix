@@ -78,7 +78,7 @@
 		<Select label="Verified role" bind:value={roleId} options={roleOptions} hint="Granted after verifying." />
 	</div>
 	<TextInput label="Title" bind:value={title} />
-	<TextArea label="Message" bind:value={message} />
+	<TextArea label="Message" bind:value={message} hint="Supports the same user/prefix/server placeholders as Welcome messages." />
 	<TextArea label="Disabled message" bind:value={disabledMessage} hint="Shown when verification is paused." rows={2} />
 	<div class="grid-2">
 		<TextInput label="Footer" bind:value={footer} />

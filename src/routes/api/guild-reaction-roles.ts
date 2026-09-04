@@ -4,6 +4,7 @@ import type { ApiRequest, ApiResponse } from '@sapphire/plugin-api';
 import type { RouteOptions } from '@sapphire/plugin-api';
 import { Guild } from '../../models/Guild';
 import { GuildConfigService } from '../../lib/services/GuildConfigService';
+import { postReactionRoleMenuMessage } from '../../lib/utils/reactionRolesHelpers';
 import { readBody, readQueryParam, requireAuth, requireManageableGuild } from '../../lib/utils/apiAuth';
 
 interface ReactionRoleInput {
@@ -60,31 +61,59 @@ export class ApiGuildReactionRolesRoute extends Route {
 				maxSelections?: number;
 				roles?: ReactionRoleInput[];
 				active?: boolean;
+				createMessage?: boolean;
 			}>(request);
 
-			if (!body.messageId || !body.channelId || !body.title) {
-				return response.status(400).json({ error: 'messageId, channelId and title are required' });
+			if (!body.channelId || !body.title) {
+				return response.status(400).json({ error: 'channelId and title are required' });
+			}
+			if (!body.createMessage && !body.messageId) {
+				return response.status(400).json({ error: 'messageId is required unless createMessage is true' });
 			}
 			if (body.roles && !Array.isArray(body.roles)) {
 				return response.status(400).json({ error: 'roles must be an array' });
 			}
+			const cleanRoles = (body.roles ?? []).map((r) => ({
+				roleId: r.roleId,
+				label: r.label,
+				description: r.description,
+				emoji: r.emoji
+			}));
+			if (cleanRoles.length === 0) {
+				return response.status(400).json({ error: 'Add at least one role before saving' });
+			}
+			if (cleanRoles.some((r) => !r.roleId || !r.label)) {
+				return response.status(400).json({ error: 'Every role needs a roleId and a label' });
+			}
 
 			try {
 				const data = await GuildConfigService.getOrCreateGuildData(guildId);
-				if ((data.reactionRolesMenus ?? []).some((m) => m.messageId === body.messageId)) {
+				let messageId = body.messageId;
+				if (body.createMessage || !messageId) {
+					try {
+						messageId = await postReactionRoleMenuMessage({
+							guildId,
+							channelId: body.channelId,
+							title: body.title,
+							description: body.description ?? '',
+							roles: cleanRoles,
+							maxSelections: body.maxSelections ?? 0,
+							active: body.active ?? true
+						});
+					} catch (error) {
+						const reason = error instanceof Error ? error.message : 'Failed to post the message';
+						return response.status(502).json({ error: `Could not post message: ${reason}` });
+					}
+				}
+				if ((data.reactionRolesMenus ?? []).some((m) => m.messageId === messageId)) {
 					return response.status(409).json({ error: 'A menu with this messageId already exists' });
 				}
 				const menu = {
-					messageId: body.messageId,
+					messageId,
 					channelId: body.channelId,
 					title: body.title,
 					description: body.description ?? '',
-					roles: (body.roles ?? []).map((r) => ({
-						roleId: r.roleId,
-						label: r.label,
-						description: r.description,
-						emoji: r.emoji
-					})),
+					roles: cleanRoles,
 					maxSelections: body.maxSelections ?? 0,
 					active: body.active ?? true,
 					createdBy: 'api',
@@ -98,7 +127,7 @@ export class ApiGuildReactionRolesRoute extends Route {
 		}
 
 		if (method === 'PATCH') {
-			const body = readBody<{ messageId?: string; title?: string; description?: string; maxSelections?: number; active?: boolean; roles?: ReactionRoleInput[] }>(request);
+			const body = readBody<{ messageId?: string; channelId?: string; title?: string; description?: string; maxSelections?: number; active?: boolean; roles?: ReactionRoleInput[] }>(request);
 			if (!body.messageId) return response.status(400).json({ error: 'messageId is required' });
 
 			const setOps: Record<string, unknown> = {};
@@ -107,6 +136,7 @@ export class ApiGuildReactionRolesRoute extends Route {
 				const data = await GuildConfigService.getOrCreateGuildData(guildId);
 				const idx = (data.reactionRolesMenus ?? []).findIndex((m) => m.messageId === body.messageId);
 				if (idx === -1) return response.status(404).json({ error: 'Reaction-role menu not found' });
+				if (body.channelId !== undefined) setOps[`reactionRolesMenus.${idx}.channelId`] = body.channelId;
 				if (body.title !== undefined) setOps[`reactionRolesMenus.${idx}.title`] = body.title;
 				if (body.description !== undefined) setOps[`reactionRolesMenus.${idx}.description`] = body.description;
 				if (body.maxSelections !== undefined) setOps[`reactionRolesMenus.${idx}.maxSelections`] = body.maxSelections;

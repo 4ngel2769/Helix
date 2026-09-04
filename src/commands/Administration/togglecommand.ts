@@ -4,6 +4,7 @@ import { PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
 import { Guild } from '../../models/Guild';
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { AdministrationModule } from '../../modules/Administration';
+import { clearDisabledCommandsCache } from '../../lib/utils/disabledCommandsCache';
 
 @ApplyOptions<Command.Options>({
     name: 'togglecommand',
@@ -117,6 +118,7 @@ export class ToggleCommandCommand extends ModuleCommand<AdministrationModule> {
 
                 guildData.disabledCommands.push(commandName);
                 await guildData.save();
+                clearDisabledCommandsCache(interaction.guild.id);
 
                 const embed = new EmbedBuilder()
                     .setColor('#db2b1f')
@@ -141,6 +143,7 @@ export class ToggleCommandCommand extends ModuleCommand<AdministrationModule> {
 
                 guildData.disabledCommands = guildData.disabledCommands.filter(cmd => cmd !== commandName);
                 await guildData.save();
+                clearDisabledCommandsCache(interaction.guild.id);
 
                 const embed = new EmbedBuilder()
                     .setColor('#49e358')

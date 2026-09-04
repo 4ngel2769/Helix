@@ -9,7 +9,7 @@
 		type = 'text'
 	}: {
 		label: string;
-		value?: string | null;
+		value?: string | null | undefined;
 		placeholder?: string;
 		hint?: string;
 		type?: string;
@@ -20,6 +20,6 @@
 
 <div class="field">
 	<label for={id}>{label}</label>
-	<input {id} {type} bind:value={value as string} {placeholder} />
+	<input {id} {type} value={value ?? ''} oninput={(e) => (value = (e.currentTarget as HTMLInputElement).value)} {placeholder} />
 	{#if hint}<div class="hint">{hint}</div>{/if}
 </div>

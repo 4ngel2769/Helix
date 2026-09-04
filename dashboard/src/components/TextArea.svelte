@@ -9,7 +9,7 @@
 		rows = 4
 	}: {
 		label: string;
-		value?: string | null;
+		value?: string | null | undefined;
 		placeholder?: string;
 		hint?: string;
 		rows?: number;
@@ -20,6 +20,6 @@
 
 <div class="field">
 	<label for={id}>{label}</label>
-	<textarea {id} bind:value={value as string} {placeholder} {rows}></textarea>
+	<textarea {id} value={value ?? ''} oninput={(e) => (value = (e.currentTarget as HTMLTextAreaElement).value)} {placeholder} {rows}></textarea>
 	{#if hint}<div class="hint">{hint}</div>{/if}
 </div>
