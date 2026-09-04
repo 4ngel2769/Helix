@@ -1,5 +1,18 @@
 import type { DashboardUser, GuildDetail } from './types';
-import { api } from './api';
+import { ApiError, api } from './api';
+
+function sleep(ms: number): Promise<void> {
+	return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function retryAfterMs(error: unknown, fallbackMs: number): number | null {
+	if (error instanceof ApiError && error.status === 429) {
+		const data = error.data as { retryAfterMs?: unknown } | null;
+		const raw = typeof data?.retryAfterMs === 'number' ? data.retryAfterMs : fallbackMs;
+		return Math.min(Math.max(raw, 500), 10000);
+	}
+	return null;
+}
 
 // ---- Current user ----
 export const session = $state<{ user: DashboardUser | null; loaded: boolean; error: string | null }>({
@@ -60,7 +73,7 @@ export function guildEntry(guildId: string): GuildEntry {
 	return guildCache[guildId] ?? EMPTY_ENTRY;
 }
 
-export async function loadGuild(guildId: string, force = false): Promise<void> {
+export async function loadGuild(guildId: string, force = false, retried = false): Promise<void> {
 	const entry = ensureGuildEntry(guildId);
 	if (entry.loading || (entry.detail && !force)) return;
 	entry.loading = true;
@@ -73,6 +86,13 @@ export async function loadGuild(guildId: string, force = false): Promise<void> {
 		entry.detail = detailRes.guild;
 		entry.config = configRes.config;
 	} catch (error) {
+		const waitMs = retried ? null : retryAfterMs(error, 2000);
+		if (waitMs !== null) {
+			// Discord throttled us — wait it out and try once more instead of failing the page.
+			await sleep(waitMs);
+			entry.loading = false;
+			return loadGuild(guildId, force, true);
+		}
 		entry.error = error instanceof Error ? error.message : 'Failed to load server';
 	} finally {
 		entry.loading = false;

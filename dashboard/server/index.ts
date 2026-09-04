@@ -91,9 +91,17 @@ async function proxyToBot(req: Request, path: string): Promise<Response> {
 	if (contentType) headers['content-type'] = contentType;
 
 	// Attach the user's Discord token so the bot API can authorize guild-scoped calls.
+	// If the token was refreshed, persist the rotated pair back to the cookie —
+	// Discord invalidates the old refresh token, so dropping it would break the session.
+	let refreshedCookie: string | null = null;
 	if (session) {
 		const fresh = await withFreshToken(session);
-		if (fresh) headers.authorization = `Bearer ${fresh.session.t}`;
+		if (fresh) {
+			headers.authorization = `Bearer ${fresh.session.t}`;
+			if (fresh.refreshed) {
+				refreshedCookie = sessionCookie(await sealSession(fresh.session), 7 * 24 * 3600);
+			}
+		}
 	}
 
 	let body: string | undefined;
@@ -110,6 +118,7 @@ async function proxyToBot(req: Request, path: string): Promise<Response> {
 	const text = await upstream.text().catch(() => '');
 	console.log(`[dashboard] ${req.method} ${path} -> ${upstream.status} (${Date.now() - started}ms)`);
 	const outHeaders: Record<string, string> = {};
+	if (refreshedCookie) outHeaders['Set-Cookie'] = refreshedCookie;
 	const upstreamType = upstream.headers.get('content-type');
 	if (upstreamType) outHeaders['content-type'] = upstreamType;
 	return new Response(text, { status: upstream.status, headers: outHeaders });

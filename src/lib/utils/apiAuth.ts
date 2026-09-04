@@ -2,11 +2,74 @@ import type { ApiRequest, ApiResponse } from '@sapphire/plugin-api';
 import type { OAuth2Guild } from 'discord.js';
 import { PermissionFlagsBits } from 'discord.js';
 import { container } from '@sapphire/framework';
-import { fetchOAuth2Guilds } from './discordGuilds';
+import { DiscordApiError, fetchOAuth2Guilds } from './discordGuilds';
 
 export interface AuthContext {
 	token: string;
 	userGuilds: OAuth2Guild[];
+}
+
+// Discord's /users/@me/guilds is aggressively rate limited, and dashboard
+// pages fire several authed calls at once — so cache per token (60s) and
+// coalesce parallel fetches for the same token into one Discord request.
+const GUILDS_CACHE_TTL_MS = 60_000;
+const MAX_CACHED_TOKENS = 1000;
+const MAX_DISCORD_WAIT_MS = 5000;
+
+interface CachedGuilds {
+	guilds: OAuth2Guild[];
+	expiresAt: number;
+}
+
+const guildsCache = new Map<string, CachedGuilds>();
+const guildsInflight = new Map<string, Promise<OAuth2Guild[]>>();
+
+function pruneGuildsCache(): void {
+	if (guildsCache.size <= MAX_CACHED_TOKENS) return;
+	const now = Date.now();
+	for (const [key, value] of guildsCache) {
+		if (value.expiresAt <= now) guildsCache.delete(key);
+		if (guildsCache.size <= MAX_CACHED_TOKENS) break;
+	}
+}
+
+function sleep(ms: number): Promise<void> {
+	return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Fetch with one retry honoring Discord's retry_after (capped). */
+async function fetchUserGuilds(token: string): Promise<OAuth2Guild[]> {
+	try {
+		return await fetchOAuth2Guilds(token);
+	} catch (error) {
+		if (error instanceof DiscordApiError && error.status === 429) {
+			const waitMs = Math.min(Math.max(error.retryAfterMs, 500), MAX_DISCORD_WAIT_MS);
+			container.logger.warn(`[api] Discord rate limited guild fetch, retrying in ${waitMs}ms`);
+			await sleep(waitMs);
+			return fetchOAuth2Guilds(token);
+		}
+		throw error;
+	}
+}
+
+async function getUserGuilds(token: string): Promise<OAuth2Guild[]> {
+	const cached = guildsCache.get(token);
+	if (cached && cached.expiresAt > Date.now()) return cached.guilds;
+
+	const inflight = guildsInflight.get(token);
+	if (inflight) return inflight;
+
+	const pending = fetchUserGuilds(token)
+		.then((guilds) => {
+			pruneGuildsCache();
+			guildsCache.set(token, { guilds, expiresAt: Date.now() + GUILDS_CACHE_TTL_MS });
+			return guilds;
+		})
+		.finally(() => {
+			if (guildsInflight.get(token) === pending) guildsInflight.delete(token);
+		});
+	guildsInflight.set(token, pending);
+	return pending;
 }
 
 export function getToken(request: ApiRequest): string | null {
@@ -36,9 +99,22 @@ export async function requireAuth(request: ApiRequest, response: ApiResponse): P
 		return null;
 	}
 	try {
-		const userGuilds = await fetchOAuth2Guilds(token);
+		const userGuilds = await getUserGuilds(token);
 		return { token, userGuilds };
-	} catch {
+	} catch (error) {
+		// Log the Discord-side reason (expired/revoked token vs rate limit vs outage)
+		// without ever logging the token itself.
+		const message = error instanceof Error ? error.message : 'unknown error';
+		if (error instanceof DiscordApiError && error.status === 429) {
+			container.logger.warn(`[api] Discord rate limit still in effect (${message})`);
+			response.status(429).json({
+				error: 'RateLimited',
+				message: 'Discord is rate limiting requests, please retry shortly',
+				retryAfterMs: Math.min(Math.max(error.retryAfterMs, 500), MAX_DISCORD_WAIT_MS)
+			});
+			return null;
+		}
+		container.logger.warn(`[api] Discord rejected user token (${message})`);
 		response.status(401).json({ error: 'Unauthorized', message: 'Invalid or expired Discord token' });
 		return null;
 	}

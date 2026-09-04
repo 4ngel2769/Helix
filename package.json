@@ -64,7 +64,7 @@
     "start": "bun dist/index.js",
     "deploy": "bun run build && bun run start",
     "dev": "bun run clean:dist && tsc-watch --onSuccess \"bun ./dist/index.js\"",
-    "format": "prettier --write \"src/**/*.ts\"",
+    "dev:all": "bun scripts/dev-all.mjs",    "format": "prettier --write \"src/**/*.ts\"",
     "create-module": "bun scripts/create-module.js",
     "generate:module": "bun scripts/create-module.js",
     "delete-module": "bun scripts/delete-module.js",

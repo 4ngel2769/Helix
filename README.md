@@ -138,6 +138,16 @@ bun run build
 bun run start
 ```
 
+### Combined dev (one terminal)
+
+```bash
+bun run dev:all
+```
+
+Boots the bot first, waits for its API, then boots the dashboard. Bot logs pass
+through untouched; dashboard lines are re-tagged `TIMESTAMP - DASH - …` (magenta).
+`Ctrl+C` stops everything.
+
 ### Dashboard (Svelte + Bun)
 
 The web dashboard lives in `dashboard/` — a Svelte SPA served by a Bun server that handles Discord login and proxies the bot API.
