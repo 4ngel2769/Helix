@@ -6,7 +6,7 @@ import { Guild } from '../../models/Guild';
 import { GuildConfigService } from '../../lib/services/GuildConfigService';
 import { clearGuildPrefixCache, setGuildPrefixInCache } from '../../lib/utils/prefixCache';
 import { clearDisabledCommandsCache } from '../../lib/utils/disabledCommandsCache';
-import { isSnowflake, readBody, readStringArray, requireAuth, requireManageableGuild } from '../../lib/utils/apiAuth';
+import { isSnowflake, readJsonBody, readStringArray, requireAuth, requireManageableGuild } from '../../lib/utils/apiAuth';
 
 const UPDATABLE_FIELDS = [
 	'prefix',
@@ -111,7 +111,7 @@ export class ApiGuildConfigRoute extends Route {
 		}
 
 		// PATCH
-		const body = readBody<Record<string, unknown>>(request);
+		const body = await readJsonBody<Record<string, unknown>>(request);
 		const update = sanitizeConfigUpdate(body);
 		if (Object.keys(update).length === 0) {
 			return response.status(400).json({ error: `No updatable fields provided. Allowed: ${UPDATABLE_FIELDS.join(', ')}` });

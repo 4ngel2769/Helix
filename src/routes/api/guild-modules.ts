@@ -5,7 +5,7 @@ import type { RouteOptions } from '@sapphire/plugin-api';
 import { Guild } from '../../models/Guild';
 import { GuildConfigService } from '../../lib/services/GuildConfigService';
 import { getAllModuleKeys, getModuleConfig } from '../../config/modules';
-import { isSnowflake, readBody, requireAuth, requireManageableGuild } from '../../lib/utils/apiAuth';
+import { isSnowflake, readJsonBody, requireAuth, requireManageableGuild } from '../../lib/utils/apiAuth';
 
 /**
  * Per-guild module toggles.
@@ -46,7 +46,7 @@ export class ApiGuildModulesRoute extends Route {
 			}
 		}
 
-		const body = readBody<{ modules?: Record<string, boolean> }>(request);
+		const body = await readJsonBody<{ modules?: Record<string, boolean> }>(request);
 		const incoming = body.modules;
 		if (!incoming || typeof incoming !== 'object') {
 			return response.status(400).json({ error: 'Body must be { modules: { <key>: boolean } }' });

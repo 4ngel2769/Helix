@@ -237,8 +237,7 @@ const server = Bun.serve({
 });
 
 validateDiscordConfig();
-console.log(`[dashboard] listening on http://localhost:${server.port} (public: ${dashboardConfig.publicUrl})`);
-console.log(`[dashboard] proxying bot API from ${dashboardConfig.botApiUrl}`);
+console.log(`[dashboard] Ready at ${dashboardConfig.publicUrl} (bot API: ${dashboardConfig.botApiUrl})`);
 
 /** Mini handshake: announce ourselves to the bot (which logs it) and confirm the bot is reachable. */
 async function handshake(): Promise<void> {
@@ -249,9 +248,7 @@ async function handshake(): Promise<void> {
 			});
 			if (res.ok) {
 				const data = (await res.json().catch(() => null)) as { version?: string; guilds?: number } | null;
-				console.log(
-					`[dashboard] 🔗 Successfully hooked into bot! (Helix v${data?.version ?? '?'}, ${data?.guilds ?? '?'} guilds)`
-				);
+				console.log(`[dashboard] Connected to bot API (Helix v${data?.version ?? '?'}, ${data?.guilds ?? '?'} guilds)`);
 				return;
 			}
 		} catch {
@@ -259,9 +256,7 @@ async function handshake(): Promise<void> {
 		}
 		if (attempt < 5) await new Promise((r) => setTimeout(r, 3000));
 	}
-	console.warn(
-		`[dashboard] ⚠ Could not reach the bot API at ${dashboardConfig.botApiUrl} — pages will show API errors until the bot is up.`
-	);
+	console.warn(`[dashboard] Bot API unreachable at ${dashboardConfig.botApiUrl} — pages will show API errors until the bot is up.`);
 }
 
 void handshake();

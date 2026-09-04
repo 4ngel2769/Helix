@@ -3,7 +3,7 @@ import { ApplyOptions } from '@sapphire/decorators';
 import type { ApiRequest, ApiResponse } from '@sapphire/plugin-api';
 import type { RouteOptions } from '@sapphire/plugin-api';
 import { CustomMessage } from '../../models/customMessages';
-import { isSnowflake, readBody, requireAuth, requireManageableGuild } from '../../lib/utils/apiAuth';
+import { isSnowflake, readJsonBody, requireAuth, requireManageableGuild } from '../../lib/utils/apiAuth';
 
 const KEY_PATTERN = /^[a-z0-9-]{1,64}$/;
 
@@ -32,7 +32,7 @@ export class ApiGuildMessagesRoute extends Route {
 			return response.json({ guildId, messages: doc?.messages ?? {} });
 		}
 
-		const body = readBody<Record<string, unknown>>(request);
+		const body = await readJsonBody<Record<string, unknown>>(request);
 		if (!body.messages || typeof body.messages !== 'object' || Array.isArray(body.messages)) {
 			return response.status(400).json({ error: 'Body must be { messages: { <key>: <text> } }' });
 		}

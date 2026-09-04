@@ -192,9 +192,19 @@ export function readQueryParam(request: ApiRequest, key: string): string | undef
 	return undefined;
 }
 
-export function readBody<T = Record<string, unknown>>(request: ApiRequest): T {
-	const body = (request as unknown as Record<string, unknown>).body;
-	return ((body ?? {}) as T);
+/**
+ * Read + JSON-parse the request body via the framework's async reader.
+ * The raw `request.body` property is NEVER populated by @sapphire/plugin-api,
+ * so every mutating route must go through this (sync reads yield `{}`).
+ */
+export async function readJsonBody<T = Record<string, unknown>>(request: ApiRequest): Promise<T> {
+	try {
+		const parsed: unknown = await request.readBody();
+		if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed as T;
+		return {} as T;
+	} catch {
+		return {} as T;
+	}
 }
 
 /** Discord snowflake shape check — rejects objects/arrays used for operator injection. */

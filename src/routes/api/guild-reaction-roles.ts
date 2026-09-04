@@ -5,7 +5,7 @@ import type { RouteOptions } from '@sapphire/plugin-api';
 import { Guild } from '../../models/Guild';
 import { GuildConfigService } from '../../lib/services/GuildConfigService';
 import { postReactionRoleMenuMessage } from '../../lib/utils/reactionRolesHelpers';
-import { isSnowflake, readBody, readQueryParam, requireAuth, requireManageableGuild } from '../../lib/utils/apiAuth';
+import { isSnowflake, readJsonBody, readQueryParam, requireAuth, requireManageableGuild } from '../../lib/utils/apiAuth';
 
 interface ReactionRoleInput {
 	roleId: string;
@@ -53,7 +53,7 @@ export class ApiGuildReactionRolesRoute extends Route {
 		}
 
 		if (method === 'POST') {
-			const body = readBody<Record<string, unknown>>(request);
+			const body = await readJsonBody<Record<string, unknown>>(request);
 			const channelId = typeof body.channelId === 'string' ? body.channelId : null;
 			const title = typeof body.title === 'string' ? body.title.trim() : '';
 			const description = typeof body.description === 'string' ? body.description.slice(0, 2000) : '';
@@ -134,7 +134,7 @@ export class ApiGuildReactionRolesRoute extends Route {
 		}
 
 		if (method === 'PATCH') {
-			const body = readBody<Record<string, unknown>>(request);
+			const body = await readJsonBody<Record<string, unknown>>(request);
 			const messageId = typeof body.messageId === 'string' ? body.messageId : null;
 			if (!messageId || !isSnowflake(messageId)) return response.status(400).json({ error: 'messageId (snowflake) is required' });
 
@@ -202,7 +202,8 @@ export class ApiGuildReactionRolesRoute extends Route {
 		}
 
 		// DELETE ?messageId=...
-		const deleteMessageId = readQueryParam(request, 'messageId') ?? readBody<Record<string, unknown>>(request).messageId;
+		const deleteBody = await readJsonBody<Record<string, unknown>>(request);
+		const deleteMessageId = readQueryParam(request, 'messageId') ?? (typeof deleteBody.messageId === 'string' ? deleteBody.messageId : undefined);
 		if (typeof deleteMessageId !== 'string' || !isSnowflake(deleteMessageId)) {
 			return response.status(400).json({ error: 'messageId (snowflake) is required' });
 		}

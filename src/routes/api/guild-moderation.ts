@@ -2,7 +2,7 @@ import { Route } from '@sapphire/plugin-api';
 import { ApplyOptions } from '@sapphire/decorators';
 import type { ApiRequest, ApiResponse } from '@sapphire/plugin-api';
 import type { RouteOptions } from '@sapphire/plugin-api';
-import { isSnowflake, readBody, readString, requireAuth, requireManageableGuild } from '../../lib/utils/apiAuth';
+import { isSnowflake, readJsonBody, readString, requireAuth, requireManageableGuild } from '../../lib/utils/apiAuth';
 
 type ModerationAction = 'timeout' | 'untimeout' | 'kick' | 'ban' | 'unban' | 'clearMessages';
 
@@ -28,7 +28,7 @@ export class ApiGuildModerationRoute extends Route {
 		const manageable = requireManageableGuild(auth, guildId, response);
 		if (!manageable) return undefined;
 
-		const body = readBody<Record<string, unknown>>(request);
+		const body = await readJsonBody<Record<string, unknown>>(request);
 		const action = typeof body.action === 'string' ? body.action : null;
 		const targetUserId = typeof body.userId === 'string' ? body.userId : null;
 		const reason = readString({ reason: body.reason ?? `API moderation action (${action})` }, 'reason', 512) ?? 'API moderation action';

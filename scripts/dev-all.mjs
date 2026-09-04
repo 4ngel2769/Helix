@@ -38,6 +38,9 @@ function attach(child, tag) {
 			const lines = buffer.split('\n');
 			buffer = lines.pop() ?? '';
 			for (const line of lines) {
+				// Drop runner noise from tagged output: `$ <command>` echoes
+				// (bun/concurrently startup lines) and blank spacer lines.
+				if (tag && (line.trim() === '' || /^\$\s/.test(line.trim()))) continue;
 				if (tag) process[stream].write(`${timestamp()} - ${MAGENTA}${tag}${RESET}  - ${line}\n`);
 				else process[stream].write(`${line}\n`);
 			}
@@ -48,7 +51,7 @@ function attach(child, tag) {
 const children = [];
 
 function shutdown() {
-	devLog('stopping everything…');
+	devLog('Stopping…');
 	for (const child of children) {
 		try {
 			if (process.platform === 'win32' && child.pid) {
@@ -79,21 +82,21 @@ async function waitForBot(tries = 45) {
 	return false;
 }
 
-devLog('starting bot…');
+devLog('Starting bot…');
 const bot = spawn('bun', ['run', 'dev'], { cwd: ROOT, shell: process.platform === 'win32' });
 children.push(bot);
 attach(bot, null);
 bot.on('exit', (code) => {
-	devLog(`bot exited (code ${code}) — stopping dashboard too.`);
+	devLog(`Bot exited (code ${code}) — stopping dashboard too.`);
 	shutdown();
 });
 
-devLog('waiting for bot API…');
+devLog('Waiting for bot API…');
 const botUp = await waitForBot();
-if (botUp) devLog('bot API is up — starting dashboard…');
-else devLog('bot API did not come up in time — starting dashboard anyway (handshake will retry)…');
+if (botUp) devLog('Bot API is up — starting dashboard.');
+else devLog('Bot API did not come up in time — starting dashboard anyway (handshake will retry).');
 
 const dash = spawn('bun', ['run', 'dev'], { cwd: path.join(ROOT, 'dashboard'), shell: process.platform === 'win32' });
 children.push(dash);
 attach(dash, 'DASH');
-dash.on('exit', (code) => devLog(`dashboard exited (code ${code}).`));
+dash.on('exit', (code) => devLog(`Dashboard exited (code ${code}).`));

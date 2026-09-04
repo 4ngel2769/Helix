@@ -5,7 +5,7 @@ import type { RouteOptions } from '@sapphire/plugin-api';
 import { Guild } from '../../models/Guild';
 import { GuildConfigService } from '../../lib/services/GuildConfigService';
 import { postFeedNow } from '../../lib/services/RedditFeedService';
-import { isSnowflake, readBody, readQueryParam, requireAuth, requireManageableGuild } from '../../lib/utils/apiAuth';
+import { isSnowflake, readJsonBody, readQueryParam, requireAuth, requireManageableGuild } from '../../lib/utils/apiAuth';
 
 const SUBREDDIT_PATTERN = /^[A-Za-z0-9_]{3,21}$/;
 const MAX_FEEDS = 10;
@@ -71,7 +71,7 @@ export class ApiGuildRedditFeedsRoute extends Route {
 		}
 
 		if (method === 'POST') {
-			const body = readBody<Record<string, unknown>>(request);
+			const body = await readJsonBody<Record<string, unknown>>(request);
 			const channelId = cleanChannelId(body.channelId);
 			const subreddit = cleanSubreddit(body.subreddit);
 			const intervalMinutes = cleanInterval(body.intervalMinutes);
@@ -101,7 +101,7 @@ export class ApiGuildRedditFeedsRoute extends Route {
 		}
 
 		if (method === 'PATCH') {
-			const body = readBody<Record<string, unknown>>(request);
+			const body = await readJsonBody<Record<string, unknown>>(request);
 			const feedId = typeof body.feedId === 'string' ? body.feedId : null;
 			if (!feedId || !/^[a-f0-9]{24}$/i.test(feedId)) {
 				return response.status(400).json({ error: 'feedId is required' });

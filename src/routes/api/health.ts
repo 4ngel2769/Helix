@@ -18,7 +18,7 @@ export class ApiHealthRoute extends Route {
 		const hook = headers?.['x-helix-dashboard'];
 		if (typeof hook === 'string' && hook.length > 0 && !this.hookLogged) {
 			this.hookLogged = true;
-			this.container.logger.info(`🔗 Successfully hooked into dashboard (${hook})!`);
+			this.container.logger.info(`Dashboard linked (${hook})`);
 		}
 
 		let database = 'unknown';

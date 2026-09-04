@@ -90,7 +90,7 @@ export async function ensureCollectionsExist(): Promise<string[]> {
 
 		// Using container.logger.info for DB setup logs as logger may not be initialized
 		if (process.env.NODE_ENV !== 'production') {
-			container.logger.info('Existing collections:', collectionNames);
+			container.logger.info(`MongoDB collections (${collectionNames.length}): ${collectionNames.join(', ')}`);
 		}
 
 		// Define required models and their initialization functions
@@ -140,20 +140,10 @@ export async function verifyDatabaseConnection(): Promise<void> {
 				collections
 			};
 
-			// const embed = new EmbedBuilder()
-			//     .setTitle('Database Connection Status')
-			//     .setColor(isConnected ?
-			//         (config.bot.embedColor.success as ColorResolvable) :
-			//         (config.bot.embedColor.err as ColorResolvable))
-			//     .setDescription(isConnected ?
-			//         `✅ Connected to MongoDB successfully\nCollections: ${collections.join(', ')}` :
-			//         '❌ Failed to connect to MongoDB')
-			//     .setTimestamp();
-
 			// Using container.logger.info for final status message
 			if (process.env.NODE_ENV !== 'production') {
 				container.logger.info(
-					isConnected ? `✅ Connected to MongoDB successfully. Collections: ${collections.join(', ')}` : '❌ Failed to connect to MongoDB'
+					isConnected ? `Connected to MongoDB (${collections.length} collections)` : 'Failed to connect to MongoDB'
 				);
 			}
 		} else {
@@ -162,7 +152,7 @@ export async function verifyDatabaseConnection(): Promise<void> {
 				collections: []
 			};
 
-			container.logger.error('❌ Failed to connect to MongoDB');
+			container.logger.error('Failed to connect to MongoDB');
 		}
 	} catch (error) {
 		container.logger.error('Error verifying database connection:', error);
