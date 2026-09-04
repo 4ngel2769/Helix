@@ -57,12 +57,12 @@ const EMPTY_ENTRY: GuildEntry = { detail: null, config: null, loading: true, err
 
 /** Creates the cache entry if missing. Only call from effects/events/loaders — never from $derived or templates. */
 export function ensureGuildEntry(guildId: string): GuildEntry {
-	let entry = guildCache[guildId];
-	if (!entry) {
-		entry = { detail: null, config: null, loading: false, error: null };
-		guildCache[guildId] = entry;
+	if (!guildCache[guildId]) {
+		guildCache[guildId] = { detail: null, config: null, loading: false, error: null };
 	}
-	return entry;
+	// Re-read through the $state proxy: mutating the raw object handed to the
+	// cache would bypass reactivity and the UI would never update.
+	return guildCache[guildId]!;
 }
 
 /**
