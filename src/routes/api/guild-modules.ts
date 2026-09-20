@@ -4,6 +4,7 @@ import type { ApiRequest, ApiResponse } from '@sapphire/plugin-api';
 import type { RouteOptions } from '@sapphire/plugin-api';
 import { Guild } from '../../models/Guild';
 import { GuildConfigService } from '../../lib/services/GuildConfigService';
+import { clearGuildAutomation } from '../../lib/utils/guildAutomationCache';
 import { getAllModuleKeys, getModuleConfig } from '../../config/modules';
 import { isSnowflake, readJsonBody, requireAuth, requireManageableGuild } from '../../lib/utils/apiAuth';
 
@@ -69,6 +70,7 @@ export class ApiGuildModulesRoute extends Route {
 				setOps[`modules.${key}`] = value;
 			}
 			const data = await Guild.findOneAndUpdate({ guildId }, { $set: setOps }, { upsert: true, returnDocument: 'after' });
+			clearGuildAutomation(guildId);
 			return response.json({ guildId, updated: incoming, modules: data?.modules ?? {} });
 		} catch {
 			return response.status(500).json({ error: 'Failed to update modules' });

@@ -29,6 +29,7 @@
 
 	let editReason = $state('');
 	let aiContext = $state('');
+	let premiumDays = $state(30);
 	let drafting = $state(false);
 
 	async function load(reset: boolean): Promise<void> {
@@ -72,6 +73,18 @@
 		expandedId = u.userId;
 		editReason = u.banReason ?? '';
 		aiContext = '';
+		premiumDays = 30;
+	}
+
+	function shortDate(iso: string | null | undefined): string {
+		if (!iso) return 'permanent';
+		const t = new Date(iso).getTime();
+		return Number.isNaN(t) ? '—' : new Date(t).toLocaleDateString();
+	}
+
+	function grantPremium(u: DevUserEntry): void {
+		const days = Math.max(1, Math.min(3650, Math.floor(Number(premiumDays) || 30)));
+		void patch(u, { premiumDays: days }, null, `Premium granted for ${days} days.`);
 	}
 
 	async function patch(u: DevUserEntry, body: Record<string, unknown>, confirmText: string | null, okText: string): Promise<void> {
@@ -80,11 +93,12 @@
 		error = null;
 		notice = null;
 		try {
-			const data = await api<{ isPremium: boolean; botBanned: boolean; banReason: string | null; resetEconomy: boolean }>('/dev/users', {
+			const data = await api<{ isPremium: boolean; premiumExpiresAt: string | null; botBanned: boolean; banReason: string | null; resetEconomy: boolean }>('/dev/users', {
 				method: 'PATCH',
 				body: { userId: u.userId, ...body }
 			});
 			u.isPremium = data.isPremium;
+			u.premiumExpiresAt = data.premiumExpiresAt;
 			u.botBanned = data.botBanned;
 			u.banReason = data.banReason;
 			if (data.resetEconomy) {
@@ -159,7 +173,7 @@
 								<td>{u.activeWarnings > 0 ? u.activeWarnings : '—'}</td>
 								<td>
 									{#if u.botBanned}<span class="tag tag-off">banned</span>
-									{:else if u.isPremium}<span class="tag tag-on">premium</span>
+									{:else if u.isPremium}<span class="tag tag-on">premium · {shortDate(u.premiumExpiresAt)}</span>
 									{:else}<span class="tag">free</span>{/if}
 								</td>
 								<td>
@@ -180,6 +194,14 @@
 								<tr>
 									<td colspan={6}>
 										<div class="small muted" style="margin-bottom: 8px;">Last seen {u.lastSeen ?? '—'}</div>
+										<div class="small" style="margin-bottom: 8px;">Premium: <strong>{u.isPremium ? `active till ${shortDate(u.premiumExpiresAt)}` : 'none'}</strong></div>
+										<div style="display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 8px;">
+											<div class="field" style="max-width: 110px; margin: 0;">
+												<label for={`uprem-days-${u.userId}`}>Days</label>
+												<input id={`uprem-days-${u.userId}`} type="number" min={1} max={3650} bind:value={premiumDays} />
+											</div>
+											<button class="btn btn-primary btn-sm" disabled={busyId === u.userId} onclick={() => grantPremium(u)}>Grant timed</button>
+										</div>
 										<TextArea label="Internal ban reason (never shown to the user)" bind:value={editReason} maxlength={1000} rows={3} />
 										<TextInput label="AI context (optional)" bind:value={aiContext} maxlength={500} placeholder="economy exploit, alt of banned user, chargeback…" />
 										<div style="display: flex; gap: 8px; flex-wrap: wrap;">

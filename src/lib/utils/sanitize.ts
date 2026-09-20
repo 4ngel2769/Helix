@@ -106,3 +106,102 @@ export function isSafeImageUrl(value: string, maxLength = 512): boolean {
 export function isHexColor(value: unknown): value is string {
 	return typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value);
 }
+
+function intInRange(v: unknown, min: number, max: number): number | null {
+	return typeof v === 'number' && Number.isInteger(v) && v >= min && v <= max ? v : null;
+}
+
+function snowflakeArray(v: unknown, max: number): string[] | null {
+	if (!Array.isArray(v) || v.length > max) return null;
+	const out = [...new Set(v)];
+	if (!out.every((x) => typeof x === 'string' && /^\d{16,22}$/.test(x))) return null;
+	return out;
+}
+
+/** Validate + clean the leveling settings object in place. Returns an error string or null. */
+export function cleanLeveling(update: Record<string, unknown>): string | null {
+	const v = update.leveling as Record<string, unknown> | null;
+	if (v === null || typeof v !== 'object' || Array.isArray(v)) return 'leveling must be an object';
+	if ('enabled' in v && typeof v.enabled !== 'boolean') return 'leveling.enabled must be a boolean';
+	for (const [key, min, max] of [['xpMin', 1, 1000], ['xpMax', 1, 1000], ['cooldownSeconds', 0, 3600]] as const) {
+		if (!(key in v)) continue;
+		const n = intInRange(v[key], min, max);
+		if (n === null) return `leveling.${key} must be an integer ${min}-${max}`;
+		v[key] = n;
+	}
+	if ('xpMin' in v && 'xpMax' in v && (v.xpMin as number) > (v.xpMax as number)) return 'leveling.xpMin must not exceed leveling.xpMax';
+	if ('levelUpChannelId' in v && v.levelUpChannelId !== null && (typeof v.levelUpChannelId !== 'string' || !/^\d{16,22}$/.test(v.levelUpChannelId))) {
+		return 'leveling.levelUpChannelId must be null or a Discord id';
+	}
+	if ('levelUpMessage' in v) {
+		if (v.levelUpMessage !== null) {
+			const clean = sanitizeText(v.levelUpMessage, 500);
+			if (!clean) return 'leveling.levelUpMessage must be null or text up to 500 chars';
+			v.levelUpMessage = clean;
+		}
+	}
+	for (const key of ['ignoredChannels', 'ignoredRoles'] as const) {
+		if (!(key in v)) continue;
+		const arr = snowflakeArray(v[key], 200);
+		if (!arr) return `leveling.${key} must be an array of up to 200 Discord ids`;
+		v[key] = arr;
+	}
+	if ('roleRewards' in v) {
+		const t = v.roleRewards;
+		if (!Array.isArray(t) || t.length > 25) return 'leveling.roleRewards must be an array of max 25';
+		const seen = new Set<number>();
+		for (const entry of t) {
+			if (typeof entry !== 'object' || entry === null) return 'leveling.roleRewards entries must be objects';
+			const rec = entry as Record<string, unknown>;
+			const level = intInRange(rec.level, 2, 1000);
+			if (level === null || seen.has(level)) return 'leveling.roleRewards[].level must be a unique integer 2-1000';
+			seen.add(level);
+			if (typeof rec.roleId !== 'string' || !/^\d{16,22}$/.test(rec.roleId)) return 'leveling.roleRewards[].roleId must be a Discord id';
+		}
+	}
+	if ('stackRewards' in v && typeof v.stackRewards !== 'boolean') return 'leveling.stackRewards must be a boolean';
+	return null;
+}
+
+const AUTOMOD_ACTIONS = ['delete', 'delete_warn', 'delete_timeout'] as const;
+
+/** Validate + clean the Helix custom automod settings object in place. Returns an error string or null. */
+export function cleanAutomodSettings(update: Record<string, unknown>): string | null {
+	const v = update.automodSettings as Record<string, unknown> | null;
+	if (v === null || typeof v !== 'object' || Array.isArray(v)) return 'automodSettings must be an object';
+	if ('enabled' in v && typeof v.enabled !== 'boolean') return 'automodSettings.enabled must be a boolean';
+	for (const key of ['blockInvites', 'blockLinks', 'zalgo'] as const) {
+		if (key in v && typeof v[key] !== 'boolean') return `automodSettings.${key} must be a boolean`;
+	}
+	for (const [key, fields] of [['caps', ['minLength', 5, 500, 'percent', 10, 100]], ['emoji', ['max', 1, 100]], ['spam', ['count', 2, 20, 'intervalSeconds', 2, 120]]] as const) {
+		if (!(key in v)) continue;
+		const sub = v[key] as Record<string, unknown> | null;
+		if (sub === null || typeof sub !== 'object' || Array.isArray(sub)) return `automodSettings.${key} must be an object`;
+		if ('enabled' in sub && typeof sub.enabled !== 'boolean') return `automodSettings.${key}.enabled must be a boolean`;
+		const nums = fields as unknown as Array<string | number>;
+		for (let i = 0; i < nums.length; i += 3) {
+			const field = nums[i] as string;
+			const min = nums[i + 1] as number;
+			const max = nums[i + 2] as number;
+			if (!(field in sub)) continue;
+			const n = intInRange(sub[field], min, max);
+			if (n === null) return `automodSettings.${key}.${field} must be an integer ${min}-${max}`;
+			sub[field] = n;
+		}
+	}
+	for (const key of ['ignoredChannels', 'ignoredRoles'] as const) {
+		if (!(key in v)) continue;
+		const arr = snowflakeArray(v[key], 200);
+		if (!arr) return `automodSettings.${key} must be an array of up to 200 Discord ids`;
+		v[key] = arr;
+	}
+	if ('action' in v && (typeof v.action !== 'string' || !(AUTOMOD_ACTIONS as readonly string[]).includes(v.action))) {
+		return 'automodSettings.action must be delete, delete_warn or delete_timeout';
+	}
+	if ('timeoutSeconds' in v) {
+		const n = intInRange(v.timeoutSeconds, 10, 2419200);
+		if (n === null) return 'automodSettings.timeoutSeconds must be an integer 10-2419200';
+		v.timeoutSeconds = n;
+	}
+	return null;
+}

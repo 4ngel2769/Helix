@@ -7,8 +7,10 @@ import { GuildConfigService } from '../../lib/services/GuildConfigService';
 import { clearGuildPrefixCache, setGuildPrefixInCache } from '../../lib/utils/prefixCache';
 import { clearDisabledCommandsCache } from '../../lib/utils/disabledCommandsCache';
 import { LOG_EVENT_KEYS } from '../../lib/logging/logEvents';
-import { cleanAutomodKeywords, cleanNullableText, cleanWarnSettings, isSafeImageUrl } from '../../lib/utils/sanitize';
+import { isPremiumActive } from '../../lib/utils/premium';
+import { cleanAutomodKeywords, cleanAutomodSettings, cleanLeveling, cleanNullableText, cleanWarnSettings, isSafeImageUrl } from '../../lib/utils/sanitize';
 import { validateGreetCard } from '../../lib/cards/cardValidation';
+import { clearGuildAutomation } from '../../lib/utils/guildAutomationCache';
 import { isSnowflake, readJsonBody, readStringArray, requireAuth, requireManageableGuild } from '../../lib/utils/apiAuth';
 
 const UPDATABLE_FIELDS = [
@@ -44,6 +46,8 @@ const UPDATABLE_FIELDS = [
 	'verificationFooter',
 	'verificationThumb',
 	'automodKeywords',
+	'automodSettings',
+	'leveling',
 	'warnSettings',
 	'welcomeCard',
 	'farewellCard'
@@ -84,6 +88,14 @@ function validateConfigUpdate(update: Record<string, unknown>, isPremium: boolea
 	}
 	if ('automodKeywords' in update) {
 		const err = cleanAutomodKeywords(update);
+		if (err) return err;
+	}
+	if ('automodSettings' in update) {
+		const err = cleanAutomodSettings(update);
+		if (err) return err;
+	}
+	if ('leveling' in update) {
+		const err = cleanLeveling(update);
 		if (err) return err;
 	}
 	if ('warnSettings' in update) {
@@ -188,7 +200,7 @@ export class ApiGuildConfigRoute extends Route {
 
 		let isPremium = false;
 		try {
-			isPremium = (await Guild.findOne({ guildId }, { isPremium: 1 }).lean())?.isPremium === true;
+			isPremium = isPremiumActive(await Guild.findOne({ guildId }, { isPremium: 1, premiumExpiresAt: 1 }).lean());
 		} catch {
 			isPremium = false;
 		}
@@ -202,6 +214,7 @@ export class ApiGuildConfigRoute extends Route {
 				else clearGuildPrefixCache(guildId);
 			}
 			if ('disabledCommands' in update) clearDisabledCommandsCache(guildId);
+			if ('leveling' in update || 'automodSettings' in update || 'modules' in update) clearGuildAutomation(guildId);
 			return response.json({ guildId, updated: Object.keys(update), config: data });
 		} catch {
 			return response.status(500).json({ error: 'Failed to update guild config' });

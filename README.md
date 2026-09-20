@@ -130,7 +130,7 @@ bun run dev:all
 
 Boots the bot first, waits for its API, then boots the dashboard. Bot logs pass through untouched; dashboard lines are re-tagged `TIMESTAMP - DASH - …` (magenta). `Ctrl+C` stops everything.
 
-To rebuild bot + dashboard from clean first (so a broken compile fails before anything launches):
+To delete both `dist/` folders, rebuild the bot and dashboard from clean, then launch both (so a broken compile fails before anything starts):
 
 ```bash
 bun run dev:fresh

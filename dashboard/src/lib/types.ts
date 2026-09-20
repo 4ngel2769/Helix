@@ -161,6 +161,7 @@ export interface DevGuildEntry {
 	channels: number;
 	roles: number;
 	isPremium?: boolean;
+	premiumExpiresAt?: string | null;
 	botDisabled?: boolean;
 	guildBanned?: boolean;
 	disabledMessage?: string | null;
@@ -171,6 +172,7 @@ export interface DevUserEntry {
 	userId: string;
 	username: string | null;
 	isPremium: boolean;
+	premiumExpiresAt: string | null;
 	botBanned: boolean;
 	banReason: string | null;
 	lastSeen: string | null;

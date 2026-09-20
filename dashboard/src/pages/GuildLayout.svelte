@@ -10,6 +10,7 @@
 	import Welcome from './guild/Welcome.svelte';
 	import Verification from './guild/Verification.svelte';
 	import Automod from './guild/Automod.svelte';
+	import Leveling from './guild/Leveling.svelte';
 	import Moderation from './guild/Moderation.svelte';
 	import ReactionRoles from './guild/ReactionRoles.svelte';
 	import RedditFeeds from './guild/RedditFeeds.svelte';
@@ -25,6 +26,7 @@
 		{ id: 'welcome', label: 'Welcome' },
 		{ id: 'verification', label: 'Verification' },
 		{ id: 'automod', label: 'AutoMod' },
+		{ id: 'leveling', label: 'Leveling' },
 		{ id: 'moderation', label: 'Moderation' },
 		{ id: 'reaction-roles', label: 'Reaction Roles' },
 		{ id: 'reddit-feeds', label: 'Reddit Feeds' },
@@ -94,6 +96,8 @@
 					<Verification {guildId} />
 				{:else if section === 'automod'}
 					<Automod {guildId} />
+				{:else if section === 'leveling'}
+					<Leveling {guildId} />
 				{:else if section === 'moderation'}
 					<Moderation {guildId} />
 				{:else if section === 'reaction-roles'}

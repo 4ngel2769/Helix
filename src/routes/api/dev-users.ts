@@ -4,6 +4,7 @@ import type { ApiRequest, ApiResponse } from '@sapphire/plugin-api';
 import type { RouteOptions } from '@sapphire/plugin-api';
 import { User } from '../../models/User';
 import { storeUserBanned } from '../../lib/utils/flagCache';
+import { isPremiumActive, premiumExpiryIso } from '../../lib/utils/premium';
 import { sanitizeText } from '../../lib/utils/sanitize';
 import { isSnowflake, readJsonBody, readQueryParam, requireAuth, requireDev } from '../../lib/utils/apiAuth';
 
@@ -21,7 +22,7 @@ function pageParams(request: ApiRequest): { page: number; limit: number } {
  * Dev-only owner panel backend for users.
  * GET /dev/users?search=&page=&limit= — search matches username (safe regex)
  * or user id substring; richest first.
- * PATCH { userId, isPremium?, botBanned?, banReason?, resetEconomy? } — botBanned is
+ * PATCH { userId, isPremium?, premiumDays?, botBanned?, banReason?, resetEconomy? } — botBanned is
  * enforced on every command via the global precondition; resetEconomy wipes
  * wallet/bank/inventory back to new-player defaults.
  * Requires OWNER_IDS membership.
@@ -55,6 +56,7 @@ export class ApiDevUsersRoute extends Route {
 					userId: 1,
 					username: 1,
 					isPremium: 1,
+					premiumExpiresAt: 1,
 					botBanned: 1,
 					banReason: 1,
 					lastSeen: 1,
@@ -71,10 +73,11 @@ export class ApiDevUsersRoute extends Route {
 					total,
 					page,
 					limit,
-				users: users.map((u) => ({
-					userId: u.userId,
-					username: u.username,
-					isPremium: u.isPremium === true,
+			users: users.map((u) => ({
+				userId: u.userId,
+				username: u.username,
+				isPremium: isPremiumActive(u),
+				premiumExpiresAt: premiumExpiryIso(u),
 					botBanned: u.botBanned === true,
 					banReason: u.banReason ?? null,
 						lastSeen: u.lastSeen ?? null,
@@ -97,6 +100,15 @@ export class ApiDevUsersRoute extends Route {
 		if (body.isPremium !== undefined) {
 			if (typeof body.isPremium !== 'boolean') return response.status(400).json({ error: 'isPremium must be a boolean' });
 			setOps.isPremium = body.isPremium;
+			if (body.isPremium === false) setOps.premiumExpiresAt = null;
+			else if (body.premiumDays === undefined) setOps.premiumExpiresAt = null; // plain true = permanent
+		}
+		if (body.premiumDays !== undefined) {
+			if (!Number.isInteger(body.premiumDays) || (body.premiumDays as number) < 1 || (body.premiumDays as number) > 3650) {
+				return response.status(400).json({ error: 'premiumDays must be an integer 1-3650' });
+			}
+			setOps.isPremium = true;
+			setOps.premiumExpiresAt = new Date(Date.now() + (body.premiumDays as number) * 86_400_000);
 		}
 		if (body.botBanned !== undefined) {
 			if (typeof body.botBanned !== 'boolean') return response.status(400).json({ error: 'botBanned must be a boolean' });
@@ -132,7 +144,7 @@ export class ApiDevUsersRoute extends Route {
 			};
 		}
 		if (Object.keys(setOps).length === 0) {
-			return response.status(400).json({ error: 'Nothing to update (isPremium, botBanned, banReason, resetEconomy)' });
+			return response.status(400).json({ error: 'Nothing to update (isPremium, premiumDays, botBanned, banReason, resetEconomy)' });
 		}
 		try {
 			const doc = await User.findOneAndUpdate({ userId }, { $set: setOps }, { returnDocument: 'after' });
@@ -140,7 +152,8 @@ export class ApiDevUsersRoute extends Route {
 			if (body.botBanned !== undefined) storeUserBanned(userId, body.botBanned === true);
 			return response.json({
 				userId,
-				isPremium: doc.isPremium === true,
+				isPremium: isPremiumActive(doc),
+				premiumExpiresAt: premiumExpiryIso(doc),
 				botBanned: doc.botBanned === true,
 				banReason: doc.banReason ?? null,
 				resetEconomy

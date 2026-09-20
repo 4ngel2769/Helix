@@ -126,6 +126,7 @@ export interface IUser extends Document {
   username: string;
   discriminator: string;
   isPremium?: boolean;
+  premiumExpiresAt?: Date | null;
   botBanned?: boolean;
   banReason?: string;
   economy: UserEconomyData;
@@ -142,6 +143,7 @@ const userSchema = new Schema<IUser>({
   discriminator: { type: String, default: '0' },
   // Owner-managed: premium perks + bot-wide ban (enforced in GuildCommandEnabled)
   isPremium: { type: Boolean, default: false },
+  premiumExpiresAt: { type: Date, default: null },
   botBanned: { type: Boolean, default: false },
   banReason: { type: String, default: null },
   

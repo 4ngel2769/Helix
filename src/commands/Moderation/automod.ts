@@ -21,11 +21,11 @@ import {
     clearCustomKeywords
 } from '../../lib/utils/automodUtils';
 import {
+    buildPresetActions,
     capitalizeFirstLetter,
     getPresetName,
-    getPresetRules,
     getTriggerTypeName,
-    isLimitedTriggerType
+    installPresetRules
 } from '../../lib/utils/automodHelpers';
 
 type KeywordSubcommand = 'list' | 'add' | 'remove' | 'clear';
@@ -303,36 +303,6 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
             .filter(Boolean);
     }
 
-    private buildRuleActions(
-        ruleName: string,
-        logChannelId?: string,
-        enableTimeout: boolean = false,
-        timeoutDuration: number = 300
-    ): any[] {
-        const actions: any[] = [
-            {
-                type: AutoModerationActionType.BlockMessage,
-                metadata: { customMessage: `This message was blocked by AutoMod: Violation of rule "${ruleName}"` }
-            }
-        ];
-
-        if (logChannelId) {
-            actions.push({
-                type: AutoModerationActionType.SendAlertMessage,
-                metadata: { channelId: logChannelId }
-            });
-        }
-
-        if (enableTimeout) {
-            actions.push({
-                type: AutoModerationActionType.Timeout,
-                metadata: { durationSeconds: timeoutDuration }
-            });
-        }
-
-        return actions;
-    }
-
     private getTriggerConfig(
         type: string,
         keywords: string | null,
@@ -463,8 +433,11 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
             if (triggerConfig.error || !triggerConfig.config) {
                 return interaction.editReply({ content: triggerConfig.error ?? 'Invalid rule type.' });
             }
+            if (enableTimeout && triggerConfig.config.triggerType !== AutoModerationRuleTriggerType.Keyword && triggerConfig.config.triggerType !== AutoModerationRuleTriggerType.MentionSpam) {
+                return interaction.editReply({ content: 'Discord only allows the timeout action on keyword and mention-spam rules — pick one of those types or turn timeout off.' });
+            }
 
-            const actions = this.buildRuleActions(name, logChannel?.id, enableTimeout);
+            const actions = buildPresetActions(name, logChannel?.id, enableTimeout, 300, triggerConfig.config.triggerType);
 
             // Create the rule
             const rule = await interaction.guild!.autoModerationRules.create({
@@ -524,61 +497,15 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
         const guildId = interaction.guildId!;
         
         try {
-            // First, fetch existing rules to check what we can add
-            const existingRules = await interaction.guild!.autoModerationRules.fetch();
-            const existingTriggerTypes = new Map<number, boolean>();
-            
-            // Track which trigger types are already used
-            existingRules.forEach(rule => {
-                existingTriggerTypes.set(rule.triggerType, true);
-            });
-            
-            const createdRules = [];
-            const failedRules = [];
-            // Pass guildId to get both default and custom keywords
-            const presetRules = await getPresetRules(preset, guildId);
-            
-            // Create each rule in the preset
-            for (const ruleConfig of presetRules) {
-                // Skip if we already have a rule of this type and it's a limited type
-                if (isLimitedTriggerType(ruleConfig.triggerType) && 
-                    existingTriggerTypes.has(ruleConfig.triggerType)) {
-                    failedRules.push({
-                        name: ruleConfig.name, 
-                        reason: `Server already has a rule of type ${getTriggerTypeName(ruleConfig.triggerType)} (limited to 1 per server)`
-                    });
-                    continue;
-                }
-
-                const actions = this.buildRuleActions(
-                    ruleConfig.name,
-                    logChannel?.id,
-                    ruleConfig.timeout,
-                    ruleConfig.timeoutDuration || 300
-                );
-
-                try {
-                    // Create the rule
-                    const rule = await interaction.guild!.autoModerationRules.create({
-                        name: ruleConfig.name,
-                        eventType: AutoModerationRuleEventType.MessageSend,
-                        triggerType: ruleConfig.triggerType,
-                        triggerMetadata: ruleConfig.triggerMetadata,
-                        actions,
-                        enabled: true,
-                        reason: `Created by ${interaction.user.tag} via bot command (preset: ${preset})`
-                    });
-                    
-                    createdRules.push(rule);
-                    existingTriggerTypes.set(ruleConfig.triggerType, true);
-                } catch (error) {
-                    this.container.logger.error(`Failed to create rule ${ruleConfig.name}:`, error);
-                    failedRules.push({
-                        name: ruleConfig.name, 
-                        reason: 'API Error'
-                    });
-                }
-            }
+            const { created, failed } = await installPresetRules(
+                interaction.guild!,
+                preset,
+                guildId,
+                logChannel?.id,
+                `Created by ${interaction.user.tag} via bot command (preset: ${preset})`
+            );
+            const createdRules = created.map((name) => ({ name }));
+            const failedRules = failed.map((f) => ({ name: f.name, reason: f.reason }));
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.success as ColorResolvable)

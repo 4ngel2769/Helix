@@ -53,6 +53,23 @@ interface ModuleSettings {
   [key: string]: boolean;
 }
 
+// Helix custom automod filters (enforced in messageCreate; see lib/utils/customAutomod.ts).
+// Distinct from Discord native AutoMod rules (managed via /automod) and from
+// automodKeywords (word lists feeding the native preset installer).
+export interface CustomAutomodSettings {
+  enabled?: boolean;
+  blockInvites?: boolean;
+  blockLinks?: boolean;
+  caps?: { enabled?: boolean; minLength?: number; percent?: number };
+  emoji?: { enabled?: boolean; max?: number };
+  spam?: { enabled?: boolean; count?: number; intervalSeconds?: number };
+  zalgo?: boolean;
+  ignoredChannels?: string[];
+  ignoredRoles?: string[];
+  action?: 'delete' | 'delete_warn' | 'delete_timeout';
+  timeoutSeconds?: number;
+}
+
 // Legacy module flags for backward compatibility
 interface LegacyModuleFlags {
   isAdministration?: boolean;
@@ -93,6 +110,24 @@ export interface RedditFeed {
   createdAt: Date;
 }
 
+export interface LevelRoleReward {
+  level: number;
+  roleId: string;
+}
+
+export interface LevelingSettings {
+  enabled?: boolean;
+  xpMin?: number;
+  xpMax?: number;
+  cooldownSeconds?: number;
+  levelUpChannelId?: string | null;
+  levelUpMessage?: string | null;
+  ignoredChannels?: string[];
+  ignoredRoles?: string[];
+  roleRewards?: LevelRoleReward[];
+  stackRewards?: boolean;
+}
+
 export interface IGuild extends Document, LegacyModuleFlags, VerificationSettings {
   guildId: string;
   prefix?: string;
@@ -117,6 +152,7 @@ export interface IGuild extends Document, LegacyModuleFlags, VerificationSetting
   logIncludeBots?: boolean;
   // Greeting image cards + premium flag
   isPremium?: boolean;
+  premiumExpiresAt?: Date | null;
   // Soft disable: bot stays but answers commands with disabledMessage.
   botDisabled?: boolean;
   disabledMessage?: string;
@@ -133,6 +169,8 @@ export interface IGuild extends Document, LegacyModuleFlags, VerificationSetting
   lockedChannels?: LockedChannel[];
   modules: ModuleSettings;
   automodKeywords?: AutoModKeywords;
+  automodSettings?: CustomAutomodSettings;
+  leveling?: LevelingSettings;
   reactionRolesMenus?: ReactionRolesMenu[];
   redditFeeds?: RedditFeed[];
   warnSettings?: {
@@ -169,6 +207,7 @@ const guildSchema = new Schema<IGuild>({
 
   // Greeting image cards (see src/lib/cards/) + premium flag (granted out-of-band)
   isPremium: { type: Boolean, default: false },
+  premiumExpiresAt: { type: Date, default: null },
   // Soft disable: bot stays, commands reply with disabledMessage (or the default).
   botDisabled: { type: Boolean, default: false },
   disabledMessage: { type: String, default: null },
@@ -262,6 +301,12 @@ const guildSchema = new Schema<IGuild>({
     phishing: { type: [String], default: [] },
     custom: { type: [String], default: [] }
   },
+
+  // Leveling / XP (see src/lib/utils/leveling.ts)
+  leveling: { type: Schema.Types.Mixed, default: {} },
+
+  // Helix custom automod (see src/lib/utils/customAutomod.ts)
+  automodSettings: { type: Schema.Types.Mixed, default: {} },
   
   // Reaction roles menus
   reactionRolesMenus: [{

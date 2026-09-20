@@ -33,6 +33,7 @@
 	let editMessage = $state('');
 	let editReason = $state('');
 	let aiContext = $state('');
+	let premiumDays = $state(30);
 	let drafting = $state(false);
 
 	async function load(reset: boolean): Promise<void> {
@@ -77,6 +78,18 @@
 		editMessage = g.disabledMessage ?? '';
 		editReason = g.banReason ?? '';
 		aiContext = '';
+		premiumDays = 30;
+	}
+
+	function shortDate(iso: string | null | undefined): string {
+		if (!iso) return 'permanent';
+		const t = new Date(iso).getTime();
+		return Number.isNaN(t) ? '—' : new Date(t).toLocaleDateString();
+	}
+
+	function grantPremium(g: DevGuildEntry): void {
+		const days = Math.max(1, Math.min(3650, Math.floor(Number(premiumDays) || 30)));
+		void patch(g, { premiumDays: days }, null, `Premium granted for ${days} days to "{name}".`);
 	}
 
 	async function patch(g: DevGuildEntry, body: Record<string, unknown>, confirmText: string | null, okText: string): Promise<void> {
@@ -183,7 +196,7 @@
 								<td>
 									{#if g.guildBanned}<span class="tag tag-off">banned</span>
 									{:else if g.botDisabled}<span class="tag tag-warn">disabled</span>
-									{:else if g.isPremium}<span class="tag tag-on">premium</span>
+									{:else if g.isPremium}<span class="tag tag-on">premium · {shortDate(g.premiumExpiresAt)}</span>
 									{:else}<span class="tag">free</span>{/if}
 								</td>
 								<td>
@@ -213,6 +226,14 @@
 										<div class="grid-2">
 											<div>
 												<div class="small muted">Owner ID <span class="mono">{g.ownerId}</span> · Joined {g.joinedAt ?? '—'} · {g.channels} channels · {g.roles} roles</div>
+												<div class="small" style="margin: 8px 0;">Premium: <strong>{g.isPremium ? `active till ${shortDate(g.premiumExpiresAt)}` : 'none'}</strong></div>
+												<div style="display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 8px;">
+													<div class="field" style="max-width: 110px; margin: 0;">
+														<label for={`prem-days-${g.id}`}>Days</label>
+														<input id={`prem-days-${g.id}`} type="number" min={1} max={3650} bind:value={premiumDays} />
+													</div>
+													<button class="btn btn-primary btn-sm" disabled={busyId === g.id} onclick={() => grantPremium(g)}>Grant timed</button>
+												</div>
 												<TextArea label="Disable notice (supports supportServer name / count / invite placeholders)" bind:value={editMessage} maxlength={500} rows={3} hint="Empty = default notice. Shown instead of command output while disabled." />
 												<div style="display: flex; gap: 8px;">
 													<button class="btn btn-primary btn-sm" disabled={busyId === g.id} onclick={() => void patch(g, { disabledMessage: editMessage.trim() === '' ? null : editMessage }, null, 'Disable notice saved for "{name}".')}>Save notice</button>

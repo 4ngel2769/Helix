@@ -4,6 +4,7 @@ import type { ApiRequest, ApiResponse } from '@sapphire/plugin-api';
 import type { RouteOptions } from '@sapphire/plugin-api';
 import { Guild } from '../../models/Guild';
 import { clearGuildFlags, storeGuildFlags } from '../../lib/utils/flagCache';
+import { isPremiumActive, premiumExpiryIso } from '../../lib/utils/premium';
 import { sanitizeText } from '../../lib/utils/sanitize';
 import { isSnowflake, readJsonBody, readQueryParam, requireAuth, requireDev } from '../../lib/utils/apiAuth';
 
@@ -21,7 +22,8 @@ function pageParams(request: ApiRequest): { page: number; limit: number } {
  * Dev-only owner panel backend.
  * GET /dev/guilds?search=&page=&limit= — every guild the bot is in, with
  * premium/disabled/banned flags (search matches name or id, biggest first).
- * PATCH { guildId, isPremium?, botDisabled?, disabledMessage?, guildBanned?, banReason? }
+ * PATCH { guildId, isPremium?, premiumDays?, botDisabled?, disabledMessage?, guildBanned?, banReason? }
+ * - isPremium toggles the flag; premiumDays (1-3650) grants for N days from now.
  * - botDisabled stays in the server; commands reply with disabledMessage (or default).
  * - guildBanned makes the bot leave immediately (guildCreate refuses re-entry).
  * POST { guildId, action: 'leave' | 'reset' } — leave, or wipe the Guild doc
@@ -57,10 +59,10 @@ export class ApiDevGuildsRoute extends Route {
 				const ids = guilds.map((g) => g.id);
 				const docs = await Guild.find(
 					{ guildId: { $in: ids } },
-					{ guildId: 1, isPremium: 1, botDisabled: 1, guildBanned: 1, disabledMessage: 1, banReason: 1 }
+					{ guildId: 1, isPremium: 1, premiumExpiresAt: 1, botDisabled: 1, guildBanned: 1, disabledMessage: 1, banReason: 1 }
 				).lean();
 				const flags = new Map(docs.map((d) => [d.guildId, d]));
-				if (filter === 'premium') guilds = guilds.filter((g) => flags.get(g.id)?.isPremium === true);
+				if (filter === 'premium') guilds = guilds.filter((g) => isPremiumActive(flags.get(g.id)));
 				else if (filter === 'disabled') guilds = guilds.filter((g) => flags.get(g.id)?.botDisabled === true);
 				else if (filter === 'banned') guilds = guilds.filter((g) => flags.get(g.id)?.guildBanned === true);
 				else if (filter === 'large') guilds = guilds.filter((g) => g.memberCount >= 1000);
@@ -80,7 +82,8 @@ export class ApiDevGuildsRoute extends Route {
 							joinedAt: guild.joinedAt?.toISOString() ?? null,
 							channels: guild.channels.cache.size,
 							roles: guild.roles.cache.size,
-							isPremium: flags.get(guild.id)?.isPremium === true,
+							isPremium: isPremiumActive(flags.get(guild.id)),
+						premiumExpiresAt: premiumExpiryIso(flags.get(guild.id)),
 							botDisabled: flags.get(guild.id)?.botDisabled === true,
 							guildBanned: flags.get(guild.id)?.guildBanned === true,
 							disabledMessage: flags.get(guild.id)?.disabledMessage ?? null,
@@ -102,6 +105,15 @@ export class ApiDevGuildsRoute extends Route {
 			if (body.isPremium !== undefined) {
 				if (typeof body.isPremium !== 'boolean') return response.status(400).json({ error: 'isPremium must be a boolean' });
 				setOps.isPremium = body.isPremium;
+				if (body.isPremium === false) setOps.premiumExpiresAt = null;
+				else if (body.premiumDays === undefined) setOps.premiumExpiresAt = null; // plain true = permanent
+			}
+			if (body.premiumDays !== undefined) {
+				if (!Number.isInteger(body.premiumDays) || (body.premiumDays as number) < 1 || (body.premiumDays as number) > 3650) {
+					return response.status(400).json({ error: 'premiumDays must be an integer 1-3650' });
+				}
+				setOps.isPremium = true;
+				setOps.premiumExpiresAt = new Date(Date.now() + (body.premiumDays as number) * 86_400_000);
 			}
 			if (body.botDisabled !== undefined) {
 				if (typeof body.botDisabled !== 'boolean') return response.status(400).json({ error: 'botDisabled must be a boolean' });
@@ -130,7 +142,7 @@ export class ApiDevGuildsRoute extends Route {
 				}
 			}
 			if (Object.keys(setOps).length === 0) {
-				return response.status(400).json({ error: 'Nothing to update (isPremium, botDisabled, disabledMessage, guildBanned, banReason)' });
+				return response.status(400).json({ error: 'Nothing to update (isPremium, premiumDays, botDisabled, disabledMessage, guildBanned, banReason)' });
 			}
 			try {
 				const doc = await Guild.findOneAndUpdate({ guildId }, { $set: setOps }, { upsert: true, returnDocument: 'after' }).lean();
@@ -145,7 +157,8 @@ export class ApiDevGuildsRoute extends Route {
 				}
 				return response.json({
 					guildId,
-					isPremium: doc?.isPremium === true,
+					isPremium: isPremiumActive(doc),
+					premiumExpiresAt: premiumExpiryIso(doc),
 					botDisabled: doc?.botDisabled === true,
 					guildBanned: doc?.guildBanned === true,
 					disabledMessage: doc?.disabledMessage ?? null,
