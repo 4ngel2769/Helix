@@ -200,14 +200,18 @@ export class EconomyCommand extends HybridModuleCommand<EconomyModule> {
                 }
             });
 
-            // Add guild filter if not global (make it more flexible)
+            // Add guild filter if not global. joinedServers is not reliably
+            // populated (created as [] and only filled by $addToSet on join),
+            // so also include users with an empty/missing array to avoid
+            // filtering out everyone with legit economy data.
             if (!isGlobal && guildId) {
                 pipeline.push({
                     $match: {
                         $or: [
                             { 'joinedServers': guildId },
                             { 'joinedServers': { $in: [guildId] } }, // Handle array format
-                            { 'joinedServers': { $exists: false } }  // Include users without joinedServers (legacy)
+                            { 'joinedServers': { $exists: false } },  // Missing field (legacy)
+                            { 'joinedServers.0': { $exists: false } } // Empty array (never populated)
                         ]
                     }
                 });
