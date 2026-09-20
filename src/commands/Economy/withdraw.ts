@@ -2,7 +2,7 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import type { EconomyModule } from '../../modules/Economy';
-import { EmbedBuilder, MessageFlags, Message } from 'discord.js';
+import { EmbedBuilder, Message } from 'discord.js';
 import config from '../../config';
 import { UserService } from '../../lib/services/economy/UserService';
 import { MoneyService } from '../../lib/services/economy/MoneyService';
@@ -37,7 +37,7 @@ export class WithdrawCommand extends ModuleCommand<EconomyModule> {
     }
 
     public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        await interaction.deferReply();
 
         const amountInput = interaction.options.getString('amount', true);
 

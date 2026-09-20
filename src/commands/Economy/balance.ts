@@ -2,7 +2,7 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import type { EconomyModule } from '../../modules/Economy';
-import { EmbedBuilder, MessageFlags, Message } from 'discord.js';
+import { EmbedBuilder, Message } from 'discord.js';
 import { UserService } from '../../lib/services/economy/UserService';
 import type { IUser, EconomyItem as InventoryItem } from '../../models/User';
 import config from '../../config';
@@ -92,9 +92,8 @@ export class BalanceCommand extends ModuleCommand<EconomyModule> {
             .setTimestamp();
 
         return interaction.reply({
-            embeds: [embed],
-            flags: MessageFlags.Ephemeral
-        });
+            embeds: [embed]
+                    });
     }
 
     public override async messageRun(message: Message) {

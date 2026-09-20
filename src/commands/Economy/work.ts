@@ -7,7 +7,7 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import type { EconomyModule } from '../../modules/Economy';
-import { EmbedBuilder, MessageFlags, Message } from 'discord.js';
+import { EmbedBuilder, Message } from 'discord.js';
 import config from '../../config';
 import { JobService } from '../../lib/services/economy/JobService';
 
@@ -44,9 +44,8 @@ export class WorkCommand extends ModuleCommand<EconomyModule> {
             return interaction.reply({ embeds: [embed] });
         } catch (error) {
             return interaction.reply({
-                content: error instanceof Error ? error.message : 'Could not work right now. Try again later.',
-                flags: MessageFlags.Ephemeral
-            });
+                content: error instanceof Error ? error.message : 'Could not work right now. Try again later.'
+                            });
         }
     }
 

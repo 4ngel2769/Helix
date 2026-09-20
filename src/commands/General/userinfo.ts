@@ -1,4 +1,4 @@
-// import { ModuleCommand } from '@kbotdev/plugin-modules';
+import { ModuleCommand } from '@kbotdev/plugin-modules';
 import type { GeneralModule } from '../../modules/General';
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
@@ -13,6 +13,7 @@ import {
 } from 'discord.js';
 import config from '../../config';
 import { emojis } from '../../emojimap.json'
+import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
 
 @ApplyOptions<Command.Options>({
 	description: 'Information about a given user',
@@ -20,7 +21,10 @@ import { emojis } from '../../emojimap.json'
 	cooldownDelay: 5000
 })
 // export class UserCommand extends Command {
-export class UserinfoCommand extends Command<GeneralModule> {
+export class UserinfoCommand extends HybridModuleCommand<GeneralModule> {
+	public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
+		super(context, { ...options, module: 'General', description: 'Information about a given user', enabled: true });
+	}
 	// Register slash and context menu command
 	public override registerApplicationCommands(registry: Command.Registry) {
 

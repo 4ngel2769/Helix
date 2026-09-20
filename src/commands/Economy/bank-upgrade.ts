@@ -2,7 +2,7 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { EconomyModule } from '../../modules/Economy';
-import { EmbedBuilder, MessageFlags, ActionRowBuilder, ButtonBuilder, ButtonStyle, ColorResolvable } from 'discord.js';
+import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ColorResolvable } from 'discord.js';
 import { UserService } from '../../lib/services/economy/UserService';
 import { MoneyService } from '../../lib/services/economy/MoneyService';
 import { InventoryService } from '../../lib/services/economy/InventoryService';
@@ -83,14 +83,13 @@ export class BankUpgradeCommand extends HybridModuleCommand<EconomyModule> {
                 return this.handleBuy(interaction);
             default:
                 return interaction.reply({
-                    content: 'Invalid subcommand. Use `/bank-upgrade info` or `/bank-upgrade buy <tier>`',
-                    flags: MessageFlags.Ephemeral
-                });
+                    content: 'Invalid subcommand. Use `/bank-upgrade info` or `/bank-upgrade buy <tier>`'
+                                    });
         }
     }
 
     private async handleInfo(interaction: Command.ChatInputCommandInteraction) {
-        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        await interaction.deferReply();
 
         try {
             const user = await UserService.getUser(interaction.user.id, interaction.user.username);
@@ -183,7 +182,7 @@ export class BankUpgradeCommand extends HybridModuleCommand<EconomyModule> {
     }
 
     private async handleBuy(interaction: Command.ChatInputCommandInteraction) {
-        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        await interaction.deferReply();
 
         const targetTier = interaction.options.getInteger('tier', true);
 

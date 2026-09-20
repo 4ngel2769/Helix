@@ -8,7 +8,7 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import type { EconomyModule } from '../../modules/Economy';
-import { EmbedBuilder, MessageFlags, Message } from 'discord.js';
+import { EmbedBuilder, Message } from 'discord.js';
 import config from '../../config';
 import { UserService } from '../../lib/services/economy/UserService';
 import { JobService } from '../../lib/services/economy/JobService';
@@ -56,7 +56,7 @@ export class JobsCommand extends ModuleCommand<EconomyModule> {
 
     public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
         const action = interaction.options.getSubcommand() as JobsAction;
-        const reply = (payload: { content?: string; embeds?: EmbedBuilder[] }) => interaction.reply({ ...payload, flags: MessageFlags.Ephemeral });
+        const reply = (payload: { content?: string; embeds?: EmbedBuilder[] }) => interaction.reply({ ...payload });
         return this.dispatch(action, interaction.user.id, interaction.user.username, interaction, reply);
     }
 

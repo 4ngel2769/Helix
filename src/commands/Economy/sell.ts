@@ -2,7 +2,7 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import type { EconomyModule } from '../../modules/Economy';
-import { EmbedBuilder, MessageFlags, Message } from 'discord.js';
+import { EmbedBuilder, Message } from 'discord.js';
 import config from '../../config';
 import { ShopService } from '../../lib/services/economy/ShopService';
 
@@ -44,7 +44,7 @@ export class SellCommand extends ModuleCommand<EconomyModule> {
     }
 
     public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        await interaction.deferReply();
 
         const itemName = interaction.options.getString('item', true);
         const quantity = interaction.options.getInteger('quantity') || 1;

@@ -2,7 +2,7 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import type { EconomyModule } from '../../modules/Economy';
-import { EmbedBuilder, MessageFlags, Message, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } from 'discord.js';
+import { EmbedBuilder, Message, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } from 'discord.js';
 import { UserService } from '../../lib/services/economy/UserService';
 import { ShopService } from '../../lib/services/economy/ShopService';
 import { EconomyItem, type IEconomyItem } from '../../models/EconomyItem';
@@ -114,9 +114,8 @@ export class ShopCommand extends ModuleCommand<EconomyModule> {
                 return this.handleItemInfo(interaction);
             default:
                 return interaction.reply({
-                    content: 'Invalid subcommand',
-                    flags: MessageFlags.Ephemeral
-                });
+                    content: 'Invalid subcommand'
+                                    });
         }
     }
 
@@ -132,9 +131,8 @@ export class ShopCommand extends ModuleCommand<EconomyModule> {
 
         if (items.length === 0) {
             return interaction.reply({
-                content: 'No items available in the shop' + (category ? ` for category: ${category}` : ''),
-                flags: MessageFlags.Ephemeral
-            });
+                content: 'No items available in the shop' + (category ? ` for category: ${category}` : '')
+                            });
         }
 
         const embed = new EmbedBuilder()
@@ -179,9 +177,8 @@ export class ShopCommand extends ModuleCommand<EconomyModule> {
         }
 
         return interaction.reply({
-            embeds: [embed],
-            flags: MessageFlags.Ephemeral
-        });
+            embeds: [embed]
+                    });
     }
 
     private async handleItemInfo(interaction: Command.ChatInputCommandInteraction) {
@@ -190,9 +187,8 @@ export class ShopCommand extends ModuleCommand<EconomyModule> {
 
         if (!item) {
             return interaction.reply({
-                content: 'Item not found',
-                flags: MessageFlags.Ephemeral
-            });
+                content: 'Item not found'
+                            });
         }
 
         const price = await ShopService.getItemPrice(item.itemId, 'buy');
@@ -257,9 +253,8 @@ export class ShopCommand extends ModuleCommand<EconomyModule> {
         }
 
         return interaction.reply({
-            embeds: [embed],
-            flags: MessageFlags.Ephemeral
-        });
+            embeds: [embed]
+                    });
     }
 
     public override async messageRun(message: Message) {

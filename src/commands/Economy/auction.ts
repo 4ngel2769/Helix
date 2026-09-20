@@ -2,7 +2,7 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import type { EconomyModule } from '../../modules/Economy';
-import { EmbedBuilder, MessageFlags, Message, ActionRowBuilder, ButtonBuilder, ButtonStyle, ColorResolvable } from 'discord.js';
+import { EmbedBuilder, Message, ActionRowBuilder, ButtonBuilder, ButtonStyle, ColorResolvable } from 'discord.js';
 import config from '../../config';
 import { AuctionService } from '../../lib/services/AuctionService';
 
@@ -127,7 +127,7 @@ export class AuctionCommand extends ModuleCommand<EconomyModule> {
     }
 
     private async handleCreate(interaction: Command.ChatInputCommandInteraction) {
-        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        await interaction.deferReply();
 
         const itemName = interaction.options.getString('item', true);
         const quantity = interaction.options.getInteger('quantity', true);
@@ -204,7 +204,7 @@ export class AuctionCommand extends ModuleCommand<EconomyModule> {
     }
 
     private async handleBid(interaction: Command.ChatInputCommandInteraction) {
-        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        await interaction.deferReply();
 
         const auctionId = interaction.options.getString('auction_id', true);
         const bidAmount = interaction.options.getInteger('amount', true);
