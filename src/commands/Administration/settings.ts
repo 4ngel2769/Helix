@@ -6,13 +6,15 @@ import { Guild } from '../../models/Guild';
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { AdministrationModule } from '../../modules/Administration';
 
+import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
     name: 'settings',
     description: 'View comprehensive server settings',
     aliases: ['config', 'conf'],
     preconditions: ['GuildOnly']
 })
-export class SettingsCommand extends ModuleCommand<AdministrationModule> {
+export class SettingsCommand extends HybridModuleCommand<AdministrationModule> {
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
         super(context, {
             ...options,
@@ -44,7 +46,7 @@ export class SettingsCommand extends ModuleCommand<AdministrationModule> {
 
     public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
         if (!interaction.guild) {
-            return interaction.reply({ content: '❌ This command can only be used in a server.', flags: MessageFlags.Ephemeral });
+            return interaction.reply({ content: 'âŒ This command can only be used in a server.', flags: MessageFlags.Ephemeral });
         }
 
         const category = interaction.options.getString('category');
@@ -66,31 +68,31 @@ export class SettingsCommand extends ModuleCommand<AdministrationModule> {
                 // Show all settings overview
                 const embed = new EmbedBuilder()
                     .setColor('#49e358')
-                    .setTitle(`⚙️ Server Settings - ${interaction.guild.name}`)
+                    .setTitle(`âš™ï¸ Server Settings - ${interaction.guild.name}`)
                     .setDescription('Comprehensive server configuration overview')
                     .addFields(
                         {
-                            name: '📝 General',
+                            name: 'ðŸ“ General',
                             value: `**Prefix:** \`${currentPrefix}\`\n**Disabled Commands:** ${guildData.disabledCommands?.length || 0}`,
                             inline: true
                         },
                         {
-                            name: '👥 Roles',
+                            name: 'ðŸ‘¥ Roles',
                             value: this.formatRoleSettings(guildData, interaction.guild.id),
                             inline: true
                         },
                         {
-                            name: '📊 Logging',
+                            name: 'ðŸ“Š Logging',
                             value: this.formatLoggingSettings(guildData, interaction.guild.id),
                             inline: true
                         },
                         {
-                            name: '🔧 Modules',
+                            name: 'ðŸ”§ Modules',
                             value: this.formatModuleSettings(guildData),
                             inline: false
                         },
                         {
-                            name: '💡 Tip',
+                            name: 'ðŸ’¡ Tip',
                             value: 'Use `/settings <category>` to view detailed settings for a specific category.',
                             inline: false
                         }
@@ -117,13 +119,13 @@ export class SettingsCommand extends ModuleCommand<AdministrationModule> {
                 case 'general':
                     return this.showGeneralSettings(interaction, guildData, prefixString);
                 default:
-                    return interaction.reply({ content: '❌ Invalid category.', flags: MessageFlags.Ephemeral });
+                    return interaction.reply({ content: 'âŒ Invalid category.', flags: MessageFlags.Ephemeral });
             }
 
         } catch (error) {
             this.container.logger.error('Error fetching settings:', error);
             return interaction.reply({ 
-                content: '❌ An error occurred while fetching server settings.', 
+                content: 'âŒ An error occurred while fetching server settings.', 
                 flags: MessageFlags.Ephemeral 
             });
         }
@@ -160,7 +162,7 @@ export class SettingsCommand extends ModuleCommand<AdministrationModule> {
     private async showRoleSettings(interaction: Command.ChatInputCommandInteraction, guildData: IGuild) {
         const embed = new EmbedBuilder()
             .setColor('#49e358')
-            .setTitle('👥 Role Settings')
+            .setTitle('ðŸ‘¥ Role Settings')
             .setDescription('Configured roles for server management')
             .addFields(
                 {
@@ -179,7 +181,7 @@ export class SettingsCommand extends ModuleCommand<AdministrationModule> {
                     inline: true
                 },
                 {
-                    name: '⚙️ Configuration Commands',
+                    name: 'âš™ï¸ Configuration Commands',
                     value: '`/setadminrole` - Set admin role\n`/setmodrole` - Set moderator role\n`/setmuterole` - Set mute role',
                     inline: false
                 }
@@ -193,7 +195,7 @@ export class SettingsCommand extends ModuleCommand<AdministrationModule> {
         const enabledCount = Object.values(guildData.logEvents ?? {}).filter((v) => v === true).length;
         const embed = new EmbedBuilder()
             .setColor('#49e358')
-            .setTitle('📊 Logging Settings')
+            .setTitle('ðŸ“Š Logging Settings')
             .setDescription('Configured logging channels (31 event types, see dashboard for per-event setup)')
             .addFields(
                 {
@@ -227,8 +229,8 @@ export class SettingsCommand extends ModuleCommand<AdministrationModule> {
                     inline: true
                 },
                 {
-                    name: '⚙️ Configuration',
-                    value: '`/setmodlog` `/setmemberlog` `/setmessagelog` — or open the dashboard Logging page for all 31 event types.',
+                    name: 'âš™ï¸ Configuration',
+                    value: '`/setmodlog` `/setmemberlog` `/setmessagelog` â€” or open the dashboard Logging page for all 31 event types.',
                     inline: false
                 }
             )
@@ -240,12 +242,12 @@ export class SettingsCommand extends ModuleCommand<AdministrationModule> {
     private async showModuleSettings(interaction: Command.ChatInputCommandInteraction, guildData: IGuild) {
         const modules = guildData.modules || {};
         const modulesList = Object.entries(modules)
-            .map(([key, value]) => `${value ? '✅' : '❌'} **${this.capitalizeFirst(key)}**`)
+            .map(([key, value]) => `${value ? 'âœ…' : 'âŒ'} **${this.capitalizeFirst(key)}**`)
             .join('\n') || '*No modules configured*';
 
         const embed = new EmbedBuilder()
             .setColor('#49e358')
-            .setTitle('🔧 Module Settings')
+            .setTitle('ðŸ”§ Module Settings')
             .setDescription('Enabled and disabled modules')
             .addFields(
                 {
@@ -254,7 +256,7 @@ export class SettingsCommand extends ModuleCommand<AdministrationModule> {
                     inline: false
                 },
                 {
-                    name: '⚙️ Configuration',
+                    name: 'âš™ï¸ Configuration',
                     value: 'Use `/configmodule` to enable or disable modules',
                     inline: false
                 }
@@ -272,7 +274,7 @@ export class SettingsCommand extends ModuleCommand<AdministrationModule> {
 
         const embed = new EmbedBuilder()
             .setColor('#49e358')
-            .setTitle('📝 General Settings')
+            .setTitle('ðŸ“ General Settings')
             .setDescription('General server configuration')
             .addFields(
                 {
@@ -296,7 +298,7 @@ export class SettingsCommand extends ModuleCommand<AdministrationModule> {
                     inline: false
                 },
                 {
-                    name: '⚙️ Configuration Commands',
+                    name: 'âš™ï¸ Configuration Commands',
                     value: '`/setprefix` - Change command prefix\n`/togglecommand` - Enable/disable commands',
                     inline: false
                 }

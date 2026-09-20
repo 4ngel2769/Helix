@@ -122,7 +122,8 @@ function snowflakeArray(v: unknown, max: number): string[] | null {
 export function cleanLeveling(update: Record<string, unknown>): string | null {
 	const v = update.leveling as Record<string, unknown> | null;
 	if (v === null || typeof v !== 'object' || Array.isArray(v)) return 'leveling must be an object';
-	if ('enabled' in v && typeof v.enabled !== 'boolean') return 'leveling.enabled must be a boolean';
+	// NOTE: no leveling.enabled — the module toggle (modules.leveling) is the
+	// single on/off switch; these settings only tune how earning behaves.
 	for (const [key, min, max] of [['xpMin', 1, 1000], ['xpMax', 1, 1000], ['cooldownSeconds', 0, 3600]] as const) {
 		if (!(key in v)) continue;
 		const n = intInRange(v[key], min, max);

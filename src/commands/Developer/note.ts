@@ -16,12 +16,14 @@ import { DevNote, IDevNote } from '../../models/DevNote';
 import config from '../../config';
 import * as mongooseUtils from '../../lib/utils/mongooseUtils';
 
+import { HybridCommand } from '../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
     name: 'note',
     description: 'Manage developer notes and to-dos',
     preconditions: ['OwnerOnly']
 })
-export class NoteCommand extends Command {
+export class NoteCommand extends HybridCommand {
     public override registerApplicationCommands(registry: Command.Registry) {
         registry.registerChatInputCommand((builder) =>
             builder
@@ -157,7 +159,7 @@ export class NoteCommand extends Command {
             // Build response embed
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.default as ColorResolvable)
-                .setTitle('📝 Note Added')
+                .setTitle('ðŸ“ Note Added')
                 .setDescription(content)
                 .addFields([
                     { name: 'ID', value: note._id.toString(), inline: true },
@@ -205,7 +207,7 @@ export class NoteCommand extends Command {
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.default as ColorResolvable)
-                .setTitle('📝 Developer Notes')
+                .setTitle('ðŸ“ Developer Notes')
                 .setDescription(`Page ${page + 1} of ${totalPages} (${totalNotes} total notes)`)
                 .setTimestamp();
 
@@ -317,7 +319,7 @@ export class NoteCommand extends Command {
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err as ColorResolvable)
-                .setTitle('🗑️ Note Deleted')
+                .setTitle('ðŸ—‘ï¸ Note Deleted')
                 .setDescription(note.content)
                 .addFields([{
                     name: 'Deleted Note ID',

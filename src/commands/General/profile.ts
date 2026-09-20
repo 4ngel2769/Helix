@@ -5,13 +5,15 @@ import { Command } from '@sapphire/framework';
 import { EmbedBuilder, MessageFlags } from 'discord.js';
 import { getGameStatsModel } from '../../models/GameStats';
 
+import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
 	name: 'profile',
 	description: 'View your profile and game statistics.',
 	fullCategory: ['General'],
 	enabled: true
 })
-export class ProfileCommand extends ModuleCommand<GeneralModule> {
+export class ProfileCommand extends HybridModuleCommand<GeneralModule> {
 	public override registerApplicationCommands(registry: Command.Registry) {
 		registry.registerChatInputCommand((builder) =>
 			builder.setName(this.name).setDescription(this.description).setIntegrationTypes(0, 1).setContexts(0, 1, 2)

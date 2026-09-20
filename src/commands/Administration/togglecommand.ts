@@ -6,13 +6,15 @@ import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { AdministrationModule } from '../../modules/Administration';
 import { clearDisabledCommandsCache } from '../../lib/utils/disabledCommandsCache';
 
+import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
     name: 'togglecommand',
     description: 'Enable or disable a specific command',
     aliases: ['togglec', 'togc', 'tc'],
     preconditions: ['GuildOnly']
 })
-export class ToggleCommandCommand extends ModuleCommand<AdministrationModule> {
+export class ToggleCommandCommand extends HybridModuleCommand<AdministrationModule> {
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
         super(context, {
             ...options,
@@ -69,7 +71,7 @@ export class ToggleCommandCommand extends ModuleCommand<AdministrationModule> {
 
     public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
         if (!interaction.guild) {
-            return interaction.reply({ content: '❌ This command can only be used in a server.', flags: MessageFlags.Ephemeral });
+            return interaction.reply({ content: 'âŒ This command can only be used in a server.', flags: MessageFlags.Ephemeral });
         }
 
         const commandName = interaction.options.getString('command', true).toLowerCase();
@@ -80,7 +82,7 @@ export class ToggleCommandCommand extends ModuleCommand<AdministrationModule> {
             const command = this.container.stores.get('commands').get(commandName);
             if (!command) {
                 return interaction.reply({ 
-                    content: `❌ Command \`${commandName}\` not found.`, 
+                    content: `âŒ Command \`${commandName}\` not found.`, 
                     flags: MessageFlags.Ephemeral 
                 });
             }
@@ -89,7 +91,7 @@ export class ToggleCommandCommand extends ModuleCommand<AdministrationModule> {
             const criticalCommands = ['settings', 'togglecommand', 'configmodule', 'help'];
             if (criticalCommands.includes(commandName)) {
                 return interaction.reply({ 
-                    content: `❌ Cannot disable critical command \`${commandName}\`.`, 
+                    content: `âŒ Cannot disable critical command \`${commandName}\`.`, 
                     flags: MessageFlags.Ephemeral 
                 });
             }
@@ -111,7 +113,7 @@ export class ToggleCommandCommand extends ModuleCommand<AdministrationModule> {
             if (action === 'disable') {
                 if (isDisabled) {
                     return interaction.reply({ 
-                        content: `❌ Command \`${commandName}\` is already disabled.`, 
+                        content: `âŒ Command \`${commandName}\` is already disabled.`, 
                         flags: MessageFlags.Ephemeral 
                     });
                 }
@@ -122,7 +124,7 @@ export class ToggleCommandCommand extends ModuleCommand<AdministrationModule> {
 
                 const embed = new EmbedBuilder()
                     .setColor('#db2b1f')
-                    .setTitle('🔴 Command Disabled')
+                    .setTitle('ðŸ”´ Command Disabled')
                     .setDescription(`Command \`${commandName}\` has been disabled for this server.`)
                     .addFields({
                         name: 'Note',
@@ -136,7 +138,7 @@ export class ToggleCommandCommand extends ModuleCommand<AdministrationModule> {
                 // Enable
                 if (!isDisabled) {
                     return interaction.reply({ 
-                        content: `❌ Command \`${commandName}\` is not disabled.`, 
+                        content: `âŒ Command \`${commandName}\` is not disabled.`, 
                         flags: MessageFlags.Ephemeral 
                     });
                 }
@@ -147,7 +149,7 @@ export class ToggleCommandCommand extends ModuleCommand<AdministrationModule> {
 
                 const embed = new EmbedBuilder()
                     .setColor('#49e358')
-                    .setTitle('✅ Command Enabled')
+                    .setTitle('âœ… Command Enabled')
                     .setDescription(`Command \`${commandName}\` has been enabled for this server.`)
                     .addFields({
                         name: 'Note',
@@ -162,7 +164,7 @@ export class ToggleCommandCommand extends ModuleCommand<AdministrationModule> {
         } catch (error) {
             this.container.logger.error('Error toggling command:', error);
             return interaction.reply({ 
-                content: '❌ An error occurred while toggling the command.', 
+                content: 'âŒ An error occurred while toggling the command.', 
                 flags: MessageFlags.Ephemeral 
             });
         }

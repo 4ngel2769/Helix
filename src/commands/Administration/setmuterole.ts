@@ -5,13 +5,15 @@ import { Guild } from '../../models/Guild';
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { AdministrationModule } from '../../modules/Administration';
 
+import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
     name: 'setmuterole',
     description: 'Set the mute role for your server',
     aliases: ['setmute'],
     preconditions: ['GuildOnly']
 })
-export class SetMuteRoleCommand extends ModuleCommand<AdministrationModule> {
+export class SetMuteRoleCommand extends HybridModuleCommand<AdministrationModule> {
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
         super(context, {
             ...options,
@@ -37,7 +39,7 @@ export class SetMuteRoleCommand extends ModuleCommand<AdministrationModule> {
 
     public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
         if (!interaction.guild) {
-            return interaction.reply({ content: '❌ This command can only be used in a server.', flags: MessageFlags.Ephemeral });
+            return interaction.reply({ content: 'âŒ This command can only be used in a server.', flags: MessageFlags.Ephemeral });
         }
 
         const role = interaction.options.getRole('role') as Role | null;
@@ -58,7 +60,7 @@ export class SetMuteRoleCommand extends ModuleCommand<AdministrationModule> {
 
                 const embed = new EmbedBuilder()
                     .setColor('#49e358')
-                    .setTitle('✅ Mute Role Cleared')
+                    .setTitle('âœ… Mute Role Cleared')
                     .setDescription('The mute role has been cleared from your server settings.')
                     .setTimestamp();
 
@@ -71,7 +73,7 @@ export class SetMuteRoleCommand extends ModuleCommand<AdministrationModule> {
 
             const embed = new EmbedBuilder()
                 .setColor('#49e358')
-                .setTitle('✅ Mute Role Set')
+                .setTitle('âœ… Mute Role Set')
                 .setDescription(`Mute role has been set to ${role}`)
                 .addFields(
                     {
@@ -80,7 +82,7 @@ export class SetMuteRoleCommand extends ModuleCommand<AdministrationModule> {
                         inline: true
                     },
                     {
-                        name: 'ℹ️ Note',
+                        name: 'â„¹ï¸ Note',
                         value: 'Make sure this role has the necessary permissions to restrict users from sending messages.',
                         inline: false
                     }
@@ -92,7 +94,7 @@ export class SetMuteRoleCommand extends ModuleCommand<AdministrationModule> {
         } catch (error) {
             this.container.logger.error('Error setting mute role:', error);
             return interaction.reply({ 
-                content: '❌ An error occurred while setting the mute role.', 
+                content: 'âŒ An error occurred while setting the mute role.', 
                 flags: MessageFlags.Ephemeral 
             });
         }

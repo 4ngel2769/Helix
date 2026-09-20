@@ -7,13 +7,15 @@ import { GuildXp } from '../../models/GuildXp';
 import { levelForXp, progressBar, progressToNext } from '../../lib/utils/leveling';
 import config from '../../config';
 
+import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
 	name: 'rank',
 	description: 'View your (or another member\'s) XP rank in this server.',
 	fullCategory: ['Leveling'],
 	enabled: true
 })
-export class RankCommand extends ModuleCommand<LevelingModule> {
+export class RankCommand extends HybridModuleCommand<LevelingModule> {
 	public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
 		super(context, {
 			...options,

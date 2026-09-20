@@ -5,12 +5,14 @@ import { Command } from '@sapphire/framework';
 import { ChannelType, MessageFlags, PermissionFlagsBits } from 'discord.js';
 import { Guild } from '../../models/Guild';
 
+import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
   name: 'setrolelog',
   description: 'Set the role change log channel',
   preconditions: ['GuildOnly']
 })
-export class SetrolelogCommand extends ModuleCommand<AdministrationModule> {
+export class SetrolelogCommand extends HybridModuleCommand<AdministrationModule> {
   public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
     super(context, { ...options, module: 'Administration', description: 'Set the role change log channel' });
   }

@@ -23,12 +23,14 @@ const BLOCKED_PATTERNS: Array<{ pattern: RegExp; reason: string }> = [
 	{ pattern: /\beval\b/i, reason: 'Nested eval is blocked.' }
 ];
 
+import { HybridCommand } from '../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
 	name: 'eval',
 	description: 'Evaluates JavaScript code',
 	preconditions: ['OwnerOnly']
 })
-export class EvalCommand extends Command {
+export class EvalCommand extends HybridCommand {
 	private createEmbed(title: string, color: ColorResolvable, content: string) {
 		return new EmbedBuilder().setTitle(title).setDescription(`\`\`\`js\n${content}\n\`\`\``).setColor(color);
 	}

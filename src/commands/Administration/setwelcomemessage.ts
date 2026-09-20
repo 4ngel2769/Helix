@@ -5,12 +5,14 @@ import { Command } from '@sapphire/framework';
 import { MessageFlags, PermissionFlagsBits } from 'discord.js';
 import { Guild } from '../../models/Guild';
 
+import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
   name: 'setwelcomemessage',
   description: 'Set the welcome message',
   preconditions: ['GuildOnly']
 })
-export class SetwelcomemessageCommand extends ModuleCommand<AdministrationModule> {
+export class SetwelcomemessageCommand extends HybridModuleCommand<AdministrationModule> {
   public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
     super(context, { ...options, module: 'Administration', description: 'Set the welcome message' });
   }
@@ -22,7 +24,7 @@ export class SetwelcomemessageCommand extends ModuleCommand<AdministrationModule
         .setDescription('Set the welcome message')
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
         .addStringOption((option) =>
-          option.setName('message').setDescription('Supports {{placeholders}} — full list on the dashboard').setRequired(true)
+          option.setName('message').setDescription('Supports {{placeholders}} â€” full list on the dashboard').setRequired(true)
         )
     );
   }

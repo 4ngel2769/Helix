@@ -3,6 +3,7 @@ import { FunModule } from '../../modules/Fun';
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { type Message } from 'discord.js';
+import { findEmote, replyWithEmote } from '../../lib/emotes/emotes';
 
 @ApplyOptions<Command.Options>({
   name: 'slap',
@@ -17,8 +18,7 @@ export class SlapCommand extends ModuleCommand<FunModule> {
   }
 
   public override async messageRun(message: Message) {
-    const target = message.mentions.users.first();
-    if (!target) return message.reply('You need to mention someone!');
-    return message.reply('Slap! ' + message.author + ' slaps ' + target);
+    const definition = findEmote('slap')!;
+    return replyWithEmote(definition, message);
   }
 }

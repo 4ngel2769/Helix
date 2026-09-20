@@ -36,12 +36,14 @@ interface TriggerConfigResult {
     triggerMetadata: Record<string, unknown>;
 }
 
+import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
     name: 'automod',
     description: 'Manage Discord AutoMod rules',
     preconditions: ['GuildOnly', 'ModeratorOnly']
 })
-export class AutoModCommand extends ModuleCommand<ModerationModule> {
+export class AutoModCommand extends HybridModuleCommand<ModerationModule> {
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
         super(context, {
             ...options,
@@ -366,7 +368,7 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.default as ColorResolvable)
-                .setTitle('📋 AutoMod Rules')
+                .setTitle('ðŸ“‹ AutoMod Rules')
                 .setDescription(`This server has ${rules.size} AutoMod rules configured.`)
                 .setFooter({ text: `Requested by ${interaction.user.tag}` })
                 .setTimestamp();
@@ -404,7 +406,7 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
 
                 embed.addFields({
                     name: `${rule.name} (${rule.id})`,
-                    value: `**Type:** ${getTriggerTypeName(rule.triggerType)}\n**Details:** ${triggerInfo}\n**Actions:** ${actions}\n**Enabled:** ${rule.enabled ? '✅' : '❌'}`,
+                    value: `**Type:** ${getTriggerTypeName(rule.triggerType)}\n**Details:** ${triggerInfo}\n**Actions:** ${actions}\n**Enabled:** ${rule.enabled ? 'âœ…' : 'âŒ'}`,
                     inline: false
                 });
             });
@@ -434,7 +436,7 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
                 return interaction.editReply({ content: triggerConfig.error ?? 'Invalid rule type.' });
             }
             if (enableTimeout && triggerConfig.config.triggerType !== AutoModerationRuleTriggerType.Keyword && triggerConfig.config.triggerType !== AutoModerationRuleTriggerType.MentionSpam) {
-                return interaction.editReply({ content: 'Discord only allows the timeout action on keyword and mention-spam rules — pick one of those types or turn timeout off.' });
+                return interaction.editReply({ content: 'Discord only allows the timeout action on keyword and mention-spam rules â€” pick one of those types or turn timeout off.' });
             }
 
             const actions = buildPresetActions(name, logChannel?.id, enableTimeout, 300, triggerConfig.config.triggerType);
@@ -452,7 +454,7 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.success as ColorResolvable)
-                .setTitle('✅ AutoMod Rule Created')
+                .setTitle('âœ… AutoMod Rule Created')
                 .setDescription(`Successfully created AutoMod rule "${name}"`)
                 .addFields(
                     { name: 'Rule ID', value: rule.id, inline: true },
@@ -509,21 +511,21 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.success as ColorResolvable)
-                .setTitle('✅ AutoMod Preset Installation')
+                .setTitle('âœ… AutoMod Preset Installation')
                 .setDescription(`Installed the **${getPresetName(preset)}** preset with ${createdRules.length} rules.`);
             
             if (createdRules.length > 0) {
                 embed.addFields({
                     name: 'Rules Created', 
-                    value: createdRules.map(rule => `• ${rule.name}`).join('\n'), 
+                    value: createdRules.map(rule => `â€¢ ${rule.name}`).join('\n'), 
                     inline: false
                 });
             }
                 
             if (failedRules.length > 0) {
                 embed.addFields({
-                    name: '❌ Failed Rules', 
-                    value: failedRules.map(rule => `• ${rule.name}: ${rule.reason}`).join('\n'), 
+                    name: 'âŒ Failed Rules', 
+                    value: failedRules.map(rule => `â€¢ ${rule.name}: ${rule.reason}`).join('\n'), 
                     inline: false
                 });
             }
@@ -578,7 +580,7 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
             
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.default as ColorResolvable)
-                .setTitle(`🔍 AutoMod Keywords: ${capitalizeFirstLetter(category)}`)
+                .setTitle(`ðŸ” AutoMod Keywords: ${capitalizeFirstLetter(category)}`)
                 .setDescription(`Keywords configured for the ${category} filter`)
                 .setFooter({ text: `Requested by ${interaction.user.tag}` })
                 .setTimestamp();
@@ -586,13 +588,13 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
             // Add custom keywords field if any exist
             if (customKeywords.length > 0) {
                 embed.addFields({
-                    name: '📝 Custom Keywords',
+                    name: 'ðŸ“ Custom Keywords',
                     value: customKeywords.join(', ') || 'None',
                     inline: false
                 });
             } else {
                 embed.addFields({
-                    name: '📝 Custom Keywords',
+                    name: 'ðŸ“ Custom Keywords',
                     value: 'No custom keywords configured',
                     inline: false
                 });
@@ -602,7 +604,7 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
             defaultKeywords.forEach(({ preset, keywords }) => {
                 if (keywords.length > 0) {
                     embed.addFields({
-                        name: `🔧 Default ${capitalizeFirstLetter(preset)} Preset`,
+                        name: `ðŸ”§ Default ${capitalizeFirstLetter(preset)} Preset`,
                         value: keywords.join(', '),
                         inline: false
                     });
@@ -639,11 +641,11 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
             
             if (success) {
                 return interaction.editReply({
-                    content: `✅ Successfully added ${keywords.length} keywords to the ${category} filter.`
+                    content: `âœ… Successfully added ${keywords.length} keywords to the ${category} filter.`
                 });
             } else {
                 return interaction.editReply({
-                    content: '❌ Failed to add keywords. Please try again later.'
+                    content: 'âŒ Failed to add keywords. Please try again later.'
                 });
             }
         } catch (error) {
@@ -675,11 +677,11 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
             
             if (success) {
                 return interaction.editReply({
-                    content: `✅ Successfully removed ${keywords.length} keywords from the ${category} filter.`
+                    content: `âœ… Successfully removed ${keywords.length} keywords from the ${category} filter.`
                 });
             } else {
                 return interaction.editReply({
-                    content: '❌ Failed to remove keywords. Please try again later.'
+                    content: 'âŒ Failed to remove keywords. Please try again later.'
                 });
             }
         } catch (error) {
@@ -709,11 +711,11 @@ export class AutoModCommand extends ModuleCommand<ModerationModule> {
             
             if (success) {
                 return interaction.editReply({
-                    content: `✅ Successfully cleared all custom keywords from the ${category} filter.`
+                    content: `âœ… Successfully cleared all custom keywords from the ${category} filter.`
                 });
             } else {
                 return interaction.editReply({
-                    content: '❌ Failed to clear keywords. Please try again later.'
+                    content: 'âŒ Failed to clear keywords. Please try again later.'
                 });
             }
         } catch (error) {

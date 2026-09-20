@@ -13,13 +13,15 @@ import config from '../../config';
 import { getReply } from '../../lib/utils/replies';
 import { sendLog, suppressNext } from '../../lib/logging/logService';
 
+import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+
 @ApplyOptions<ModuleCommand.Options>({
     name: 'timeout',
     module: 'Moderation',
     description: 'Timeout a member in the server',
     enabled: true
 })
-export class TimeoutCommand extends ModuleCommand<ModerationModule> {
+export class TimeoutCommand extends HybridModuleCommand<ModerationModule> {
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
         super(context, {
             ...options,
@@ -112,7 +114,7 @@ export class TimeoutCommand extends ModuleCommand<ModerationModule> {
                 .setColor(config.bot.embedColor.default as ColorResolvable)
                 .setDescription(messageText)
                 .setFooter({
-                    text: `Mod: ${interaction.user.tag} · ${new Date().toLocaleString()}`
+                    text: `Mod: ${interaction.user.tag} Â· ${new Date().toLocaleString()}`
                 });
 
             return interaction.reply({ embeds: [embed] });

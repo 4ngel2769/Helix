@@ -22,6 +22,8 @@ interface ElephantApiResponse {
 	};
 }
 
+import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
 	name: 'elephant',
 	description: 'Get a random elephant fact and image',
@@ -29,7 +31,7 @@ interface ElephantApiResponse {
 	enabled: true,
 	flags: true
 })
-export class ElephantCommand extends ModuleCommand<FunModule> {
+export class ElephantCommand extends HybridModuleCommand<FunModule> {
 	public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
 		super(context, {
 			...options,
@@ -61,7 +63,7 @@ export class ElephantCommand extends ModuleCommand<FunModule> {
 					{ name: 'Height', value: elephant.characteristics.height, inline: true },
 					{ name: 'Locations', value: elephant.locations.join(', '), inline: false }
 				)
-				.setFooter({ text: 'Powered by 💚 API Ninjas' })
+				.setFooter({ text: 'Powered by ðŸ’š API Ninjas' })
 				.setTimestamp();
 
 			return interaction.editReply({ embeds: [embed] });

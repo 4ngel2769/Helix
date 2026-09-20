@@ -162,6 +162,7 @@ export interface DevGuildEntry {
 	roles: number;
 	isPremium?: boolean;
 	premiumExpiresAt?: string | null;
+	dmSent?: boolean | null;
 	botDisabled?: boolean;
 	guildBanned?: boolean;
 	disabledMessage?: string | null;

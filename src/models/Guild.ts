@@ -116,7 +116,7 @@ export interface LevelRoleReward {
 }
 
 export interface LevelingSettings {
-  enabled?: boolean;
+  // No enabled flag — modules.leveling is the single on/off switch.
   xpMin?: number;
   xpMax?: number;
   cooldownSeconds?: number;
@@ -153,6 +153,7 @@ export interface IGuild extends Document, LegacyModuleFlags, VerificationSetting
   // Greeting image cards + premium flag
   isPremium?: boolean;
   premiumExpiresAt?: Date | null;
+  premiumReminderSentAt?: Date | null;
   // Soft disable: bot stays but answers commands with disabledMessage.
   botDisabled?: boolean;
   disabledMessage?: string;
@@ -208,6 +209,7 @@ const guildSchema = new Schema<IGuild>({
   // Greeting image cards (see src/lib/cards/) + premium flag (granted out-of-band)
   isPremium: { type: Boolean, default: false },
   premiumExpiresAt: { type: Date, default: null },
+  premiumReminderSentAt: { type: Date, default: null },
   // Soft disable: bot stays, commands reply with disabledMessage (or the default).
   botDisabled: { type: Boolean, default: false },
   disabledMessage: { type: String, default: null },

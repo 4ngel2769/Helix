@@ -5,12 +5,14 @@ import { Command } from '@sapphire/framework';
 import { MessageFlags, PermissionFlagsBits } from 'discord.js';
 import { Guild } from '../../models/Guild';
 
+import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
   name: 'setautorole',
   description: 'Set the auto-assign role for new members',
   preconditions: ['GuildOnly']
 })
-export class SetautoroleCommand extends ModuleCommand<AdministrationModule> {
+export class SetautoroleCommand extends HybridModuleCommand<AdministrationModule> {
   public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
     super(context, { ...options, module: 'Administration', description: 'Set the auto-assign role for new members' });
   }

@@ -8,13 +8,15 @@ import { handleDiamondsAdd, handleDiamondsRemove, handleDiamondsSet } from './_d
 import { handleItemGive, handleItemTake, handleItemClear } from './_items';
 import { handleProfileReset, handleProfileView } from './_profile';
 
+import { HybridCommand } from '../../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
     name: 'user-manage',
     description: 'Manage user economy data (Developer Only)',
     aliases: ['usermanage', 'manageuser', 'eco-admin'],
     preconditions: ['OwnerOnly']
 })
-export class UserManageCommand extends Command {
+export class UserManageCommand extends HybridCommand {
     public override registerApplicationCommands(registry: Command.Registry) {
         registry.registerChatInputCommand((builder) =>
             builder

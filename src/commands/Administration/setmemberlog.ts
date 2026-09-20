@@ -5,13 +5,15 @@ import { Guild } from '../../models/Guild';
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { AdministrationModule } from '../../modules/Administration';
 
+import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
     name: 'setmemberlog',
     description: 'Set the member join/leave log channel',
     aliases: ['setmeml', 'smeml'],
     preconditions: ['GuildOnly']
 })
-export class SetMemberLogCommand extends ModuleCommand<AdministrationModule> {
+export class SetMemberLogCommand extends HybridModuleCommand<AdministrationModule> {
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
         super(context, {
             ...options,
@@ -38,7 +40,7 @@ export class SetMemberLogCommand extends ModuleCommand<AdministrationModule> {
 
     public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
         if (!interaction.guild) {
-            return interaction.reply({ content: '❌ This command can only be used in a server.', flags: MessageFlags.Ephemeral });
+            return interaction.reply({ content: 'âŒ This command can only be used in a server.', flags: MessageFlags.Ephemeral });
         }
 
         const channel = interaction.options.getChannel('channel') as TextChannel | null;
@@ -59,7 +61,7 @@ export class SetMemberLogCommand extends ModuleCommand<AdministrationModule> {
 
                 const embed = new EmbedBuilder()
                     .setColor('#49e358')
-                    .setTitle('✅ Member Log Cleared')
+                    .setTitle('âœ… Member Log Cleared')
                     .setDescription('The member log channel has been cleared.')
                     .setTimestamp();
 
@@ -69,7 +71,7 @@ export class SetMemberLogCommand extends ModuleCommand<AdministrationModule> {
             // Validate channel type
             if (channel.type !== ChannelType.GuildText) {
                 return interaction.reply({ 
-                    content: '❌ Please select a text channel.', 
+                    content: 'âŒ Please select a text channel.', 
                     flags: MessageFlags.Ephemeral 
                 });
             }
@@ -80,7 +82,7 @@ export class SetMemberLogCommand extends ModuleCommand<AdministrationModule> {
 
             const embed = new EmbedBuilder()
                 .setColor('#49e358')
-                .setTitle('✅ Member Log Set')
+                .setTitle('âœ… Member Log Set')
                 .setDescription(`Member events will now be logged to ${channel}`)
                 .addFields(
                     {
@@ -90,7 +92,7 @@ export class SetMemberLogCommand extends ModuleCommand<AdministrationModule> {
                     },
                     {
                         name: 'What Gets Logged',
-                        value: '• Member joins\n• Member leaves\n• Nickname changes\n• Role changes',
+                        value: 'â€¢ Member joins\nâ€¢ Member leaves\nâ€¢ Nickname changes\nâ€¢ Role changes',
                         inline: false
                     }
                 )
@@ -101,7 +103,7 @@ export class SetMemberLogCommand extends ModuleCommand<AdministrationModule> {
         } catch (error) {
             this.container.logger.error('Error setting member log:', error);
             return interaction.reply({ 
-                content: '❌ An error occurred while setting the member log channel.', 
+                content: 'âŒ An error occurred while setting the member log channel.', 
                 flags: MessageFlags.Ephemeral 
             });
         }

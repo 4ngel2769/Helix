@@ -4,12 +4,14 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { MessageFlags, PermissionFlagsBits } from 'discord.js';
 
+import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
   name: 'softban',
   description: 'Ban and immediately unban a user to clear their messages',
   preconditions: ['GuildOnly']
 })
-export class SoftbanCommand extends ModuleCommand<ModerationModule> {
+export class SoftbanCommand extends HybridModuleCommand<ModerationModule> {
   public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
     super(context, { ...options, module: 'Moderation', description: 'Ban and immediately unban a user to clear their messages' });
   }

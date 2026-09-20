@@ -15,12 +15,14 @@ import { Guild } from '../../models/Guild';
 import { ErrorHandler } from '../../lib/structures/ErrorHandler';
 import config from '../../config';
 
+import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
     name: 'unlock',
     description: 'Unlock a channel',
     preconditions: ['GuildOnly']
 })
-export class UnlockCommand extends ModuleCommand<ModerationModule> {
+export class UnlockCommand extends HybridModuleCommand<ModerationModule> {
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
         super(context, {
             ...options,
@@ -79,7 +81,7 @@ export class UnlockCommand extends ModuleCommand<ModerationModule> {
             // Create embed for notification
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.success as ColorResolvable)
-                .setTitle('🔓 Channel Unlocked')
+                .setTitle('ðŸ”“ Channel Unlocked')
                 .setDescription(`This channel has been unlocked by ${interaction.user}`)
                 .addFields({ name: 'Reason', value: reason });
 

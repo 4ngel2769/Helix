@@ -5,12 +5,14 @@ import { Command } from '@sapphire/framework';
 import { MessageFlags, PermissionFlagsBits } from 'discord.js';
 import { Guild } from '../../models/Guild';
 
+import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
   name: 'setfarewellmessage',
   description: 'Set the farewell message',
   preconditions: ['GuildOnly']
 })
-export class SetfarewellmessageCommand extends ModuleCommand<AdministrationModule> {
+export class SetfarewellmessageCommand extends HybridModuleCommand<AdministrationModule> {
   public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
     super(context, { ...options, module: 'Administration', description: 'Set the farewell message' });
   }
@@ -22,7 +24,7 @@ export class SetfarewellmessageCommand extends ModuleCommand<AdministrationModul
         .setDescription('Set the farewell message')
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
         .addStringOption((option) =>
-          option.setName('message').setDescription('Supports {{placeholders}} — full list on the dashboard').setRequired(true)
+          option.setName('message').setDescription('Supports {{placeholders}} â€” full list on the dashboard').setRequired(true)
         )
     );
   }

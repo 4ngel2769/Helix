@@ -4,12 +4,14 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { MessageFlags, PermissionFlagsBits } from 'discord.js';
 
+import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
   name: 'unmute',
   description: 'Remove a timeout from a user',
   preconditions: ['GuildOnly']
 })
-export class UnmuteCommand extends ModuleCommand<ModerationModule> {
+export class UnmuteCommand extends HybridModuleCommand<ModerationModule> {
   public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
     super(context, { ...options, module: 'Moderation', description: 'Remove a timeout from a user' });
   }

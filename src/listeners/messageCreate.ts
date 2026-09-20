@@ -47,9 +47,10 @@ export class UserEvent extends Listener<typeof Events.MessageCreate> {
             // fall through to leveling — automod must never break chat
         }
 
-        // 2. Leveling / XP.
+        // 2. Leveling / XP — single gate: the Leveling module toggle
+        // (dashboard Modules page or /configmodule). No second switch.
         const lv = auto.leveling;
-        if (!auto.levelingModuleOn || lv.enabled !== true) return;
+        if (!auto.levelingModuleOn) return;
         if (lv.ignoredChannels?.includes(message.channelId)) return;
         if ((lv.ignoredRoles?.length ?? 0) > 0 && message.member.roles.cache.some((r) => lv.ignoredRoles?.includes(r.id))) return;
 

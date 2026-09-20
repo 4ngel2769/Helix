@@ -12,12 +12,14 @@ import { Guild } from '../../models/Guild';
 import { ErrorHandler } from '../../lib/structures/ErrorHandler';
 import config from '../../config';
 
+import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
     name: 'config',
     description: 'Configure server settings',
     preconditions: ['GuildOnly']
 })
-export class ConfigCommand extends ModuleCommand<AdministrationModule> {
+export class ConfigCommand extends HybridModuleCommand<AdministrationModule> {
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
         super(context, {
             ...options,
@@ -91,7 +93,7 @@ export class ConfigCommand extends ModuleCommand<AdministrationModule> {
 
                 const embed = new EmbedBuilder()
                     .setColor(config.bot.embedColor.success as ColorResolvable)
-                    .setTitle('✅ Administrator Role Set')
+                    .setTitle('âœ… Administrator Role Set')
                     .setDescription(`Administrator role has been set to ${role}`)
                     .setFooter({ text: 'Users with this role will have access to administrative commands.' });
 
@@ -105,7 +107,7 @@ export class ConfigCommand extends ModuleCommand<AdministrationModule> {
 
                 const embed = new EmbedBuilder()
                     .setColor(config.bot.embedColor.success as ColorResolvable)
-                    .setTitle('✅ Moderator Role Set')
+                    .setTitle('âœ… Moderator Role Set')
                     .setDescription(`Moderator role has been set to ${role}`)
                     .setFooter({ text: 'Users with this role will have access to moderation commands.' });
 

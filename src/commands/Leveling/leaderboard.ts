@@ -5,7 +5,10 @@ import { Command } from '@sapphire/framework';
 import { EmbedBuilder, MessageFlags, type ColorResolvable } from 'discord.js';
 import { GuildXp } from '../../models/GuildXp';
 import { levelForXp } from '../../lib/utils/leveling';
+import { getGuildAutomation } from '../../lib/utils/guildAutomationCache';
 import config from '../../config';
+
+import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
 
 @ApplyOptions<Command.Options>({
 	name: 'leaderboard',
@@ -13,7 +16,7 @@ import config from '../../config';
 	fullCategory: ['Leveling'],
 	enabled: true
 })
-export class LeaderboardCommand extends ModuleCommand<LevelingModule> {
+export class LeaderboardCommand extends HybridModuleCommand<LevelingModule> {
 	public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
 		super(context, {
 			...options,
@@ -38,16 +41,23 @@ export class LeaderboardCommand extends ModuleCommand<LevelingModule> {
 		try {
 			const top = await GuildXp.find({ guildId: interaction.guildId }).sort({ xp: -1 }).limit(10).lean();
 			if (top.length === 0) {
-				return interaction.reply({ content: 'Nobody has earned XP here yet — start chatting!', flags: MessageFlags.Ephemeral });
+				const auto = await getGuildAutomation(interaction.guildId).catch(() => null);
+				if (!auto?.levelingModuleOn) {
+					return interaction.reply({
+						content: 'Leveling is not switched on here yet â€” enable the Leveling module (dashboard Modules page or /configmodule), then start chatting!',
+						flags: MessageFlags.Ephemeral
+					});
+				}
+				return interaction.reply({ content: 'Nobody has earned XP here yet â€” start chatting!', flags: MessageFlags.Ephemeral });
 			}
-			const medals = ['🥇', '🥈', '🥉'];
+			const medals = ['ðŸ¥‡', 'ðŸ¥ˆ', 'ðŸ¥‰'];
 			const lines = top.map((row, i) => {
 				const prefix = medals[i] ?? `**${i + 1}.**`;
-				return `${prefix} <@${row.userId}> — level ${levelForXp(row.xp)} (${row.xp.toLocaleString('en-US')} XP)`;
+				return `${prefix} <@${row.userId}> â€” level ${levelForXp(row.xp)} (${row.xp.toLocaleString('en-US')} XP)`;
 			});
 			const embed = new EmbedBuilder()
 				.setColor(config.bot.embedColor.default as ColorResolvable)
-				.setTitle(`🏆 ${interaction.guild?.name ?? 'Server'} leaderboard`)
+				.setTitle(`ðŸ† ${interaction.guild?.name ?? 'Server'} leaderboard`)
 				.setDescription(lines.join('\n'));
 			return interaction.reply({ embeds: [embed] });
 		} catch (error) {

@@ -100,7 +100,7 @@ export class MoneyService {
             $unset: ['_availableBankSpace', '_bankAmountToAdd', '_walletOverflow']
           }
         ],
-        { session }
+        { session, updatePipeline: true }
       );
 
       return !!updatedUser;
@@ -198,7 +198,8 @@ export class MoneyService {
             {
               $unset: ['_availableBankSpace', '_transferAmount', '_overflowAmount']
             }
-          ]
+          ],
+          { updatePipeline: true }
         );
 
         return !!updatedUser;

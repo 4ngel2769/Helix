@@ -5,13 +5,15 @@ import { Guild } from '../../models/Guild';
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { AdministrationModule } from '../../modules/Administration';
 
+import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
     name: 'setmodlog',
     description: 'Set the moderation log channel',
     aliases: ['setml', 'sml'],
     preconditions: ['GuildOnly']
 })
-export class SetModLogCommand extends ModuleCommand<AdministrationModule> {
+export class SetModLogCommand extends HybridModuleCommand<AdministrationModule> {
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
         super(context, {
             ...options,
@@ -38,7 +40,7 @@ export class SetModLogCommand extends ModuleCommand<AdministrationModule> {
 
     public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
         if (!interaction.guild) {
-            return interaction.reply({ content: '❌ This command can only be used in a server.', flags: MessageFlags.Ephemeral });
+            return interaction.reply({ content: 'âŒ This command can only be used in a server.', flags: MessageFlags.Ephemeral });
         }
 
         const channel = interaction.options.getChannel('channel') as TextChannel | null;
@@ -59,7 +61,7 @@ export class SetModLogCommand extends ModuleCommand<AdministrationModule> {
 
                 const embed = new EmbedBuilder()
                     .setColor('#49e358')
-                    .setTitle('✅ Mod Log Cleared')
+                    .setTitle('âœ… Mod Log Cleared')
                     .setDescription('The moderation log channel has been cleared.')
                     .setTimestamp();
 
@@ -69,7 +71,7 @@ export class SetModLogCommand extends ModuleCommand<AdministrationModule> {
             // Validate channel type
             if (channel.type !== ChannelType.GuildText) {
                 return interaction.reply({ 
-                    content: '❌ Please select a text channel.', 
+                    content: 'âŒ Please select a text channel.', 
                     flags: MessageFlags.Ephemeral 
                 });
             }
@@ -80,7 +82,7 @@ export class SetModLogCommand extends ModuleCommand<AdministrationModule> {
 
             const embed = new EmbedBuilder()
                 .setColor('#49e358')
-                .setTitle('✅ Mod Log Set')
+                .setTitle('âœ… Mod Log Set')
                 .setDescription(`Moderation actions will now be logged to ${channel}`)
                 .addFields(
                     {
@@ -90,7 +92,7 @@ export class SetModLogCommand extends ModuleCommand<AdministrationModule> {
                     },
                     {
                         name: 'What Gets Logged',
-                        value: '• Bans/Unbans\n• Kicks\n• Timeouts\n• Warnings\n• Role changes\n• Other mod actions',
+                        value: 'â€¢ Bans/Unbans\nâ€¢ Kicks\nâ€¢ Timeouts\nâ€¢ Warnings\nâ€¢ Role changes\nâ€¢ Other mod actions',
                         inline: false
                     }
                 )
@@ -101,7 +103,7 @@ export class SetModLogCommand extends ModuleCommand<AdministrationModule> {
         } catch (error) {
             this.container.logger.error('Error setting mod log:', error);
             return interaction.reply({ 
-                content: '❌ An error occurred while setting the mod log channel.', 
+                content: 'âŒ An error occurred while setting the mod log channel.', 
                 flags: MessageFlags.Ephemeral 
             });
         }

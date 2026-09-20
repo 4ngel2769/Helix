@@ -5,13 +5,15 @@ import { Guild } from '../../models/Guild';
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { AdministrationModule } from '../../modules/Administration';
 
+import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
     name: 'setmessagelog',
     description: 'Set the message edit/delete log channels',
     aliases: ['setmsgl', 'smsgl'],
     preconditions: ['GuildOnly']
 })
-export class SetMessageLogCommand extends ModuleCommand<AdministrationModule> {
+export class SetMessageLogCommand extends HybridModuleCommand<AdministrationModule> {
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
         super(context, {
             ...options,
@@ -67,7 +69,7 @@ export class SetMessageLogCommand extends ModuleCommand<AdministrationModule> {
 
     public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
         if (!interaction.guild) {
-            return interaction.reply({ content: '❌ This command can only be used in a server.', flags: MessageFlags.Ephemeral });
+            return interaction.reply({ content: 'âŒ This command can only be used in a server.', flags: MessageFlags.Ephemeral });
         }
 
         const subcommand = interaction.options.getSubcommand();
@@ -89,13 +91,13 @@ export class SetMessageLogCommand extends ModuleCommand<AdministrationModule> {
             } else if (subcommand === 'both') {
                 return this.handleBoth(interaction, guildData, channel);
             } else {
-                return interaction.reply({ content: '❌ Invalid subcommand.', flags: MessageFlags.Ephemeral });
+                return interaction.reply({ content: 'âŒ Invalid subcommand.', flags: MessageFlags.Ephemeral });
             }
 
         } catch (error) {
             this.container.logger.error('Error setting message log:', error);
             return interaction.reply({ 
-                content: '❌ An error occurred while setting the message log channel.', 
+                content: 'âŒ An error occurred while setting the message log channel.', 
                 flags: MessageFlags.Ephemeral 
             });
         }
@@ -108,7 +110,7 @@ export class SetMessageLogCommand extends ModuleCommand<AdministrationModule> {
 
             const embed = new EmbedBuilder()
                 .setColor('#49e358')
-                .setTitle('✅ Message Edit Log Cleared')
+                .setTitle('âœ… Message Edit Log Cleared')
                 .setDescription('The message edit log channel has been cleared.')
                 .setTimestamp();
 
@@ -116,7 +118,7 @@ export class SetMessageLogCommand extends ModuleCommand<AdministrationModule> {
         }
 
         if (channel.type !== ChannelType.GuildText) {
-            return interaction.reply({ content: '❌ Please select a text channel.', flags: MessageFlags.Ephemeral });
+            return interaction.reply({ content: 'âŒ Please select a text channel.', flags: MessageFlags.Ephemeral });
         }
 
         guildData.messageEditLogChannelId = channel.id;
@@ -124,11 +126,11 @@ export class SetMessageLogCommand extends ModuleCommand<AdministrationModule> {
 
         const embed = new EmbedBuilder()
             .setColor('#49e358')
-            .setTitle('✅ Message Edit Log Set')
+            .setTitle('âœ… Message Edit Log Set')
             .setDescription(`Message edits will now be logged to ${channel}`)
             .addFields({
                 name: 'What Gets Logged',
-                value: '• Original message content\n• Edited message content\n• Author and channel information\n• Timestamp of edit',
+                value: 'â€¢ Original message content\nâ€¢ Edited message content\nâ€¢ Author and channel information\nâ€¢ Timestamp of edit',
                 inline: false
             })
             .setTimestamp();
@@ -143,7 +145,7 @@ export class SetMessageLogCommand extends ModuleCommand<AdministrationModule> {
 
             const embed = new EmbedBuilder()
                 .setColor('#49e358')
-                .setTitle('✅ Message Delete Log Cleared')
+                .setTitle('âœ… Message Delete Log Cleared')
                 .setDescription('The message delete log channel has been cleared.')
                 .setTimestamp();
 
@@ -151,7 +153,7 @@ export class SetMessageLogCommand extends ModuleCommand<AdministrationModule> {
         }
 
         if (channel.type !== ChannelType.GuildText) {
-            return interaction.reply({ content: '❌ Please select a text channel.', flags: MessageFlags.Ephemeral });
+            return interaction.reply({ content: 'âŒ Please select a text channel.', flags: MessageFlags.Ephemeral });
         }
 
         guildData.messageDeleteLogChannelId = channel.id;
@@ -159,11 +161,11 @@ export class SetMessageLogCommand extends ModuleCommand<AdministrationModule> {
 
         const embed = new EmbedBuilder()
             .setColor('#49e358')
-            .setTitle('✅ Message Delete Log Set')
+            .setTitle('âœ… Message Delete Log Set')
             .setDescription(`Message deletions will now be logged to ${channel}`)
             .addFields({
                 name: 'What Gets Logged',
-                value: '• Deleted message content\n• Author and channel information\n• Attachments (if any)\n• Timestamp of deletion',
+                value: 'â€¢ Deleted message content\nâ€¢ Author and channel information\nâ€¢ Attachments (if any)\nâ€¢ Timestamp of deletion',
                 inline: false
             })
             .setTimestamp();
@@ -179,7 +181,7 @@ export class SetMessageLogCommand extends ModuleCommand<AdministrationModule> {
 
             const embed = new EmbedBuilder()
                 .setColor('#49e358')
-                .setTitle('✅ Message Logs Cleared')
+                .setTitle('âœ… Message Logs Cleared')
                 .setDescription('Both message edit and delete log channels have been cleared.')
                 .setTimestamp();
 
@@ -187,7 +189,7 @@ export class SetMessageLogCommand extends ModuleCommand<AdministrationModule> {
         }
 
         if (channel.type !== ChannelType.GuildText) {
-            return interaction.reply({ content: '❌ Please select a text channel.', flags: MessageFlags.Ephemeral });
+            return interaction.reply({ content: 'âŒ Please select a text channel.', flags: MessageFlags.Ephemeral });
         }
 
         guildData.messageEditLogChannelId = channel.id;
@@ -196,11 +198,11 @@ export class SetMessageLogCommand extends ModuleCommand<AdministrationModule> {
 
         const embed = new EmbedBuilder()
             .setColor('#49e358')
-            .setTitle('✅ Message Logs Set')
+            .setTitle('âœ… Message Logs Set')
             .setDescription(`Both message edits and deletions will now be logged to ${channel}`)
             .addFields({
                 name: 'What Gets Logged',
-                value: '• Message edits (before/after)\n• Message deletions\n• Author and channel information\n• Attachments\n• Timestamps',
+                value: 'â€¢ Message edits (before/after)\nâ€¢ Message deletions\nâ€¢ Author and channel information\nâ€¢ Attachments\nâ€¢ Timestamps',
                 inline: false
             })
             .setTimestamp();

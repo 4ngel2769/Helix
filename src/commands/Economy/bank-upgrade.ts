@@ -15,12 +15,14 @@ interface UpgradeTier {
     diamondCost: number;
 }
 
+import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
     name: 'bank-upgrade',
     description: 'Upgrade your bank storage capacity',
     aliases: ['bank-up', 'upgrade-bank']
 })
-export class BankUpgradeCommand extends ModuleCommand<EconomyModule> {
+export class BankUpgradeCommand extends HybridModuleCommand<EconomyModule> {
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
         super(context, {
             ...options,
@@ -97,16 +99,16 @@ export class BankUpgradeCommand extends ModuleCommand<EconomyModule> {
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.default as ColorResolvable)
-                .setTitle('🏦 Bank Upgrade Information')
+                .setTitle('ðŸ¦ Bank Upgrade Information')
                 .setDescription(`Your current bank capacity and available upgrades`)
                 .addFields(
                     {
                         name: 'Current Status',
                         value: [
-                            `🏦 **Bank Limit:** ${user.economy.bankLimit.toLocaleString()} coins`,
-                            `📊 **Current Tier:** ${currentTier}`,
-                            `💎 **Diamonds:** ${diamonds.toLocaleString()}`,
-                            `💰 **Wallet:** ${user.economy.wallet.toLocaleString()} coins`
+                            `ðŸ¦ **Bank Limit:** ${user.economy.bankLimit.toLocaleString()} coins`,
+                            `ðŸ“Š **Current Tier:** ${currentTier}`,
+                            `ðŸ’Ž **Diamonds:** ${diamonds.toLocaleString()}`,
+                            `ðŸ’° **Wallet:** ${user.economy.wallet.toLocaleString()} coins`
                         ].join('\n'),
                         inline: false
                     }
@@ -123,12 +125,12 @@ export class BankUpgradeCommand extends ModuleCommand<EconomyModule> {
                 if (tierNumber === currentTier) continue; // Skip current tier
                 
                 const affordable = this.canAffordUpgrade(user, tier, diamonds);
-                const status = affordable ? '✅' : '❌';
+                const status = affordable ? 'âœ…' : 'âŒ';
                 
                 upgradesText += `${status} **Tier ${tierNumber}:** ${tier.limit.toLocaleString()} coins\n`;
-                upgradesText += `   💰 ${tier.coinCost.toLocaleString()} coins`;
+                upgradesText += `   ðŸ’° ${tier.coinCost.toLocaleString()} coins`;
                 if (tier.diamondCost > 0) {
-                    upgradesText += ` + 💎 ${tier.diamondCost} diamonds`;
+                    upgradesText += ` + ðŸ’Ž ${tier.diamondCost} diamonds`;
                 }
                 upgradesText += '\n\n';
                 
@@ -147,7 +149,7 @@ export class BankUpgradeCommand extends ModuleCommand<EconomyModule> {
             } else {
                 embed.addFields({
                     name: 'Upgrades',
-                    value: '🎉 You have reached the maximum bank tier!',
+                    value: 'ðŸŽ‰ You have reached the maximum bank tier!',
                     inline: false
                 });
             }
@@ -155,12 +157,12 @@ export class BankUpgradeCommand extends ModuleCommand<EconomyModule> {
             embed.addFields({
                 name: 'How to Get Diamonds',
                 value: [
-                    '💎 Diamonds are rare currency obtained through:',
-                    '• Daily rewards (rare chance)',
-                    '• Special events',
-                    '• High-level achievements',
-                    '• Premium shop purchases',
-                    '• Auction rare finds'
+                    'ðŸ’Ž Diamonds are rare currency obtained through:',
+                    'â€¢ Daily rewards (rare chance)',
+                    'â€¢ Special events',
+                    'â€¢ High-level achievements',
+                    'â€¢ Premium shop purchases',
+                    'â€¢ Auction rare finds'
                 ].join('\n'),
                 inline: false
             });
@@ -172,7 +174,7 @@ export class BankUpgradeCommand extends ModuleCommand<EconomyModule> {
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err as ColorResolvable)
-                .setTitle('❌ Error')
+                .setTitle('âŒ Error')
                 .setDescription('An error occurred while fetching bank upgrade information.')
                 .setTimestamp();
 
@@ -194,7 +196,7 @@ export class BankUpgradeCommand extends ModuleCommand<EconomyModule> {
             if (targetTier <= currentTier) {
                 const embed = new EmbedBuilder()
                     .setColor(config.bot.embedColor.err as ColorResolvable)
-                    .setTitle('❌ Invalid Upgrade')
+                    .setTitle('âŒ Invalid Upgrade')
                     .setDescription(`You are already at tier ${currentTier}. You can only upgrade to tier ${currentTier + 1} or higher.`)
                     .setTimestamp();
 
@@ -204,7 +206,7 @@ export class BankUpgradeCommand extends ModuleCommand<EconomyModule> {
             if (targetTier >= this.upgradeTiers.length) {
                 const embed = new EmbedBuilder()
                     .setColor(config.bot.embedColor.err as ColorResolvable)
-                    .setTitle('❌ Invalid Tier')
+                    .setTitle('âŒ Invalid Tier')
                     .setDescription(`Maximum tier is ${this.upgradeTiers.length - 1}.`)
                     .setTimestamp();
 
@@ -217,22 +219,22 @@ export class BankUpgradeCommand extends ModuleCommand<EconomyModule> {
             if (!this.canAffordUpgrade(user, upgrade, diamonds)) {
                 const embed = new EmbedBuilder()
                     .setColor(config.bot.embedColor.err as ColorResolvable)
-                    .setTitle('💸 Insufficient Funds')
+                    .setTitle('ðŸ’¸ Insufficient Funds')
                     .setDescription('You cannot afford this upgrade.')
                     .addFields(
                         {
                             name: 'Required',
                             value: [
-                                `💰 ${upgrade.coinCost.toLocaleString()} coins`,
-                                upgrade.diamondCost > 0 ? `💎 ${upgrade.diamondCost} diamonds` : ''
+                                `ðŸ’° ${upgrade.coinCost.toLocaleString()} coins`,
+                                upgrade.diamondCost > 0 ? `ðŸ’Ž ${upgrade.diamondCost} diamonds` : ''
                             ].filter(Boolean).join('\n'),
                             inline: true
                         },
                         {
                             name: 'You Have',
                             value: [
-                                `💰 ${user.economy.wallet.toLocaleString()} coins`,
-                                `💎 ${diamonds.toLocaleString()} diamonds`
+                                `ðŸ’° ${user.economy.wallet.toLocaleString()} coins`,
+                                `ðŸ’Ž ${diamonds.toLocaleString()} diamonds`
                             ].join('\n'),
                             inline: true
                         }
@@ -245,22 +247,22 @@ export class BankUpgradeCommand extends ModuleCommand<EconomyModule> {
             // Create confirmation embed
             const confirmEmbed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.default as ColorResolvable)
-                .setTitle('🏦 Confirm Bank Upgrade')
+                .setTitle('ðŸ¦ Confirm Bank Upgrade')
                 .setDescription(`Are you sure you want to upgrade to **Tier ${targetTier}**?`)
                 .addFields(
                     {
                         name: 'Upgrade Details',
                         value: [
-                            `🏦 **New Limit:** ${upgrade.limit.toLocaleString()} coins`,
-                            `📈 **Increase:** +${(upgrade.limit - user.economy.bankLimit).toLocaleString()} coins`
+                            `ðŸ¦ **New Limit:** ${upgrade.limit.toLocaleString()} coins`,
+                            `ðŸ“ˆ **Increase:** +${(upgrade.limit - user.economy.bankLimit).toLocaleString()} coins`
                         ].join('\n'),
                         inline: true
                     },
                     {
                         name: 'Cost',
                         value: [
-                            `💰 ${upgrade.coinCost.toLocaleString()} coins`,
-                            upgrade.diamondCost > 0 ? `💎 ${upgrade.diamondCost} diamonds` : ''
+                            `ðŸ’° ${upgrade.coinCost.toLocaleString()} coins`,
+                            upgrade.diamondCost > 0 ? `ðŸ’Ž ${upgrade.diamondCost} diamonds` : ''
                         ].filter(Boolean).join('\n'),
                         inline: true
                     }
@@ -273,12 +275,12 @@ export class BankUpgradeCommand extends ModuleCommand<EconomyModule> {
                         .setCustomId(`bank_upgrade_confirm_${targetTier}`)
                         .setLabel('Confirm Upgrade')
                         .setStyle(ButtonStyle.Success)
-                        .setEmoji('✅'),
+                        .setEmoji('âœ…'),
                     new ButtonBuilder()
                         .setCustomId('bank_upgrade_cancel')
                         .setLabel('Cancel')
                         .setStyle(ButtonStyle.Secondary)
-                        .setEmoji('❌')
+                        .setEmoji('âŒ')
                 );
 
             const response = await interaction.editReply({ 
@@ -300,7 +302,7 @@ export class BankUpgradeCommand extends ModuleCommand<EconomyModule> {
                 if (i.customId === 'bank_upgrade_cancel') {
                     const cancelEmbed = new EmbedBuilder()
                         .setColor(config.bot.embedColor.warn as ColorResolvable)
-                        .setTitle('❌ Upgrade Cancelled')
+                        .setTitle('âŒ Upgrade Cancelled')
                         .setDescription('Bank upgrade has been cancelled.')
                         .setTimestamp();
 
@@ -316,17 +318,17 @@ export class BankUpgradeCommand extends ModuleCommand<EconomyModule> {
                         if (success) {
                             const successEmbed = new EmbedBuilder()
                                 .setColor(config.bot.embedColor.success as ColorResolvable)
-                                .setTitle('🎉 Bank Upgraded Successfully!')
+                                .setTitle('ðŸŽ‰ Bank Upgraded Successfully!')
                                 .setDescription(`Your bank has been upgraded to **Tier ${targetTier}**!`)
                                 .addFields(
                                     {
                                         name: 'New Bank Limit',
-                                        value: `🏦 **${upgrade.limit.toLocaleString()}** coins`,
+                                        value: `ðŸ¦ **${upgrade.limit.toLocaleString()}** coins`,
                                         inline: true
                                     },
                                     {
                                         name: 'Capacity Increase',
-                                        value: `📈 **+${(upgrade.limit - user.economy.bankLimit).toLocaleString()}** coins`,
+                                        value: `ðŸ“ˆ **+${(upgrade.limit - user.economy.bankLimit).toLocaleString()}** coins`,
                                         inline: true
                                     }
                                 )
@@ -342,7 +344,7 @@ export class BankUpgradeCommand extends ModuleCommand<EconomyModule> {
                         
                         const errorEmbed = new EmbedBuilder()
                             .setColor(config.bot.embedColor.err as ColorResolvable)
-                            .setTitle('❌ Upgrade Failed')
+                            .setTitle('âŒ Upgrade Failed')
                             .setDescription('An error occurred while processing the upgrade. Your funds have not been charged.')
                             .setTimestamp();
 
@@ -357,7 +359,7 @@ export class BankUpgradeCommand extends ModuleCommand<EconomyModule> {
                 if (collected.size === 0) {
                     const timeoutEmbed = new EmbedBuilder()
                         .setColor(config.bot.embedColor.warn as ColorResolvable)
-                        .setTitle('⏰ Upgrade Expired')
+                        .setTitle('â° Upgrade Expired')
                         .setDescription('Bank upgrade confirmation timed out.')
                         .setTimestamp();
 
@@ -370,7 +372,7 @@ export class BankUpgradeCommand extends ModuleCommand<EconomyModule> {
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err as ColorResolvable)
-                .setTitle('❌ Error')
+                .setTitle('âŒ Error')
                 .setDescription('An error occurred while processing the bank upgrade.')
                 .setTimestamp();
 

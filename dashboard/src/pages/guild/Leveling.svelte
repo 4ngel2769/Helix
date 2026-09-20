@@ -10,13 +10,11 @@
 
 	let { guildId }: { guildId: string } = $props();
 	const entry = $derived(guildEntry(guildId));
-
 	const channels = $derived(entry.detail?.channels ?? []);
 	const roles = $derived(entry.detail?.roles ?? []);
 	const channelOptions = $derived(channels.map((c) => ({ value: c.id, label: `#${c.name}`, kind: 'channel' as const })));
 	const roleOptions = $derived(roles.map((r) => ({ value: r.id, label: `@${r.name}`, color: r.color, kind: 'role' as const })));
 
-	let enabled = $state(false);
 	let xpMin = $state(15);
 	let xpMax = $state(25);
 	let cooldown = $state(60);
@@ -56,7 +54,6 @@
 
 	function syncFromCache(): void {
 		const lv = (entry.config?.leveling ?? {}) as Record<string, unknown>;
-		enabled = lv.enabled === true;
 		xpMin = num(lv.xpMin, 15);
 		xpMax = num(lv.xpMax, 25);
 		cooldown = num(lv.cooldownSeconds, 60);
@@ -74,7 +71,7 @@
 	}
 
 	function snapshot(): string {
-		return JSON.stringify({ enabled, xpMin, xpMax, cooldown, levelUpChannel, levelUpMessage, stackRewards, ignoredChannels, ignoredRoles, rewards });
+		return JSON.stringify({ xpMin, xpMax, cooldown, levelUpChannel, levelUpMessage, stackRewards, ignoredChannels, ignoredRoles, rewards });
 	}
 
 	$effect(() => {
@@ -106,7 +103,6 @@
 		try {
 			await saveGuildConfig(guildId, {
 				leveling: {
-					enabled,
 					xpMin,
 					xpMax,
 					cooldownSeconds: cooldown,
@@ -128,11 +124,10 @@
 	}
 </script>
 
-<PageHeader title="Leveling" description="XP for chatting, level-up announcements, and role rewards. Use /rank and /leaderboard in Discord." />
+<PageHeader title="Leveling" description="XP for chatting, level-up announcements, and role rewards. Switched on/off via the Modules page or /configmodule — this page tunes how it behaves. Commands: /rank, /leaderboard." />
 
 <div class="card">
-	<Toggle title="Enable leveling" description="Award XP for messages in this server." checked={enabled} onchange={(v) => { enabled = v; saved = false; }} />
-	<div class="grid-3" style="margin-top: 12px;">
+	<div class="grid-3">
 		<div class="field"><label for="lv-min">Min XP per message</label><input id="lv-min" type="number" min={1} max={1000} bind:value={xpMin} oninput={() => (saved = false)} /></div>
 		<div class="field"><label for="lv-max">Max XP per message</label><input id="lv-max" type="number" min={1} max={1000} bind:value={xpMax} oninput={() => (saved = false)} /></div>
 		<div class="field"><label for="lv-cool">Cooldown (seconds)</label><input id="lv-cool" type="number" min={0} max={3600} bind:value={cooldown} oninput={() => (saved = false)} /></div>

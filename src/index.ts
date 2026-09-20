@@ -11,6 +11,7 @@ import { Guild } from './models/Guild';
 import { initializePerformanceMonitor } from './lib/services/TPSMonitor';
 import { AuctionService } from './lib/services/AuctionService';
 import { RedditFeedService } from './lib/services/RedditFeedService';
+import { PremiumExpiryService } from './lib/services/PremiumExpiryService';
 import { getGuildPrefixFromCache, setGuildPrefixInCache } from './lib/utils/prefixCache';
 
 function validateEnv() {
@@ -115,6 +116,12 @@ const main = async () => {
             });
         }, 5 * 60000);
         client.logger.info('Started reddit feeds processor interval (every 5m)');
+        setInterval(() => {
+            void PremiumExpiryService.processExpiringPremium().catch((err) => {
+                container.logger.error('Error in premium expiry background job:', err);
+            });
+        }, 60 * 60000);
+        client.logger.info('Started premium expiry processor interval (every 60m)');
     } catch (error) {
         client.logger.fatal(error);
         await client.destroy();

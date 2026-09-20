@@ -101,6 +101,7 @@
 			const data = await api<DevGuildEntry>('/dev/guilds', { method: 'PATCH', body: { guildId: g.id, ...body } });
 			Object.assign(g, data);
 			notice = okText.replace('{name}', g.name);
+			if (typeof data.dmSent === 'boolean') notice += data.dmSent ? ' Owner notified by DM.' : ' (DM to owner failed — DMs closed?)';
 			if (body.guildBanned === true) await load(true);
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'Update failed';

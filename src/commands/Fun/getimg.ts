@@ -6,6 +6,8 @@ import { AttachmentBuilder } from 'discord.js';
 import axios from 'axios';
 import config from '../../config';
 
+import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
     name: 'getimg',
     description: 'Get a random image',
@@ -13,7 +15,7 @@ import config from '../../config';
     enabled: true,
     flags: true
 })
-export class GetImgCommand extends ModuleCommand<FunModule> {
+export class GetImgCommand extends HybridModuleCommand<FunModule> {
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
         super(context, {
             ...options,

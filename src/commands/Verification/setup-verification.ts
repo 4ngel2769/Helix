@@ -17,12 +17,14 @@ import { Guild, type IGuild } from '../../models/Guild';
 import { ErrorHandler } from '../../lib/structures/ErrorHandler';
 import config from '../../config';
 
+import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
     name: 'setup-verification',
     description: 'Quick setup for verification system',
     preconditions: ['GuildOnly', 'ModeratorOnly']
 })
-export class SetupVerificationCommand extends ModuleCommand<VerificationModule> {
+export class SetupVerificationCommand extends HybridModuleCommand<VerificationModule> {
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
         super(context, {
             ...options,
@@ -127,7 +129,7 @@ export class SetupVerificationCommand extends ModuleCommand<VerificationModule> 
             // Success response
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.success as ColorResolvable)
-                .setTitle('✅ Verification Setup Complete')
+                .setTitle('âœ… Verification Setup Complete')
                 .setDescription('Verification system has been successfully configured!')
                 .addFields(
                     {
@@ -142,7 +144,7 @@ export class SetupVerificationCommand extends ModuleCommand<VerificationModule> 
                     },
                     {
                         name: 'Status',
-                        value: '✅ Enabled',
+                        value: 'âœ… Enabled',
                         inline: true
                     }
                 )
@@ -171,7 +173,7 @@ export class SetupVerificationCommand extends ModuleCommand<VerificationModule> 
             .setCustomId('verify-button')
             .setLabel('Verify')
             .setStyle(ButtonStyle.Primary)
-            .setEmoji('✅');
+            .setEmoji('âœ…');
 
         const row = new ActionRowBuilder<ButtonBuilder>()
             .addComponents(button);

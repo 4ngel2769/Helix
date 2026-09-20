@@ -4,12 +4,14 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { MessageFlags, PermissionFlagsBits } from 'discord.js';
 
+import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
   name: 'purgebot',
   description: 'Bulk delete bot messages',
   preconditions: ['GuildOnly']
 })
-export class PurgebotCommand extends ModuleCommand<ModerationModule> {
+export class PurgebotCommand extends HybridModuleCommand<ModerationModule> {
   public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
     super(context, { ...options, module: 'Moderation', description: 'Bulk delete bot messages' });
   }

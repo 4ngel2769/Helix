@@ -5,12 +5,14 @@ import { Command } from '@sapphire/framework';
 import { MessageFlags, PermissionFlagsBits } from 'discord.js';
 import { Guild } from '../../models/Guild';
 
+import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
   name: 'setwelcomechannel',
   description: 'Set the welcome message channel',
   preconditions: ['GuildOnly']
 })
-export class SetwelcomechannelCommand extends ModuleCommand<AdministrationModule> {
+export class SetwelcomechannelCommand extends HybridModuleCommand<AdministrationModule> {
   public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
     super(context, { ...options, module: 'Administration', description: 'Set the welcome message channel' });
   }

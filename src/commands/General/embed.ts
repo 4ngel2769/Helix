@@ -5,12 +5,14 @@ import type { GeneralModule } from '../../modules/General';
 import { EmbedBuilder, MessageFlags } from 'discord.js';
 import config from '../../config';
 
+import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
     name: 'embed',
     description: 'Create a custom embed',
     preconditions: ['ModuleEnabled']
 })
-export class EmbedCommand extends ModuleCommand<GeneralModule> {
+export class EmbedCommand extends HybridModuleCommand<GeneralModule> {
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
         super(context, { ...options, module: 'General' });
     }

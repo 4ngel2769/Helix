@@ -6,6 +6,8 @@ import { EmbedBuilder, ColorResolvable } from 'discord.js';
 import axios from 'axios';
 import config from '../../config';
 
+import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
 	enabled: true,
 	name: 'ask',
@@ -15,7 +17,7 @@ import config from '../../config';
 	cooldownDelay: 5000,
 	cooldownLimit: 1
 })
-export class AskCommand extends ModuleCommand<GeneralModule> {
+export class AskCommand extends HybridModuleCommand<GeneralModule> {
 	private readonly ollamaUrl = config.ollama.url;
 	private readonly defaultModel = config.ollama.defaultModel;
 	private readonly availableModels = config.ollama.availableModels;
@@ -148,7 +150,7 @@ export class AskCommand extends ModuleCommand<GeneralModule> {
 				iconURL: interaction.client.user?.displayAvatarURL()
 			})
 			.setDescription(description)
-			.setFooter({ text: `Asked by ${interaction.user.username} • Model: ${model}` })
+			.setFooter({ text: `Asked by ${interaction.user.username} â€¢ Model: ${model}` })
 			.setTimestamp();
 	}
 
@@ -158,7 +160,7 @@ export class AskCommand extends ModuleCommand<GeneralModule> {
 		}
 
 		const clamped = fullResponse.length > 4000 ? `${fullResponse.substring(0, 4000)}... (response truncated)` : fullResponse;
-		return isStreaming && fullResponse.length <= 4000 ? `${clamped}▌` : clamped;
+		return isStreaming && fullResponse.length <= 4000 ? `${clamped}â–Œ` : clamped;
 	}
 
 	private extractResponseTextFromChunk(chunk: Buffer): string {

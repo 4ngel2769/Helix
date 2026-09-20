@@ -14,6 +14,8 @@ import {
 } from 'discord.js';
 import { startSinglePlayerGame, startMultiplayerGame } from '../../lib/games/tictactoe';
 
+import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
     enabled: true,
     nsfw: false,
@@ -24,7 +26,7 @@ import { startSinglePlayerGame, startMultiplayerGame } from '../../lib/games/tic
     cooldownDelay: 5000,
     cooldownLimit: 3
 })
-export class GameCommand extends ModuleCommand<FunModule> {
+export class GameCommand extends HybridModuleCommand<FunModule> {
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
         super(context, {
             ...options,

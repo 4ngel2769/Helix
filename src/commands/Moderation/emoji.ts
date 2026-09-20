@@ -11,12 +11,14 @@ import {
 import { ErrorHandler } from '../../lib/structures/ErrorHandler';
 import config from '../../config';
 
+import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
     name: 'emoji',
     description: 'Add an emoji to the server',
     preconditions: ['GuildOnly', 'ModeratorOnly']
 })
-export class EmojiCommand extends ModuleCommand<ModerationModule> {
+export class EmojiCommand extends HybridModuleCommand<ModerationModule> {
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
         super(context, {
             ...options,
@@ -90,7 +92,7 @@ export class EmojiCommand extends ModuleCommand<ModerationModule> {
                 // Success embed
                 const successEmbed = new EmbedBuilder()
                     .setColor(config.bot.embedColor.success as ColorResolvable)
-                    .setTitle('✅ Emoji Created')
+                    .setTitle('âœ… Emoji Created')
                     .setDescription(`Successfully created emoji ${emoji} with name \`:${name}:\``)
                     .setThumbnail(url);
 
@@ -114,7 +116,7 @@ export class EmojiCommand extends ModuleCommand<ModerationModule> {
                 );
             }
         } else {
-            return interaction.reply({ content: '❌ Invalid subcommand.', flags: MessageFlags.Ephemeral });
+            return interaction.reply({ content: 'âŒ Invalid subcommand.', flags: MessageFlags.Ephemeral });
         }
     }
 } 

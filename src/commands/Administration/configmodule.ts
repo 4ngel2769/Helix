@@ -2,14 +2,17 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { PermissionFlagsBits, MessageFlags } from 'discord.js';
 import { getAllModuleKeys, getModuleConfig } from '../../config/modules';
-import { GuildConfigService } from '../../lib/services/GuildConfigService';
+import { Guild } from '../../models/Guild';
+import { clearGuildAutomation } from '../../lib/utils/guildAutomationCache';
+
+import { HybridCommand } from '../../lib/structures/HybridCommand';
 
 @ApplyOptions<Command.Options>({
 	name: 'configmodule',
 	description: 'Configure modules for your server',
 	requiredUserPermissions: ['Administrator']
 })
-export class ConfigModuleCommand extends Command {
+export class ConfigModuleCommand extends HybridCommand {
 	public override registerApplicationCommands(registry: Command.Registry) {
 		registry.registerChatInputCommand((builder) =>
 			builder
@@ -62,22 +65,19 @@ export class ConfigModuleCommand extends Command {
 			});
 		}
 
-		// Get or create guild data
-		const guildData = await GuildConfigService.getOrCreateGuildData(guildId);
-
-		// Ensure modules object exists
-		if (!guildData.modules) {
-			guildData.modules = {};
-		}
-
 		// Use switch for action logic
 		switch (action) {
 			case 'enable':
 			case 'disable': {
 				const enabled = action === 'enable';
-				guildData.modules[moduleKey] = enabled;
-				// Save changes to DB
-				await guildData.save();
+				// Atomic $set: Guild.modules is a Mixed path, so in-place
+				// mutation + save() would silently persist nothing.
+				await Guild.findOneAndUpdate(
+					{ guildId },
+					{ $set: { [`modules.${moduleKey}`]: enabled } },
+					{ upsert: true }
+				);
+				clearGuildAutomation(guildId);
 
 				// Confirmation reply
 				return interaction.reply({

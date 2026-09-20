@@ -5,13 +5,15 @@ import { EconomyItem } from '../../models/EconomyItem';
 import { randomUUID } from 'crypto';
 import config from '../../config';
 
+import { HybridCommand } from '../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
     name: 'item-manage',
     description: 'Manage economy items (Developer Only)',
     aliases: ['itemmanage', 'manageitems'],
     preconditions: ['OwnerOnly']
 })
-export class ItemManageCommand extends Command {
+export class ItemManageCommand extends HybridCommand {
     public override registerApplicationCommands(registry: Command.Registry) {
         registry.registerChatInputCommand((builder) =>
             builder
@@ -184,7 +186,7 @@ export class ItemManageCommand extends Command {
         const category = interaction.options.getString('category', true);
         const rarity = interaction.options.getString('rarity', true) as 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythical';
         const basePrice = interaction.options.getInteger('price', true);
-        const emoji = interaction.options.getString('emoji') || '📦';
+        const emoji = interaction.options.getString('emoji') || 'ðŸ“¦';
         const image = interaction.options.getString('image');
         const effectsString = interaction.options.getString('effects');
         const tradeable = interaction.options.getBoolean('tradeable') ?? true;
@@ -211,9 +213,9 @@ export class ItemManageCommand extends Command {
                 } catch (error) {
                     const embed = new EmbedBuilder()
                         .setColor(config.bot.embedColor.err)
-                        .setTitle('❌ Invalid Effects Format')
+                        .setTitle('âŒ Invalid Effects Format')
                         .setDescription('Effects must be valid JSON array format.\n\n**Examples:**\n```json\n[{"type":"heal","value":50}]\n[{"type":"strength","value":5,"duration":300}]\n[{"type":"poison","value":10,"duration":60,"chance":75}]\n```\n\n**Available Effect Types:**\n`heal`, `harm`, `sanity`, `energy`, `luck`, `experience`, `money`, `protection`, `speed`, `strength`, `intelligence`, `charisma`, `stealth`, `regeneration`, `poison`, `burn`, `freeze`, `shock`, `confusion`, `fear`, `rage`, `calm`, `focus`, `blind`, `deaf`, `mute`, `paralysis`, `sleep`, `charm`')
-                        .setFooter({ text: 'Developer Commands • Item Management' })
+                        .setFooter({ text: 'Developer Commands â€¢ Item Management' })
                         .setTimestamp();
 
                     return interaction.editReply({ embeds: [embed] });
@@ -228,9 +230,9 @@ export class ItemManageCommand extends Command {
             if (existingItem) {
                 const embed = new EmbedBuilder()
                     .setColor(config.bot.embedColor.err)
-                    .setTitle('❌ Item Creation Failed')
+                    .setTitle('âŒ Item Creation Failed')
                     .setDescription(`An item with the name "${name}" already exists.`)
-                    .setFooter({ text: 'Developer Commands • Item Management' })
+                    .setFooter({ text: 'Developer Commands â€¢ Item Management' })
                     .setTimestamp();
 
                 return interaction.editReply({ embeds: [embed] });
@@ -269,7 +271,7 @@ export class ItemManageCommand extends Command {
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.success)
-                .setTitle('✅ Item Created Successfully')
+                .setTitle('âœ… Item Created Successfully')
                 .setDescription(`**${emoji} ${name}** has been created!`)
                 .addFields(
                     { name: 'Item ID', value: `\`${itemId}\``, inline: true },
@@ -280,7 +282,7 @@ export class ItemManageCommand extends Command {
                     { name: 'Shop Status', value: `Available: ${shopAvailable ? 'Yes' : 'No'}\nStock: ${shopStock === -1 ? 'Unlimited' : shopStock.toString()}`, inline: true },
                     { name: 'Description', value: description, inline: false }
                 )
-                .setFooter({ text: 'Developer Commands • Item Management' })
+                .setFooter({ text: 'Developer Commands â€¢ Item Management' })
                 .setTimestamp();
 
             if (effects.length > 0) {
@@ -305,9 +307,9 @@ export class ItemManageCommand extends Command {
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err)
-                .setTitle('❌ Error')
+                .setTitle('âŒ Error')
                 .setDescription('An error occurred while creating the item.')
-                .setFooter({ text: 'Developer Commands • Item Management' })
+                .setFooter({ text: 'Developer Commands â€¢ Item Management' })
                 .setTimestamp();
 
             return interaction.editReply({ embeds: [embed] });
@@ -358,9 +360,9 @@ export class ItemManageCommand extends Command {
             if (items.length === 0) {
                 const embed = new EmbedBuilder()
                     .setColor(config.bot.embedColor.warn)
-                    .setTitle('📦 No Items Found')
+                    .setTitle('ðŸ“¦ No Items Found')
                     .setDescription(`No items found${category !== 'all' ? ` in category: ${category}` : ''}.`)
-                    .setFooter({ text: 'Developer Commands • Item Management' })
+                    .setFooter({ text: 'Developer Commands â€¢ Item Management' })
                     .setTimestamp();
 
                 return interaction.editReply({ embeds: [embed] });
@@ -368,9 +370,9 @@ export class ItemManageCommand extends Command {
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.default)
-                .setTitle(`🔧 Economy Items${category !== 'all' ? ` - ${category}` : ''}`)
-                .setDescription(`Found **${items.length}** items • Developer View`)
-                .setFooter({ text: 'Developer Commands • Item Management' })
+                .setTitle(`ðŸ”§ Economy Items${category !== 'all' ? ` - ${category}` : ''}`)
+                .setDescription(`Found **${items.length}** items â€¢ Developer View`)
+                .setFooter({ text: 'Developer Commands â€¢ Item Management' })
                 .setTimestamp();
 
             // Group items by category for display
@@ -389,8 +391,8 @@ export class ItemManageCommand extends Command {
                     .slice(0, 10) // Show max 10 items per category
                     .map(item => {
                         const rarity = this.getRarityEmoji(item.rarity);
-                        const shopStatus = item.shop.available ? '🏪' : '';
-                        return `${rarity} ${item.emoji} **${item.name}** ${shopStatus}\n\`ID: ${item.itemId}\` • ${item.basePrice.toLocaleString()} coins`;
+                        const shopStatus = item.shop.available ? 'ðŸª' : '';
+                        return `${rarity} ${item.emoji} **${item.name}** ${shopStatus}\n\`ID: ${item.itemId}\` â€¢ ${item.basePrice.toLocaleString()} coins`;
                     })
                     .join('\n\n');
 
@@ -411,9 +413,9 @@ export class ItemManageCommand extends Command {
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err)
-                .setTitle('❌ Error')
+                .setTitle('âŒ Error')
                 .setDescription('An error occurred while listing items.')
-                .setFooter({ text: 'Developer Commands • Item Management' })
+                .setFooter({ text: 'Developer Commands â€¢ Item Management' })
                 .setTimestamp();
 
             return interaction.editReply({ embeds: [embed] });
@@ -431,9 +433,9 @@ export class ItemManageCommand extends Command {
             if (!item) {
                 const embed = new EmbedBuilder()
                     .setColor(config.bot.embedColor.err)
-                    .setTitle('❌ Item Not Found')
+                    .setTitle('âŒ Item Not Found')
                     .setDescription(`No item found with ID: \`${itemId}\``)
-                    .setFooter({ text: 'Developer Commands • Item Management' })
+                    .setFooter({ text: 'Developer Commands â€¢ Item Management' })
                     .setTimestamp();
 
                 return interaction.editReply({ embeds: [embed] });
@@ -460,12 +462,12 @@ export class ItemManageCommand extends Command {
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.default)
-                .setTitle(`🛠️ Edit Item: ${item.name}`)
+                .setTitle(`ðŸ› ï¸ Edit Item: ${item.name}`)
                 .setDescription('Select a property to edit from the dropdown below.')
                 .addFields(
                     { name: 'Current Details', value: `**ID:** \`${item.itemId}\`\n**Name:** ${item.emoji} ${item.name}\n**Category:** ${item.category}\n**Rarity:** ${this.getRarityDisplay(item.rarity)}\n**Price:** ${item.basePrice.toLocaleString()} coins`, inline: false }
                 )
-                .setFooter({ text: 'Developer Commands • Item Management' })
+                .setFooter({ text: 'Developer Commands â€¢ Item Management' })
                 .setTimestamp();
 
             if (item.image) {
@@ -479,9 +481,9 @@ export class ItemManageCommand extends Command {
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err)
-                .setTitle('❌ Error')
+                .setTitle('âŒ Error')
                 .setDescription('An error occurred while preparing item for editing.')
-                .setFooter({ text: 'Developer Commands • Item Management' })
+                .setFooter({ text: 'Developer Commands â€¢ Item Management' })
                 .setTimestamp();
 
             return interaction.editReply({ embeds: [embed] });
@@ -499,9 +501,9 @@ export class ItemManageCommand extends Command {
             if (!item) {
                 const embed = new EmbedBuilder()
                     .setColor(config.bot.embedColor.err)
-                    .setTitle('❌ Item Not Found')
+                    .setTitle('âŒ Item Not Found')
                     .setDescription(`No item found with ID: \`${itemId}\``)
-                    .setFooter({ text: 'Developer Commands • Item Management' })
+                    .setFooter({ text: 'Developer Commands â€¢ Item Management' })
                     .setTimestamp();
 
                 return interaction.editReply({ embeds: [embed] });
@@ -511,12 +513,12 @@ export class ItemManageCommand extends Command {
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.success)
-                .setTitle('🗑️ Item Deleted')
+                .setTitle('ðŸ—‘ï¸ Item Deleted')
                 .setDescription(`**${item.emoji} ${item.name}** has been deleted successfully.`)
                 .addFields(
                     { name: 'Deleted Item Details', value: `**ID:** \`${itemId}\`\n**Category:** ${item.category}\n**Rarity:** ${this.getRarityDisplay(item.rarity)}`, inline: false }
                 )
-                .setFooter({ text: 'Developer Commands • Item Management' })
+                .setFooter({ text: 'Developer Commands â€¢ Item Management' })
                 .setTimestamp();
 
             return interaction.editReply({ embeds: [embed] });
@@ -526,9 +528,9 @@ export class ItemManageCommand extends Command {
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err)
-                .setTitle('❌ Error')
+                .setTitle('âŒ Error')
                 .setDescription('An error occurred while deleting the item.')
-                .setFooter({ text: 'Developer Commands • Item Management' })
+                .setFooter({ text: 'Developer Commands â€¢ Item Management' })
                 .setTimestamp();
 
             return interaction.editReply({ embeds: [embed] });
@@ -537,37 +539,37 @@ export class ItemManageCommand extends Command {
 
     private getRarityDisplay(rarity: string): string {
         const rarityColors = {
-            common: '⚪ Common',
-            uncommon: '🟢 Uncommon',
-            rare: '🔵 Rare',
-            epic: '🟣 Epic',
-            legendary: '🟡 Legendary',
-            mythical: '🔴 Mythical'
+            common: 'âšª Common',
+            uncommon: 'ðŸŸ¢ Uncommon',
+            rare: 'ðŸ”µ Rare',
+            epic: 'ðŸŸ£ Epic',
+            legendary: 'ðŸŸ¡ Legendary',
+            mythical: 'ðŸ”´ Mythical'
         };
         return rarityColors[rarity as keyof typeof rarityColors] || rarity;
     }
 
     private getRarityEmoji(rarity: string): string {
         const rarityEmojis = {
-            common: '⚪',
-            uncommon: '🟢',
-            rare: '🔵',
-            epic: '🟣',
-            legendary: '🟡',
-            mythical: '🔴'
+            common: 'âšª',
+            uncommon: 'ðŸŸ¢',
+            rare: 'ðŸ”µ',
+            epic: 'ðŸŸ£',
+            legendary: 'ðŸŸ¡',
+            mythical: 'ðŸ”´'
         };
-        return rarityEmojis[rarity as keyof typeof rarityEmojis] || '⚪';
+        return rarityEmojis[rarity as keyof typeof rarityEmojis] || 'âšª';
     }
 
     private getCategoryEmoji(category: string): string {
         const categoryEmojis = {
-            tools: '🔧',
-            weapons: '⚔️',
-            consumables: '🧪',
-            materials: '🔩',
-            collectibles: '💎',
-            misc: '📦'
+            tools: 'ðŸ”§',
+            weapons: 'âš”ï¸',
+            consumables: 'ðŸ§ª',
+            materials: 'ðŸ”©',
+            collectibles: 'ðŸ’Ž',
+            misc: 'ðŸ“¦'
         };
-        return categoryEmojis[category as keyof typeof categoryEmojis] || '📦';
+        return categoryEmojis[category as keyof typeof categoryEmojis] || 'ðŸ“¦';
     }
 }

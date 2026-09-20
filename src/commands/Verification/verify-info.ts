@@ -6,11 +6,13 @@ import { EmbedBuilder, MessageFlags, ColorResolvable } from 'discord.js';
 import { Guild } from '../../models/Guild';
 import config from '../../config';
 
+import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
     name: 'verify-info',
     description: 'Information about server verification'
 })
-export class VerifyInfoCommand extends ModuleCommand<VerificationModule> {
+export class VerifyInfoCommand extends HybridModuleCommand<VerificationModule> {
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
         super(context, {
             ...options,
@@ -35,7 +37,7 @@ export class VerifyInfoCommand extends ModuleCommand<VerificationModule> {
         if (!guildData?.isVerificationModule || !guildData.verificationRoleId) {
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.warn as ColorResolvable)
-                .setTitle('❌ Verification Not Configured')
+                .setTitle('âŒ Verification Not Configured')
                 .setDescription('This server does not have verification enabled.')
                 .setTimestamp();
 
@@ -57,10 +59,10 @@ export class VerifyInfoCommand extends ModuleCommand<VerificationModule> {
             .setColor(isVerified ? 
                 config.bot.embedColor.success as ColorResolvable : 
                 config.bot.embedColor.default as ColorResolvable)
-            .setTitle('🔐 Server Verification Info')
+            .setTitle('ðŸ” Server Verification Info')
             .setDescription(isVerified ? 
-                '✅ You are verified in this server!' : 
-                '❌ You are not yet verified in this server.')
+                'âœ… You are verified in this server!' : 
+                'âŒ You are not yet verified in this server.')
             .addFields(
                 {
                     name: 'Verification Channel',
@@ -77,8 +79,8 @@ export class VerifyInfoCommand extends ModuleCommand<VerificationModule> {
                 {
                     name: 'Status',
                     value: guildData.isVerificationModule ? 
-                        '✅ Enabled' : 
-                        '❌ Disabled',
+                        'âœ… Enabled' : 
+                        'âŒ Disabled',
                     inline: true
                 }
             )

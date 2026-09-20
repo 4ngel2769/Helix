@@ -17,12 +17,14 @@ import { Guild, type IGuild } from '../../models/Guild';
 import { ErrorHandler } from '../../lib/structures/ErrorHandler';
 import config from '../../config';
 
+import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
     name: 'verification',
     description: 'Configure verification settings',
     preconditions: ['GuildOnly', 'ModeratorOnly']
 })
-export class VerificationCommand extends ModuleCommand<VerificationModule> {
+export class VerificationCommand extends HybridModuleCommand<VerificationModule> {
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
         super(context, {
             ...options,
@@ -61,7 +63,7 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
     private createVerificationEmbed(guildData: IGuild, enabled: boolean): EmbedBuilder {
         const description = enabled
             ? (guildData.verificationMessage || 'Click the button below to verify yourself and gain access to the server!')
-            : (guildData.verificationDisabledMessage || '⚠️ Verification is currently disabled. Please try again later.');
+            : (guildData.verificationDisabledMessage || 'âš ï¸ Verification is currently disabled. Please try again later.');
 
         const embed = new EmbedBuilder()
             .setColor(enabled ? config.bot.embedColor.default as ColorResolvable : 'Red')
@@ -84,7 +86,7 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
             .setCustomId('verify-button')
             .setLabel('Verify')
             .setStyle(ButtonStyle.Primary)
-            .setEmoji('✅')
+            .setEmoji('âœ…')
             .setDisabled(disabled);
 
         return new ActionRowBuilder<ButtonBuilder>().addComponents(button);
@@ -256,7 +258,7 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
 
                 await this.checkAndSendVerificationMessage(guildData);
                 return interaction.reply({
-                    content: `✅ Verification channel set to ${channel}`,
+                    content: `âœ… Verification channel set to ${channel}`,
                     flags: MessageFlags.Ephemeral
                 });
             }
@@ -285,7 +287,7 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
 
                 await this.checkAndSendVerificationMessage(guildData);
                 return interaction.reply({
-                    content: `✅ Verification role set to ${role}`,
+                    content: `âœ… Verification role set to ${role}`,
                     flags: MessageFlags.Ephemeral
                 });
             }
@@ -300,7 +302,7 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
                 await this.updateVerificationMessageState(guildData, enabled);
 
                 return interaction.reply({
-                    content: `✅ Verification ${enabled ? 'enabled' : 'disabled'}`,
+                    content: `âœ… Verification ${enabled ? 'enabled' : 'disabled'}`,
                     flags: MessageFlags.Ephemeral
                 });
             }
@@ -318,7 +320,7 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
                 await this.saveAndSyncVerificationMessage(guildData, interaction);
 
                 return interaction.reply({
-                    content: `✅ ${type === 'enabled' ? 'Verification' : 'Disabled'} message updated`,
+                    content: `âœ… ${type === 'enabled' ? 'Verification' : 'Disabled'} message updated`,
                     flags: MessageFlags.Ephemeral
                 });
             }
@@ -330,7 +332,7 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
                 await this.saveAndSyncVerificationMessage(guildData, interaction);
 
                 return interaction.reply({
-                    content: `✅ Verification title updated to: "${title}"`,
+                    content: `âœ… Verification title updated to: "${title}"`,
                     flags: MessageFlags.Ephemeral
                 });
             }
@@ -342,7 +344,7 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
                 await this.saveAndSyncVerificationMessage(guildData, interaction);
 
                 return interaction.reply({
-                    content: footer ? `✅ Verification footer updated` : `✅ Verification footer removed`,
+                    content: footer ? `âœ… Verification footer updated` : `âœ… Verification footer removed`,
                     flags: MessageFlags.Ephemeral
                 });
             }
@@ -359,7 +361,7 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
                 await this.saveAndSyncVerificationMessage(guildData, interaction);
 
                 return interaction.reply({
-                    content: url ? `✅ Verification thumbnail updated` : `✅ Verification thumbnail removed`,
+                    content: url ? `âœ… Verification thumbnail updated` : `âœ… Verification thumbnail removed`,
                     flags: MessageFlags.Ephemeral
                 });
             }
@@ -367,21 +369,21 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
             case 'status': {
                 const embed = new EmbedBuilder()
                     .setColor(config.bot.embedColor.default as ColorResolvable)
-                    .setTitle('🔧 Verification Settings')
+                    .setTitle('ðŸ”§ Verification Settings')
                     .setTimestamp();
 
                 // Status indicator
                 const isEnabled = guildData.isVerificationModule !== false;
                 embed.addFields({
                     name: 'Status',
-                    value: isEnabled ? '✅ Enabled' : '❌ Disabled',
+                    value: isEnabled ? 'âœ… Enabled' : 'âŒ Disabled',
                     inline: true
                 });
 
                 // Channel
                 const channel = guildData.verificationChannelId 
                     ? `<#${guildData.verificationChannelId}>` 
-                    : '❌ Not set';
+                    : 'âŒ Not set';
                 embed.addFields({
                     name: 'Channel',
                     value: channel,
@@ -391,7 +393,7 @@ export class VerificationCommand extends ModuleCommand<VerificationModule> {
                 // Role
                 const role = guildData.verificationRoleId 
                     ? `<@&${guildData.verificationRoleId}>` 
-                    : '❌ Not set';
+                    : 'âŒ Not set';
                 embed.addFields({
                     name: 'Role',
                     value: role,

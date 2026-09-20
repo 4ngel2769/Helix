@@ -5,13 +5,15 @@ import { Guild } from '../../models/Guild';
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { AdministrationModule } from '../../modules/Administration';
 
+import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
     name: 'setmodrole',
     description: 'Set the moderator role for your server',
     aliases: ['setmr', 'smr'],
     preconditions: ['GuildOnly']
 })
-export class SetModRoleCommand extends ModuleCommand<AdministrationModule> {
+export class SetModRoleCommand extends HybridModuleCommand<AdministrationModule> {
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
         super(context, {
             ...options,
@@ -37,7 +39,7 @@ export class SetModRoleCommand extends ModuleCommand<AdministrationModule> {
 
     public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
         if (!interaction.guild) {
-            return interaction.reply({ content: '❌ This command can only be used in a server.', flags: MessageFlags.Ephemeral });
+            return interaction.reply({ content: 'âŒ This command can only be used in a server.', flags: MessageFlags.Ephemeral });
         }
 
         const role = interaction.options.getRole('role') as Role | null;
@@ -58,7 +60,7 @@ export class SetModRoleCommand extends ModuleCommand<AdministrationModule> {
 
                 const embed = new EmbedBuilder()
                     .setColor('#49e358')
-                    .setTitle('✅ Moderator Role Cleared')
+                    .setTitle('âœ… Moderator Role Cleared')
                     .setDescription('The moderator role has been cleared from your server settings.')
                     .setTimestamp();
 
@@ -71,7 +73,7 @@ export class SetModRoleCommand extends ModuleCommand<AdministrationModule> {
 
             const embed = new EmbedBuilder()
                 .setColor('#49e358')
-                .setTitle('✅ Moderator Role Set')
+                .setTitle('âœ… Moderator Role Set')
                 .setDescription(`Moderator role has been set to ${role}`)
                 .addFields({
                     name: 'Role',
@@ -85,7 +87,7 @@ export class SetModRoleCommand extends ModuleCommand<AdministrationModule> {
         } catch (error) {
             this.container.logger.error('Error setting mod role:', error);
             return interaction.reply({ 
-                content: '❌ An error occurred while setting the moderator role.', 
+                content: 'âŒ An error occurred while setting the moderator role.', 
                 flags: MessageFlags.Ephemeral 
             });
         }

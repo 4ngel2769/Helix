@@ -5,12 +5,14 @@ import { Command } from '@sapphire/framework';
 import { MessageFlags, PermissionFlagsBits } from 'discord.js';
 import { sendLog, suppressNext } from '../../lib/logging/logService';
 
+import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
   name: 'mute',
   description: 'Timeout a user',
   preconditions: ['GuildOnly']
 })
-export class MuteCommand extends ModuleCommand<ModerationModule> {
+export class MuteCommand extends HybridModuleCommand<ModerationModule> {
   public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
     super(context, { ...options, module: 'Moderation', description: 'Timeout a user' });
   }

@@ -4,12 +4,14 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { ChannelType, MessageFlags, PermissionFlagsBits } from 'discord.js';
 
+import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
   name: 'slowmode',
   description: 'Set channel slowmode',
   preconditions: ['GuildOnly']
 })
-export class SlowmodeCommand extends ModuleCommand<ModerationModule> {
+export class SlowmodeCommand extends HybridModuleCommand<ModerationModule> {
   public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
     super(context, { ...options, module: 'Moderation', description: 'Set channel slowmode' });
   }

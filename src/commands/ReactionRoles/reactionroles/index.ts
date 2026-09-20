@@ -25,12 +25,14 @@ import { handlePause, handleResume } from './_pause';
 import { handleEdit } from './_edit';
 import { respondWithMenuIdChoices, respondWithMenuRoleChoices, hasRequiredPermissions } from './_utils';
 
+import { HybridModuleCommand } from '../../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
     name: 'reactionroles',
     description: 'Manage reaction roles',
     preconditions: ['GuildOnly']
 })
-export class ReactionRolesCommand extends ModuleCommand<ReactionRolesModule> {
+export class ReactionRolesCommand extends HybridModuleCommand<ReactionRolesModule> {
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
         super(context, {
             ...options,

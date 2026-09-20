@@ -35,49 +35,60 @@ interface LeaderboardRenderState {
     userPosition: number;
 }
 
+import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
-    name: 'leaderboard-bank',
-    description: 'View the economy leaderboard',
-    aliases: ['econ-lb', 'richest', 'rich', 'wealth-board']
+    name: 'economy',
+    description: 'Economy commands',
+    aliases: ['econ', 'econ-lb', 'richest', 'rich', 'wealth-board']
 })
-export class EconomyLeaderboardCommand extends ModuleCommand<EconomyModule> {
+export class EconomyCommand extends HybridModuleCommand<EconomyModule> {
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
         super(context, {
             ...options,
             module: 'Economy',
-            description: 'View the economy leaderboard'
+            description: 'Economy commands'
         });
     }
 
     public override registerApplicationCommands(registry: Command.Registry) {
         registry.registerChatInputCommand((builder) =>
             builder
-                .setName('leaderboard-bank')
-                .setDescription('View the economy leaderboard')
+                .setName('economy')
+                .setDescription('Economy commands')
                 .setContexts(0, 1, 2)
                 .setIntegrationTypes(0, 1)
-                .addStringOption(option =>
-                    option
-                        .setName('type')
-                        .setDescription('Type of leaderboard to view')
-                        .setRequired(false)
-                        .addChoices(
-                            { name: 'Total Money (Wallet + Bank)', value: 'total' },
-                            { name: 'Wallet Only', value: 'wallet' },
-                            { name: 'Bank Only', value: 'bank' },
-                            { name: 'Level', value: 'level' }
+                .addSubcommand((sub) =>
+                    sub
+                        .setName('leaderboard')
+                        .setDescription('View the economy leaderboard')
+                        .addStringOption(option =>
+                            option
+                                .setName('type')
+                                .setDescription('Type of leaderboard to view')
+                                .setRequired(false)
+                                .addChoices(
+                                    { name: 'Total Money (Wallet + Bank)', value: 'total' },
+                                    { name: 'Wallet Only', value: 'wallet' },
+                                    { name: 'Bank Only', value: 'bank' },
+                                    { name: 'Level', value: 'level' }
+                                )
                         )
-                )
-                .addBooleanOption(option =>
-                    option
-                        .setName('global')
-                        .setDescription('Show global leaderboard (default: server only)')
-                        .setRequired(false)
+                        .addBooleanOption(option =>
+                            option
+                                .setName('global')
+                                .setDescription('Show global leaderboard (default: server only)')
+                                .setRequired(false)
+                        )
                 )
         );
     }
 
     public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
+        const subcommand = interaction.options.getSubcommand();
+        if (subcommand !== 'leaderboard') {
+            return interaction.reply({ content: 'Unknown economy subcommand.', flags: MessageFlags.Ephemeral });
+        }
         await interaction.deferReply();
 
         try {
@@ -103,7 +114,7 @@ export class EconomyLeaderboardCommand extends ModuleCommand<EconomyModule> {
                         '• `/daily` - Get your daily coins\n' +
                         '• `/balance` - Check your balance\n' +
                         '• `/shop` - Visit the shop\n' +
-                        '• `/work` - Earn more coins (if available)\n\n' +
+                        '• `/work` - Work a shift at your job\n\n' +
                         'Start building your wealth and others will follow!'
                     )
                     .addFields({
@@ -164,7 +175,7 @@ export class EconomyLeaderboardCommand extends ModuleCommand<EconomyModule> {
             
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err as ColorResolvable)
-                .setTitle('❌ Error')
+                .setTitle('ÃƒÂ¢Ã‚ÂÃ…â€™ Error')
                 .setDescription('An error occurred while fetching the leaderboard.')
                 .setTimestamp();
 
@@ -267,17 +278,17 @@ export class EconomyLeaderboardCommand extends ModuleCommand<EconomyModule> {
 
     private formatUserStats(currentUser: IUser, type: 'total' | 'wallet' | 'bank' | 'level'): string {
         const typeEmojis = {
-            total: '💰',
-            wallet: '💵',
-            bank: '🏦', 
-            level: '⭐'
+            total: 'ÃƒÂ°Ã…Â¸Ã¢â‚¬â„¢Ã‚Â°',
+            wallet: 'ÃƒÂ°Ã…Â¸Ã¢â‚¬â„¢Ã‚Âµ',
+            bank: 'ÃƒÂ°Ã…Â¸Ã‚ÂÃ‚Â¦', 
+            level: 'ÃƒÂ¢Ã‚Â­Ã‚Â'
         };
 
         if (type === 'total') {
             const total = (currentUser.economy?.wallet || 0) + (currentUser.economy?.bank || 0);
-            return `💰 **${total.toLocaleString()}** coins total\n💵 ${(currentUser.economy?.wallet || 0).toLocaleString()} in wallet\n🏦 ${(currentUser.economy?.bank || 0).toLocaleString()} in bank`;
+            return `ÃƒÂ°Ã…Â¸Ã¢â‚¬â„¢Ã‚Â° **${total.toLocaleString()}** coins total\nÃƒÂ°Ã…Â¸Ã¢â‚¬â„¢Ã‚Âµ ${(currentUser.economy?.wallet || 0).toLocaleString()} in wallet\nÃƒÂ°Ã…Â¸Ã‚ÂÃ‚Â¦ ${(currentUser.economy?.bank || 0).toLocaleString()} in bank`;
         } else if (type === 'level') {
-            return `⭐ **Level ${currentUser.economy?.level || 1}**\n📈 ${(currentUser.economy?.experience || 0).toLocaleString()} experience points`;
+            return `ÃƒÂ¢Ã‚Â­Ã‚Â **Level ${currentUser.economy?.level || 1}**\nÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã‹â€  ${(currentUser.economy?.experience || 0).toLocaleString()} experience points`;
         } else {
             const amount = currentUser.economy?.[type] || 0;
             return `${typeEmojis[type]} **${amount.toLocaleString()}** coins`;
@@ -356,7 +367,7 @@ export class EconomyLeaderboardCommand extends ModuleCommand<EconomyModule> {
     private createEmptyLeaderboardEmbed(currentUser: IUser, type: LeaderboardType): EmbedBuilder {
         return new EmbedBuilder()
             .setColor(config.bot.embedColor.warn as ColorResolvable)
-            .setTitle('📊 Economy Leaderboard')
+            .setTitle('ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã…Â  Economy Leaderboard')
             .setDescription('No users found with economy data.')
             .addFields({
                 name: 'Your Current Stats',
@@ -418,16 +429,16 @@ export class EconomyLeaderboardCommand extends ModuleCommand<EconomyModule> {
         };
 
         const typeEmojis = {
-            total: '💰',
-            wallet: '💵',
-            bank: '🏦', 
-            level: '⭐'
+            total: 'ÃƒÂ°Ã…Â¸Ã¢â‚¬â„¢Ã‚Â°',
+            wallet: 'ÃƒÂ°Ã…Â¸Ã¢â‚¬â„¢Ã‚Âµ',
+            bank: 'ÃƒÂ°Ã…Â¸Ã‚ÂÃ‚Â¦', 
+            level: 'ÃƒÂ¢Ã‚Â­Ã‚Â'
         };
 
         const embed = new EmbedBuilder()
             .setColor(config.bot.embedColor.default as ColorResolvable)
             .setTitle(`${typeEmojis[type]} ${typeNames[type]} Leaderboard`)
-            .setDescription(`${isGlobal ? '🌍 Global' : '🏠 ' + serverName} • Top ${users.length} Users`)
+            .setDescription(`${isGlobal ? 'ÃƒÂ°Ã…Â¸Ã…â€™Ã‚Â Global' : 'ÃƒÂ°Ã…Â¸Ã‚ÂÃ‚Â  ' + serverName} ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ Top ${users.length} Users`)
             .setTimestamp();
 
         // Create leaderboard text
@@ -437,7 +448,7 @@ export class EconomyLeaderboardCommand extends ModuleCommand<EconomyModule> {
             const position = i + 1;
             
             // Get medal emoji for top 3
-            const medal = position === 1 ? '🥇' : position === 2 ? '🥈' : position === 3 ? '🥉' : `**${position}.**`;
+            const medal = position === 1 ? 'ÃƒÂ°Ã…Â¸Ã‚Â¥Ã¢â‚¬Â¡' : position === 2 ? 'ÃƒÂ°Ã…Â¸Ã‚Â¥Ã‹â€ ' : position === 3 ? 'ÃƒÂ°Ã…Â¸Ã‚Â¥Ã¢â‚¬Â°' : `**${position}.**`;
             
             let value = '';
             if (type === 'total') {
@@ -452,7 +463,7 @@ export class EconomyLeaderboardCommand extends ModuleCommand<EconomyModule> {
 
             // Highlight current user
             const isCurrentUser = user.userId === currentUser.userId;
-            const userLine = `${medal} ${isCurrentUser ? '**' : ''}<@${user.userId}>${isCurrentUser ? '**' : ''} • ${value}${isCurrentUser ? ' ⬅️' : ''}`;
+            const userLine = `${medal} ${isCurrentUser ? '**' : ''}<@${user.userId}>${isCurrentUser ? '**' : ''} ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ ${value}${isCurrentUser ? ' ÃƒÂ¢Ã‚Â¬Ã¢â‚¬Â¦ÃƒÂ¯Ã‚Â¸Ã‚Â' : ''}`;
             
             leaderboardText += userLine + '\n';
         }
@@ -468,7 +479,7 @@ export class EconomyLeaderboardCommand extends ModuleCommand<EconomyModule> {
 
         embed.addFields({
             name: `Your ${typeNames[type]}`,
-            value: userStats + (userPosition > 0 ? `\n📊 **Rank #${userPosition}**` : '\n📊 **Not ranked**'),
+            value: userStats + (userPosition > 0 ? `\nÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã…Â  **Rank #${userPosition}**` : '\nÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã…Â  **Not ranked**'),
             inline: true
         });
 
@@ -485,25 +496,25 @@ export class EconomyLeaderboardCommand extends ModuleCommand<EconomyModule> {
                     .setLabel('Total Wealth')
                     .setDescription('Wallet + Bank combined')
                     .setValue('total')
-                    .setEmoji('💰')
+                    .setEmoji('ÃƒÂ°Ã…Â¸Ã¢â‚¬â„¢Ã‚Â°')
                     .setDefault(currentType === 'total'),
                 new StringSelectMenuOptionBuilder()
                     .setLabel('Wallet Balance')
                     .setDescription('Money in wallet only')
                     .setValue('wallet')
-                    .setEmoji('💵')
+                    .setEmoji('ÃƒÂ°Ã…Â¸Ã¢â‚¬â„¢Ã‚Âµ')
                     .setDefault(currentType === 'wallet'),
                 new StringSelectMenuOptionBuilder()
                     .setLabel('Bank Balance')
                     .setDescription('Money in bank only')
                     .setValue('bank')
-                    .setEmoji('🏦')
+                    .setEmoji('ÃƒÂ°Ã…Â¸Ã‚ÂÃ‚Â¦')
                     .setDefault(currentType === 'bank'),
                 new StringSelectMenuOptionBuilder()
                     .setLabel('Level & Experience')
                     .setDescription('User levels and XP')
                     .setValue('level')
-                    .setEmoji('⭐')
+                    .setEmoji('ÃƒÂ¢Ã‚Â­Ã‚Â')
                     .setDefault(currentType === 'level')
             );
 
@@ -511,14 +522,14 @@ export class EconomyLeaderboardCommand extends ModuleCommand<EconomyModule> {
         const scopeButton = new ButtonBuilder()
             .setCustomId('leaderboard_scope')
             .setLabel(isGlobal ? 'Show Server Only' : 'Show Global')
-            .setEmoji(isGlobal ? '🏠' : '🌍')
+            .setEmoji(isGlobal ? 'ÃƒÂ°Ã…Â¸Ã‚ÂÃ‚Â ' : 'ÃƒÂ°Ã…Â¸Ã…â€™Ã‚Â')
             .setStyle(ButtonStyle.Secondary);
 
         // Refresh button
         const refreshButton = new ButtonBuilder()
             .setCustomId('leaderboard_refresh')
             .setLabel('Refresh')
-            .setEmoji('🔄')
+            .setEmoji('ÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ¢â‚¬Å¾')
             .setStyle(ButtonStyle.Primary);
 
         return [

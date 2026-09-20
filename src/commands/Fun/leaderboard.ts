@@ -5,13 +5,15 @@ import { Command } from '@sapphire/framework';
 import { EmbedBuilder, MessageFlags } from 'discord.js';
 import { getGameStatsModel } from '../../models/GameStats';
 
+import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
     name: 'leaderboard',
     description: 'View the leaderboard for a specific game.',
     fullCategory: ['Fun'],
     enabled: true
 })
-export class LeaderboardCommand extends ModuleCommand<FunModule> {
+export class LeaderboardCommand extends HybridModuleCommand<FunModule> {
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
         super(context, {
             ...options,
@@ -81,7 +83,7 @@ export class LeaderboardCommand extends ModuleCommand<FunModule> {
                             const losses = stats.losses ?? 0;
                             let ratio: string | number;
                             if (losses === 0) {
-                                ratio = wins > 0 ? '∞' : '0';
+                                ratio = wins > 0 ? 'âˆž' : '0';
                             } else {
                                 ratio = (wins / losses).toFixed(2);
                             }

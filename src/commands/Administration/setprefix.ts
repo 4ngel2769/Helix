@@ -6,13 +6,15 @@ import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { AdministrationModule } from '../../modules/Administration';
 import { clearGuildPrefixCache, setGuildPrefixInCache } from '../../lib/utils/prefixCache';
 
+import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
     name: 'setprefix',
     description: 'Set the command prefix for your server',
     aliases: ['setp', 'sp'],
     preconditions: ['GuildOnly']
 })
-export class SetPrefixCommand extends ModuleCommand<AdministrationModule> {
+export class SetPrefixCommand extends HybridModuleCommand<AdministrationModule> {
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
         super(context, {
             ...options,
@@ -39,7 +41,7 @@ export class SetPrefixCommand extends ModuleCommand<AdministrationModule> {
 
     public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
         if (!interaction.guild) {
-            return interaction.reply({ content: '❌ This command can only be used in a server.', flags: MessageFlags.Ephemeral });
+            return interaction.reply({ content: 'âŒ This command can only be used in a server.', flags: MessageFlags.Ephemeral });
         }
 
         const prefix = interaction.options.getString('prefix');
@@ -62,10 +64,10 @@ export class SetPrefixCommand extends ModuleCommand<AdministrationModule> {
 
                 const embed = new EmbedBuilder()
                     .setColor('#49e358')
-                    .setTitle('✅ Prefix Reset')
+                    .setTitle('âœ… Prefix Reset')
                     .setDescription(`The command prefix has been reset to the default: \`${defaultPrefix}\``)
                     .addFields({
-                        name: 'ℹ️ Note',
+                        name: 'â„¹ï¸ Note',
                         value: 'Slash commands (/) will always work regardless of prefix setting.',
                         inline: false
                     })
@@ -77,14 +79,14 @@ export class SetPrefixCommand extends ModuleCommand<AdministrationModule> {
             // Validate prefix
             if (prefix.length > 3) {
                 return interaction.reply({ 
-                    content: '❌ The prefix cannot be longer than 3 characters.', 
+                    content: 'âŒ The prefix cannot be longer than 3 characters.', 
                     flags: MessageFlags.Ephemeral 
                 });
             }
 
             if (prefix.includes(' ')) {
                 return interaction.reply({ 
-                    content: '❌ The prefix cannot contain spaces.', 
+                    content: 'âŒ The prefix cannot contain spaces.', 
                     flags: MessageFlags.Ephemeral 
                 });
             }
@@ -96,7 +98,7 @@ export class SetPrefixCommand extends ModuleCommand<AdministrationModule> {
 
             const embed = new EmbedBuilder()
                 .setColor('#49e358')
-                .setTitle('✅ Prefix Updated')
+                .setTitle('âœ… Prefix Updated')
                 .setDescription(`The command prefix has been set to: \`${prefix}\``)
                 .addFields(
                     {
@@ -110,7 +112,7 @@ export class SetPrefixCommand extends ModuleCommand<AdministrationModule> {
                         inline: true
                     },
                     {
-                        name: 'ℹ️ Note',
+                        name: 'â„¹ï¸ Note',
                         value: 'Slash commands (/) will always work regardless of prefix setting.',
                         inline: false
                     }
@@ -122,7 +124,7 @@ export class SetPrefixCommand extends ModuleCommand<AdministrationModule> {
         } catch (error) {
             this.container.logger.error('Error setting prefix:', error);
             return interaction.reply({ 
-                content: '❌ An error occurred while setting the prefix.', 
+                content: 'âŒ An error occurred while setting the prefix.', 
                 flags: MessageFlags.Ephemeral 
             });
         }

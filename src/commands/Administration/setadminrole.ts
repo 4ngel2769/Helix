@@ -5,13 +5,15 @@ import { Guild } from '../../models/Guild';
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { AdministrationModule } from '../../modules/Administration';
 
+import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
     name: 'setadminrole',
     description: 'Set the admin role for your server',
     aliases: ['setadminr', 'sarole'],
     preconditions: ['GuildOnly']
 })
-export class SetAdminRoleCommand extends ModuleCommand<AdministrationModule> {
+export class SetAdminRoleCommand extends HybridModuleCommand<AdministrationModule> {
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
         super(context, {
             ...options,
@@ -37,7 +39,7 @@ export class SetAdminRoleCommand extends ModuleCommand<AdministrationModule> {
 
     public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
         if (!interaction.guild) {
-            return interaction.reply({ content: '❌ This command can only be used in a server.', flags: MessageFlags.Ephemeral });
+            return interaction.reply({ content: 'âŒ This command can only be used in a server.', flags: MessageFlags.Ephemeral });
         }
 
         const role = interaction.options.getRole('role') as Role | null;
@@ -58,7 +60,7 @@ export class SetAdminRoleCommand extends ModuleCommand<AdministrationModule> {
 
                 const embed = new EmbedBuilder()
                     .setColor('#49e358')
-                    .setTitle('✅ Admin Role Cleared')
+                    .setTitle('âœ… Admin Role Cleared')
                     .setDescription('The admin role has been cleared from your server settings.')
                     .setTimestamp();
 
@@ -71,7 +73,7 @@ export class SetAdminRoleCommand extends ModuleCommand<AdministrationModule> {
 
             const embed = new EmbedBuilder()
                 .setColor('#49e358')
-                .setTitle('✅ Admin Role Set')
+                .setTitle('âœ… Admin Role Set')
                 .setDescription(`Admin role has been set to ${role}`)
                 .addFields({
                     name: 'Role',
@@ -85,7 +87,7 @@ export class SetAdminRoleCommand extends ModuleCommand<AdministrationModule> {
         } catch (error) {
             this.container.logger.error('Error setting admin role:', error);
             return interaction.reply({ 
-                content: '❌ An error occurred while setting the admin role.', 
+                content: 'âŒ An error occurred while setting the admin role.', 
                 flags: MessageFlags.Ephemeral 
             });
         }

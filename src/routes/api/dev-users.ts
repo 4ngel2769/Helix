@@ -5,6 +5,7 @@ import type { RouteOptions } from '@sapphire/plugin-api';
 import { User } from '../../models/User';
 import { storeUserBanned } from '../../lib/utils/flagCache';
 import { isPremiumActive, premiumExpiryIso } from '../../lib/utils/premium';
+import { grantedByName, notifyUserBanned, notifyUserPremium } from '../../lib/utils/ownerNotify';
 import { sanitizeText } from '../../lib/utils/sanitize';
 import { isSnowflake, readJsonBody, readQueryParam, requireAuth, requireDev } from '../../lib/utils/apiAuth';
 
@@ -97,11 +98,16 @@ export class ApiDevUsersRoute extends Route {
 		if (!userId || !isSnowflake(userId)) return response.status(400).json({ error: 'userId (snowflake) is required' });
 
 		const setOps: Record<string, unknown> = {};
+		// grantDays: number = timed grant, null = permanent, undefined = no grant in this PATCH.
+		let grantDays: number | null | undefined;
 		if (body.isPremium !== undefined) {
 			if (typeof body.isPremium !== 'boolean') return response.status(400).json({ error: 'isPremium must be a boolean' });
 			setOps.isPremium = body.isPremium;
 			if (body.isPremium === false) setOps.premiumExpiresAt = null;
-			else if (body.premiumDays === undefined) setOps.premiumExpiresAt = null; // plain true = permanent
+			else if (body.premiumDays === undefined) {
+				setOps.premiumExpiresAt = null; // plain true = permanent
+				grantDays = null;
+			}
 		}
 		if (body.premiumDays !== undefined) {
 			if (!Number.isInteger(body.premiumDays) || (body.premiumDays as number) < 1 || (body.premiumDays as number) > 3650) {
@@ -109,7 +115,9 @@ export class ApiDevUsersRoute extends Route {
 			}
 			setOps.isPremium = true;
 			setOps.premiumExpiresAt = new Date(Date.now() + (body.premiumDays as number) * 86_400_000);
+			grantDays = body.premiumDays as number;
 		}
+		if (grantDays !== undefined) setOps.premiumReminderSentAt = null; // fresh grant → remind again
 		if (body.botBanned !== undefined) {
 			if (typeof body.botBanned !== 'boolean') return response.status(400).json({ error: 'botBanned must be a boolean' });
 			setOps.botBanned = body.botBanned;
@@ -150,13 +158,21 @@ export class ApiDevUsersRoute extends Route {
 			const doc = await User.findOneAndUpdate({ userId }, { $set: setOps }, { returnDocument: 'after' });
 			if (!doc) return response.status(404).json({ error: 'User not found' });
 			if (body.botBanned !== undefined) storeUserBanned(userId, body.botBanned === true);
+			// Lifecycle DMs (best-effort, never fail the request).
+			let dmSent: boolean | null = null;
+			if (body.botBanned === true) {
+				dmSent = await notifyUserBanned(userId, doc.banReason ?? null);
+			} else if (grantDays !== undefined) {
+				dmSent = await notifyUserPremium(userId, grantDays, await grantedByName(dev.userId));
+			}
 			return response.json({
 				userId,
 				isPremium: isPremiumActive(doc),
 				premiumExpiresAt: premiumExpiryIso(doc),
 				botBanned: doc.botBanned === true,
 				banReason: doc.banReason ?? null,
-				resetEconomy
+				resetEconomy,
+				dmSent
 			});
 		} catch {
 			return response.status(500).json({ error: 'Failed to update user' });

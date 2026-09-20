@@ -97,6 +97,16 @@ export interface UserEconomyData {
   lastWork: Date | null;
   level: number;
   experience: number;
+  // Job market: one active job + history counters.
+  jobId: string | null;
+  jobGrade: number;
+  jobXp: number;
+  jobSince: Date | null;
+  lastShiftAt: Date | null;
+  jobStreak: number;
+  jobStrikes: number;
+  firedAt: Date | null;
+  jobsWorked: number;
   inventory: EconomyItem[];
   equipment: Equipment;
   stats: PlayerStats;
@@ -127,6 +137,7 @@ export interface IUser extends Document {
   discriminator: string;
   isPremium?: boolean;
   premiumExpiresAt?: Date | null;
+  premiumReminderSentAt?: Date | null;
   botBanned?: boolean;
   banReason?: string;
   economy: UserEconomyData;
@@ -144,6 +155,7 @@ const userSchema = new Schema<IUser>({
   // Owner-managed: premium perks + bot-wide ban (enforced in GuildCommandEnabled)
   isPremium: { type: Boolean, default: false },
   premiumExpiresAt: { type: Date, default: null },
+  premiumReminderSentAt: { type: Date, default: null },
   botBanned: { type: Boolean, default: false },
   banReason: { type: String, default: null },
   
@@ -156,6 +168,16 @@ const userSchema = new Schema<IUser>({
     lastWork: { type: Date, default: null },
     level: { type: Number, default: 1 },
     experience: { type: Number, default: 0 },
+    // Job market: one active job + history counters.
+    jobId: { type: String, default: null },
+    jobGrade: { type: Number, default: 0 },
+    jobXp: { type: Number, default: 0 },
+    jobSince: { type: Date, default: null },
+    lastShiftAt: { type: Date, default: null },
+    jobStreak: { type: Number, default: 0 },
+    jobStrikes: { type: Number, default: 0 },
+    firedAt: { type: Date, default: null },
+    jobsWorked: { type: Number, default: 0 },
     
     inventory: [{
       itemId: { type: String, required: true },

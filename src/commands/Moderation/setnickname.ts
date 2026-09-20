@@ -4,12 +4,14 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { MessageFlags, PermissionFlagsBits } from 'discord.js';
 
+import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
   name: 'setnickname',
   description: "Change a user's nickname",
   preconditions: ['GuildOnly']
 })
-export class SetnicknameCommand extends ModuleCommand<ModerationModule> {
+export class SetnicknameCommand extends HybridModuleCommand<ModerationModule> {
   public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
     super(context, { ...options, module: 'Moderation', description: "Change a user's nickname" });
   }

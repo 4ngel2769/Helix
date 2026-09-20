@@ -93,7 +93,7 @@
 		error = null;
 		notice = null;
 		try {
-			const data = await api<{ isPremium: boolean; premiumExpiresAt: string | null; botBanned: boolean; banReason: string | null; resetEconomy: boolean }>('/dev/users', {
+			const data = await api<{ isPremium: boolean; premiumExpiresAt: string | null; botBanned: boolean; banReason: string | null; resetEconomy: boolean; dmSent: boolean | null }>('/dev/users', {
 				method: 'PATCH',
 				body: { userId: u.userId, ...body }
 			});
@@ -107,6 +107,7 @@
 				u.level = 1;
 			}
 			notice = okText;
+			if (typeof data.dmSent === 'boolean') notice += data.dmSent ? ' User notified by DM.' : ' (DM to user failed — DMs closed?)';
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'Update failed';
 		} finally {

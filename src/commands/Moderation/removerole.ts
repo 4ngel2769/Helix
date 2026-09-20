@@ -4,13 +4,15 @@ import { PermissionFlagsBits, EmbedBuilder, GuildMember, Role, MessageFlags } fr
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { ModerationModule } from '../../modules/Moderation';
 
+import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+
 @ApplyOptions<Command.Options>({
     name: 'removerole',
     description: 'Remove a role from a user',
     aliases: ['remover', 'rr'],
     preconditions: ['GuildOnly', 'ModeratorOnly']
 })
-export class RemoveRoleCommand extends ModuleCommand<ModerationModule> {
+export class RemoveRoleCommand extends HybridModuleCommand<ModerationModule> {
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
         super(context, {
             ...options,
@@ -48,7 +50,7 @@ export class RemoveRoleCommand extends ModuleCommand<ModerationModule> {
 
     public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
         if (!interaction.guild) {
-            return interaction.reply({ content: '❌ This command can only be used in a server.', flags: MessageFlags.Ephemeral });
+            return interaction.reply({ content: 'âŒ This command can only be used in a server.', flags: MessageFlags.Ephemeral });
         }
 
         const targetUser = interaction.options.getUser('user', true);
@@ -63,14 +65,14 @@ export class RemoveRoleCommand extends ModuleCommand<ModerationModule> {
             // Permission checks
             if (!botMember.permissions.has(PermissionFlagsBits.ManageRoles)) {
                 return interaction.reply({ 
-                    content: '❌ I don\'t have permission to manage roles.', 
+                    content: 'âŒ I don\'t have permission to manage roles.', 
                     flags: MessageFlags.Ephemeral 
                 });
             }
 
             if (!executorMember.permissions.has(PermissionFlagsBits.ManageRoles)) {
                 return interaction.reply({ 
-                    content: '❌ You don\'t have permission to manage roles.', 
+                    content: 'âŒ You don\'t have permission to manage roles.', 
                     flags: MessageFlags.Ephemeral 
                 });
             }
@@ -78,7 +80,7 @@ export class RemoveRoleCommand extends ModuleCommand<ModerationModule> {
             // Check if bot's highest role is higher than the role to remove
             if (botMember.roles.highest.position <= role.position) {
                 return interaction.reply({ 
-                    content: '❌ I cannot remove this role because it is higher than or equal to my highest role.', 
+                    content: 'âŒ I cannot remove this role because it is higher than or equal to my highest role.', 
                     flags: MessageFlags.Ephemeral 
                 });
             }
@@ -86,7 +88,7 @@ export class RemoveRoleCommand extends ModuleCommand<ModerationModule> {
             // Check if executor's highest role is higher than the role to remove
             if (executorMember.roles.highest.position <= role.position) {
                 return interaction.reply({ 
-                    content: '❌ You cannot remove this role because it is higher than or equal to your highest role.', 
+                    content: 'âŒ You cannot remove this role because it is higher than or equal to your highest role.', 
                     flags: MessageFlags.Ephemeral 
                 });
             }
@@ -94,7 +96,7 @@ export class RemoveRoleCommand extends ModuleCommand<ModerationModule> {
             // Check if member has the role
             if (!member.roles.cache.has(role.id)) {
                 return interaction.reply({ 
-                    content: `❌ ${targetUser.tag} doesn't have the ${role.name} role.`, 
+                    content: `âŒ ${targetUser.tag} doesn't have the ${role.name} role.`, 
                     flags: MessageFlags.Ephemeral 
                 });
             }
@@ -104,7 +106,7 @@ export class RemoveRoleCommand extends ModuleCommand<ModerationModule> {
 
             const embed = new EmbedBuilder()
                 .setColor('#49e358')
-                .setTitle('✅ Role Removed')
+                .setTitle('âœ… Role Removed')
                 .setDescription(`Successfully removed ${role} from ${targetUser}`)
                 .addFields(
                     { name: 'User', value: `${targetUser.tag} (${targetUser.id})`, inline: true },
@@ -119,7 +121,7 @@ export class RemoveRoleCommand extends ModuleCommand<ModerationModule> {
         } catch (error) {
             this.container.logger.error('Error removing role:', error);
             return interaction.reply({ 
-                content: '❌ An error occurred while removing the role.', 
+                content: 'âŒ An error occurred while removing the role.', 
                 flags: MessageFlags.Ephemeral 
             });
         }

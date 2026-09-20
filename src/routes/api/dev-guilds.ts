@@ -5,6 +5,7 @@ import type { RouteOptions } from '@sapphire/plugin-api';
 import { Guild } from '../../models/Guild';
 import { clearGuildFlags, storeGuildFlags } from '../../lib/utils/flagCache';
 import { isPremiumActive, premiumExpiryIso } from '../../lib/utils/premium';
+import { grantedByName, notifyGuildBanned, notifyGuildPremium } from '../../lib/utils/ownerNotify';
 import { sanitizeText } from '../../lib/utils/sanitize';
 import { isSnowflake, readJsonBody, readQueryParam, requireAuth, requireDev } from '../../lib/utils/apiAuth';
 
@@ -102,11 +103,16 @@ export class ApiDevGuildsRoute extends Route {
 
 		if (request.method === 'PATCH') {
 			const setOps: Record<string, unknown> = {};
+			// grantDays: number = timed grant, null = permanent, undefined = no grant in this PATCH.
+			let grantDays: number | null | undefined;
 			if (body.isPremium !== undefined) {
 				if (typeof body.isPremium !== 'boolean') return response.status(400).json({ error: 'isPremium must be a boolean' });
 				setOps.isPremium = body.isPremium;
 				if (body.isPremium === false) setOps.premiumExpiresAt = null;
-				else if (body.premiumDays === undefined) setOps.premiumExpiresAt = null; // plain true = permanent
+				else if (body.premiumDays === undefined) {
+					setOps.premiumExpiresAt = null; // plain true = permanent
+					grantDays = null;
+				}
 			}
 			if (body.premiumDays !== undefined) {
 				if (!Number.isInteger(body.premiumDays) || (body.premiumDays as number) < 1 || (body.premiumDays as number) > 3650) {
@@ -114,7 +120,9 @@ export class ApiDevGuildsRoute extends Route {
 				}
 				setOps.isPremium = true;
 				setOps.premiumExpiresAt = new Date(Date.now() + (body.premiumDays as number) * 86_400_000);
+				grantDays = body.premiumDays as number;
 			}
+			if (grantDays !== undefined) setOps.premiumReminderSentAt = null; // fresh grant → remind again
 			if (body.botDisabled !== undefined) {
 				if (typeof body.botDisabled !== 'boolean') return response.status(400).json({ error: 'botDisabled must be a boolean' });
 				setOps.botDisabled = body.botDisabled;
@@ -151,9 +159,15 @@ export class ApiDevGuildsRoute extends Route {
 					banned: doc?.guildBanned === true,
 					message: typeof doc?.disabledMessage === 'string' ? doc.disabledMessage : null
 				});
+				// Lifecycle DMs to the server owner (best-effort, never fail the request).
+				// Ban notice goes out BEFORE the bot leaves.
+				let dmSent: boolean | null = null;
 				if (setOps.guildBanned === true) {
+					dmSent = await notifyGuildBanned(guildId, typeof doc?.banReason === 'string' ? doc.banReason : null);
 					const guild = this.container.client.guilds.cache.get(guildId);
 					await guild?.leave().catch(() => null);
+				} else if (grantDays !== undefined) {
+					dmSent = await notifyGuildPremium(guildId, grantDays, await grantedByName(dev.userId));
 				}
 				return response.json({
 					guildId,
@@ -162,7 +176,8 @@ export class ApiDevGuildsRoute extends Route {
 					botDisabled: doc?.botDisabled === true,
 					guildBanned: doc?.guildBanned === true,
 					disabledMessage: doc?.disabledMessage ?? null,
-					banReason: doc?.banReason ?? null
+					banReason: doc?.banReason ?? null,
+					dmSent
 				});
 			} catch {
 				return response.status(500).json({ error: 'Failed to update guild flags' });
