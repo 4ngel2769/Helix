@@ -11,6 +11,7 @@ import {
 } from 'discord.js';
 import config from '../../config';
 import { getReply } from '../../lib/utils/replies';
+import { sendLog, suppressNext } from '../../lib/logging/logService';
 
 @ApplyOptions<ModuleCommand.Options>({
     name: 'ban',
@@ -89,6 +90,18 @@ export class BanCommand extends ModuleCommand<ModerationModule> {
 
         try {
             await target.ban({ deleteMessageDays: days, reason });
+
+            if (interaction.guild) {
+                suppressNext(interaction.guild.id, 'mod.ban', target.id);
+                suppressNext(interaction.guild.id, 'member.leave', target.id);
+                void sendLog(interaction.guild, 'mod.ban', {
+                    description: `**${target.user.tag}** (<@${target.id}>) was banned by **${interaction.user.tag}** (<@${interaction.user.id}>).`,
+                    fields: [{ name: 'Reason', value: reason.slice(0, 1024) }],
+                    actorId: interaction.user.id,
+                    targetId: target.id,
+                    isBot: target.user.bot
+                });
+            }
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.default as ColorResolvable)

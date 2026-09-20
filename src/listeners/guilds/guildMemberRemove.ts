@@ -1,6 +1,7 @@
 import { Events, Listener, container } from '@sapphire/framework';
 import type { GuildMember, PartialGuildMember } from 'discord.js';
 import { Guild } from '../../models/Guild';
+import { consumeSuppressed, sendLog } from '../../lib/logging/logService';
 import { getGuildPrefixFromCache, setGuildPrefixInCache } from '../../lib/utils/prefixCache';
 import { DEFAULT_FAREWELL_MESSAGE, renderMessageTemplate } from '../../lib/utils/messagePlaceholders';
 
@@ -10,6 +11,13 @@ export class GuildMemberRemoveListener extends Listener<typeof Events.GuildMembe
 	}
 
 	public override async run(member: GuildMember | PartialGuildMember) {
+		if (!consumeSuppressed(member.guild.id, 'member.leave', member.id)) {
+			void sendLog(member.guild, 'member.leave', {
+				description: `<@${member.id}> **${'displayName' in member && typeof (member as GuildMember).displayName === 'string' ? (member as GuildMember).displayName : (member.user?.username ?? 'Someone')}** left.`,
+				targetId: member.id,
+				isBot: member.user?.bot ?? false
+			});
+		}
 		try {
 			const guildData = await Guild.findOne({ guildId: member.guild.id }).lean();
 			const channelId = guildData?.farewellChannelId;

@@ -107,6 +107,14 @@ export interface IGuild extends Document, LegacyModuleFlags, VerificationSetting
   messageDeleteLogChannelId?: string;
   nicknameLogChannelId?: string;
   roleLogChannelId?: string;
+  // Extensive logging (new system; legacy per-channel fields above act as fallback)
+  logChannelId?: string;
+  logEvents?: Record<string, boolean>;
+  logEventChannels?: Record<string, string>;
+  logIgnoredUsers?: string[];
+  logIgnoredRoles?: string[];
+  logIgnoredChannels?: string[];
+  logIncludeBots?: boolean;
   welcomeChannelId?: string;
   welcomeMessage?: string;
   farewellChannelId?: string;
@@ -139,6 +147,15 @@ const guildSchema = new Schema<IGuild>({
   messageDeleteLogChannelId: { type: String, default: null },
   nicknameLogChannelId: { type: String, default: null },
   roleLogChannelId: { type: String, default: null },
+
+  // Extensive logging: default fallback channel + per-event toggles/overrides + ignores
+  logChannelId: { type: String, default: null },
+  logEvents: { type: Schema.Types.Mixed, default: {} },
+  logEventChannels: { type: Schema.Types.Mixed, default: {} },
+  logIgnoredUsers: { type: [String], default: [] },
+  logIgnoredRoles: { type: [String], default: [] },
+  logIgnoredChannels: { type: [String], default: [] },
+  logIncludeBots: { type: Boolean, default: false },
   
   // Welcome / Farewell
   welcomeChannelId: { type: String, default: null },

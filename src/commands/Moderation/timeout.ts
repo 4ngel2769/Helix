@@ -11,6 +11,7 @@ import {
 } from 'discord.js';
 import config from '../../config';
 import { getReply } from '../../lib/utils/replies';
+import { sendLog, suppressNext } from '../../lib/logging/logService';
 
 @ApplyOptions<ModuleCommand.Options>({
     name: 'timeout',
@@ -95,6 +96,17 @@ export class TimeoutCommand extends ModuleCommand<ModerationModule> {
 
         try {
             await target.timeout(duration * 60 * 1000, reason);
+
+            if (interaction.guild) {
+                suppressNext(interaction.guild.id, 'mod.timeout', target.id);
+                void sendLog(interaction.guild, 'mod.timeout', {
+                    description: `**${target.user.tag}** (<@${target.id}>) was timed out for **${duration} minute(s)** by **${interaction.user.tag}** (<@${interaction.user.id}>).`,
+                    fields: [{ name: 'Reason', value: reason.slice(0, 1024) }],
+                    actorId: interaction.user.id,
+                    targetId: target.id,
+                    isBot: target.user.bot
+                });
+            }
 
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.default as ColorResolvable)

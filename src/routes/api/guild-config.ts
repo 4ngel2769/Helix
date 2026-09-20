@@ -6,6 +6,7 @@ import { Guild } from '../../models/Guild';
 import { GuildConfigService } from '../../lib/services/GuildConfigService';
 import { clearGuildPrefixCache, setGuildPrefixInCache } from '../../lib/utils/prefixCache';
 import { clearDisabledCommandsCache } from '../../lib/utils/disabledCommandsCache';
+import { LOG_EVENT_KEYS } from '../../lib/logging/logEvents';
 import { isSnowflake, readJsonBody, readStringArray, requireAuth, requireManageableGuild } from '../../lib/utils/apiAuth';
 
 const UPDATABLE_FIELDS = [
@@ -26,6 +27,13 @@ const UPDATABLE_FIELDS = [
 	'farewellChannelId',
 	'farewellMessage',
 	'systemChannelId',
+	'logChannelId',
+	'logEvents',
+	'logEventChannels',
+	'logIgnoredUsers',
+	'logIgnoredRoles',
+	'logIgnoredChannels',
+	'logIncludeBots',
 	'verificationChannelId',
 	'verificationRoleId',
 	'verificationMessage',
@@ -77,6 +85,32 @@ function validateConfigUpdate(update: Record<string, unknown>): string | null {
 	if ('warnSettings' in update) {
 		const v = update.warnSettings as Record<string, unknown> | null;
 		if (v !== null && typeof v !== 'object') return 'warnSettings must be an object';
+	}
+	if ('logEvents' in update) {
+		const v = update.logEvents as Record<string, unknown> | null;
+		if (v === null || typeof v !== 'object' || Array.isArray(v)) return 'logEvents must be an object';
+		for (const [k, val] of Object.entries(v)) {
+			if (!LOG_EVENT_KEYS.includes(k)) return `logEvents has unknown event: ${k}`;
+			if (typeof val !== 'boolean') return `logEvents[${k}] must be a boolean`;
+		}
+	}
+	if ('logEventChannels' in update) {
+		const v = update.logEventChannels as Record<string, unknown> | null;
+		if (v === null || typeof v !== 'object' || Array.isArray(v)) return 'logEventChannels must be an object';
+		for (const [k, val] of Object.entries(v)) {
+			if (!LOG_EVENT_KEYS.includes(k)) return `logEventChannels has unknown event: ${k}`;
+			if (typeof val !== 'string' || (val !== '' && !isSnowflake(val))) return `logEventChannels[${k}] must be a channel id or empty`;
+		}
+	}
+	for (const field of ['logIgnoredUsers', 'logIgnoredRoles', 'logIgnoredChannels'] as const) {
+		if (field in update) {
+			const arr = readStringArray({ v: update[field] }, 'v');
+			if (!arr || arr.length > 500 || !arr.every(isSnowflake)) return `${field} must be an array of up to 500 Discord ids`;
+			update[field] = [...new Set(arr)];
+		}
+	}
+	if ('logIncludeBots' in update && typeof update.logIncludeBots !== 'boolean') {
+		return 'logIncludeBots must be a boolean';
 	}
 	return null;
 }

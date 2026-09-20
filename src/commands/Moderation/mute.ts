@@ -3,6 +3,7 @@ import { ModerationModule } from '../../modules/Moderation';
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { MessageFlags, PermissionFlagsBits } from 'discord.js';
+import { sendLog, suppressNext } from '../../lib/logging/logService';
 
 @ApplyOptions<Command.Options>({
   name: 'mute',
@@ -39,6 +40,14 @@ export class MuteCommand extends ModuleCommand<ModerationModule> {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     try {
       await member.timeout(duration * 60 * 1000, reason);
+      suppressNext(interaction.guild!.id, 'mod.timeout', user.id);
+      void sendLog(interaction.guild!, 'mod.timeout', {
+        description: `**${user.tag}** (<@${user.id}>) was timed out for **${duration} minute(s)** by **${interaction.user.tag}** (<@${interaction.user.id}>).`,
+        fields: [{ name: 'Reason', value: reason.slice(0, 1024) }],
+        actorId: interaction.user.id,
+        targetId: user.id,
+        isBot: user.bot
+      });
       return interaction.editReply(user.tag + ' has been timed out for ' + duration + ' minutes.');
     } catch (error) {
       this.container.logger.error('Error timing out user:', error);

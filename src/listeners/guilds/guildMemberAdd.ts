@@ -1,6 +1,7 @@
 import { Events, Listener, container } from '@sapphire/framework';
 import type { GuildMember } from 'discord.js';
 import { Guild } from '../../models/Guild';
+import { sendLog } from '../../lib/logging/logService';
 import { getGuildPrefixFromCache, setGuildPrefixInCache } from '../../lib/utils/prefixCache';
 import { DEFAULT_WELCOME_MESSAGE, renderMessageTemplate } from '../../lib/utils/messagePlaceholders';
 
@@ -10,6 +11,11 @@ export class GuildMemberAddListener extends Listener<typeof Events.GuildMemberAd
 	}
 
 	public override async run(member: GuildMember) {
+		void sendLog(member.guild, 'member.join', {
+			description: `<@${member.id}> **${member.displayName}** joined. Member #${member.guild.memberCount}.`,
+			targetId: member.id,
+			isBot: member.user.bot
+		});
 		try {
 			const guildData = await Guild.findOne({ guildId: member.guild.id }).lean();
 			const channelId = guildData?.welcomeChannelId;

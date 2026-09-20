@@ -139,10 +139,13 @@ export class SettingsCommand extends ModuleCommand<AdministrationModule> {
 
     private formatLoggingSettings(guildData: IGuild, guildId: string): string {
         const logs = [];
+        if (guildData.logChannelId) logs.push(`Default: <#${guildData.logChannelId}>`);
         if (guildData.modLogChannelId) logs.push(`Mod: <#${guildData.modLogChannelId}>`);
         if (guildData.memberLogChannelId) logs.push(`Member: <#${guildData.memberLogChannelId}>`);
         if (guildData.messageEditLogChannelId) logs.push(`Edit: <#${guildData.messageEditLogChannelId}>`);
         if (guildData.messageDeleteLogChannelId) logs.push(`Delete: <#${guildData.messageDeleteLogChannelId}>`);
+        const overrides = Object.keys(guildData.logEvents ?? {}).length;
+        if (overrides > 0) logs.push(`${overrides} event toggles`);
         return logs.length > 0 ? logs.join('\n') : '*Not configured*';
     }
 
@@ -187,14 +190,20 @@ export class SettingsCommand extends ModuleCommand<AdministrationModule> {
     }
 
     private async showLoggingSettings(interaction: Command.ChatInputCommandInteraction, guildData: IGuild) {
+        const enabledCount = Object.values(guildData.logEvents ?? {}).filter((v) => v === true).length;
         const embed = new EmbedBuilder()
             .setColor('#49e358')
             .setTitle('📊 Logging Settings')
-            .setDescription('Configured logging channels')
+            .setDescription('Configured logging channels (31 event types, see dashboard for per-event setup)')
             .addFields(
                 {
-                    name: 'Mod Log',
-                    value: guildData.modLogChannelId ? `<#${guildData.modLogChannelId}>` : '*Not set*',
+                    name: 'Default Channel',
+                    value: guildData.logChannelId ? `<#${guildData.logChannelId}>` : '*Not set*',
+                    inline: true
+                },
+                {
+                    name: 'Event Toggles',
+                    value: `${enabledCount} explicitly enabled`,
                     inline: true
                 },
                 {
@@ -203,8 +212,8 @@ export class SettingsCommand extends ModuleCommand<AdministrationModule> {
                     inline: true
                 },
                 {
-                    name: '\u200b',
-                    value: '\u200b',
+                    name: 'Mod Log',
+                    value: guildData.modLogChannelId ? `<#${guildData.modLogChannelId}>` : '*Not set*',
                     inline: true
                 },
                 {
@@ -218,13 +227,8 @@ export class SettingsCommand extends ModuleCommand<AdministrationModule> {
                     inline: true
                 },
                 {
-                    name: '\u200b',
-                    value: '\u200b',
-                    inline: true
-                },
-                {
-                    name: '⚙️ Configuration Commands',
-                    value: '`/setmodlog` - Set mod log channel\n`/setmemberlog` - Set member log channel\n`/setmessagelog` - Set message log channels',
+                    name: '⚙️ Configuration',
+                    value: '`/setmodlog` `/setmemberlog` `/setmessagelog` — or open the dashboard Logging page for all 31 event types.',
                     inline: false
                 }
             )

@@ -3,6 +3,7 @@ import { ModerationModule } from '../../modules/Moderation';
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { MessageFlags, PermissionFlagsBits } from 'discord.js';
+import { sendLog, suppressNext } from '../../lib/logging/logService';
 
 @ApplyOptions<Command.Options>({
   name: 'unban',
@@ -34,6 +35,13 @@ export class UnbanCommand extends ModuleCommand<ModerationModule> {
     const reason = interaction.options.getString('reason') ?? 'No reason provided';
     try {
       await interaction.guild!.bans.remove(userId, reason);
+      suppressNext(interaction.guild!.id, 'mod.unban', userId);
+      void sendLog(interaction.guild!, 'mod.unban', {
+        description: `<@${userId}> was unbanned by **${interaction.user.tag}** (<@${interaction.user.id}>).`,
+        fields: [{ name: 'Reason', value: reason.slice(0, 1024) }],
+        actorId: interaction.user.id,
+        targetId: userId
+      });
       return interaction.editReply('Unbanned user <@' + userId + '>.');
     } catch (error) {
       this.container.logger.error('Error unbanning user:', error);
