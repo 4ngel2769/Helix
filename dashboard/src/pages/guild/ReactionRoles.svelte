@@ -5,7 +5,7 @@
 	import type { ReactionRoleMenu } from '../../lib/types';
 	import PageHeader from '../../components/PageHeader.svelte';
 	import RolePill from '../../components/RolePill.svelte';
-	import Select from '../../components/Select.svelte';
+	import SearchPicker from '../../components/SearchPicker.svelte';
 	import TextInput from '../../components/TextInput.svelte';
 	import TextArea from '../../components/TextArea.svelte';
 	import DiscordPreview from '../../components/DiscordPreview.svelte';
@@ -35,8 +35,8 @@
 	let busy = $state(false);
 	let postViaBot = $state(true);
 
-	const channelOptions = $derived((entry.detail?.channels ?? []).map((c) => ({ value: c.id, label: `#${c.name}` })));
-	const roleOptions = $derived((entry.detail?.roles ?? []).map((r) => ({ value: r.id, label: `@${r.name}` })));
+	const channelOptions = $derived((entry.detail?.channels ?? []).map((c) => ({ value: c.id, label: `#${c.name}`, kind: 'channel' as const })));
+	const roleOptions = $derived((entry.detail?.roles ?? []).map((r) => ({ value: r.id, label: `@${r.name}`, color: r.color, kind: 'role' as const })));
 	// Roles (+ Discord colors) come from the cached guild detail — no per-row fetch.
 	const roleById = $derived(new Map((entry.detail?.roles ?? []).map((r) => [r.id, r])));
 	function roleColor(id: string): string {
@@ -196,7 +196,7 @@
 		{#if editing || !postViaBot}
 			<TextInput label="Message ID" bind:value={messageId} placeholder="123456789…" hint={editing ? 'The Discord message this menu is attached to.' : 'ID of an existing bot message to attach this menu to.'} />
 		{/if}
-		<Select label="Channel" bind:value={channelId} options={channelOptions} allowNone={false} hint={postViaBot && !editing ? 'The bot will post the menu message here.' : ''} />
+		<SearchPicker label="Channel" bind:value={channelId} options={channelOptions} allowNone={false} placeholder="Pick a channel…" hint={postViaBot && !editing ? 'The bot will post the menu message here.' : ''} />
 		<TextInput label="Title" bind:value={title} maxlength={256} />
 		<TextInput label="Max selections (0 = unlimited)" bind:value={maxSelections} type="number" />
 	</div>
@@ -208,10 +208,7 @@
 	{#each roles as role, i (i)}
 		<div class="row-flex" style="margin-bottom: 10px;">
 			<div style="flex: 2;">
-				<div class="role-select-wrap">
-					<Select label="Role" value={roles[i]!.roleId} options={roleOptions} allowNone={false} onchange={(v) => (roles[i]!.roleId = v)} />
-					{#if roles[i]!.roleId}<RolePill name={roleName(roles[i]!.roleId)} color={roleColor(roles[i]!.roleId)} size="sm" />{/if}
-				</div>
+				<SearchPicker label="Role" value={roles[i]!.roleId} options={roleOptions} allowNone={false} placeholder="Pick a role…" onchange={(v) => (roles[i]!.roleId = v)} />
 			</div>
 			<div style="flex: 2;"><TextInput label="Label" bind:value={roles[i]!.label} maxlength={100} /></div>
 			<div style="flex: 1;"><TextInput label="Emoji" bind:value={roles[i]!.emoji} placeholder="🎮" /></div>

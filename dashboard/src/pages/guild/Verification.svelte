@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { guildEntry, saveGuildConfig } from '../../lib/session.svelte';
 	import PageHeader from '../../components/PageHeader.svelte';
-	import Select from '../../components/Select.svelte';
+	import SearchPicker from '../../components/SearchPicker.svelte';
 	import TextInput from '../../components/TextInput.svelte';
 	import TextArea from '../../components/TextArea.svelte';
 	import DiscordPreview from '../../components/DiscordPreview.svelte';
@@ -44,8 +44,8 @@
 	});
 
 	const dirty = $derived(baseline !== '' && snapshot() !== baseline);
-	const channelOptions = $derived((entry.detail?.channels ?? []).map((c) => ({ value: c.id, label: `#${c.name}` })));
-	const roleOptions = $derived((entry.detail?.roles ?? []).map((r) => ({ value: r.id, label: `@${r.name}` })));
+	const channelOptions = $derived((entry.detail?.channels ?? []).map((c) => ({ value: c.id, label: `#${c.name}`, kind: 'channel' as const })));
+	const roleOptions = $derived((entry.detail?.roles ?? []).map((r) => ({ value: r.id, label: `@${r.name}`, color: r.color, kind: 'role' as const })));
 
 	async function save(): Promise<void> {
 		saving = true;
@@ -75,8 +75,8 @@
 
 <div class="card">
 	<div class="grid-2">
-		<Select label="Verification channel" bind:value={channelId} options={channelOptions} hint="Where the verify prompt is posted." />
-		<Select label="Verified role" bind:value={roleId} options={roleOptions} hint="Granted after verifying." />
+		<SearchPicker label="Verification channel" bind:value={channelId} options={channelOptions} hint="Where the verify prompt is posted." />
+		<SearchPicker label="Verified role" bind:value={roleId} options={roleOptions} hint="Granted after verifying." />
 	</div>
 	<TextInput label="Title" bind:value={title} maxlength={256} />
 	<TextArea label="Message" bind:value={message} maxlength={2000} hint="Supports the same user/prefix/server placeholders as Welcome messages." />

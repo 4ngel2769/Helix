@@ -115,12 +115,19 @@ async function proxyToBot(req: Request, path: string): Promise<Response> {
 		return json({ error: 'Bot API unreachable', message: 'The Helix bot API did not respond. Is the bot running?' }, 502);
 	}
 
-	const text = await upstream.text().catch(() => '');
 	console.log(`[dashboard] ${req.method} ${path} -> ${upstream.status} (${Date.now() - started}ms)`);
 	const outHeaders: Record<string, string> = {};
 	if (refreshedCookie) outHeaders['Set-Cookie'] = refreshedCookie;
 	const upstreamType = upstream.headers.get('content-type');
 	if (upstreamType) outHeaders['content-type'] = upstreamType;
+	// Binary payloads (card backgrounds) must not go through text decoding.
+	if (upstreamType?.startsWith('image/') && upstream.ok) {
+		const buf = await upstream.arrayBuffer().catch(() => null);
+		if (!buf) return json({ error: 'Bot API unreachable', message: 'Failed to read image from bot.' }, 502);
+		return new Response(buf, { status: upstream.status, headers: outHeaders });
+	}
+	const text = await upstream.text().catch(() => '');
+	console.log(`[dashboard] ${req.method} ${path} -> ${upstream.status} (${Date.now() - started}ms)`);
 	return new Response(text, { status: upstream.status, headers: outHeaders });
 }
 

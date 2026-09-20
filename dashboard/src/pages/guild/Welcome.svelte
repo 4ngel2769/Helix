@@ -1,22 +1,27 @@
 <script lang="ts">
 	import { guildEntry, saveGuildConfig } from '../../lib/session.svelte';
 	import PageHeader from '../../components/PageHeader.svelte';
-	import Select from '../../components/Select.svelte';
+	import SearchPicker from '../../components/SearchPicker.svelte';
 	import TextArea from '../../components/TextArea.svelte';
 	import TextInput from '../../components/TextInput.svelte';
 	import Toggle from '../../components/Toggle.svelte';
 	import SaveBar from '../../components/SaveBar.svelte';
 
 	// Mirror of src/lib/cards/cardBackgrounds.ts — keep keys/stops in sync there.
+	// `file` backgrounds are served by the bot at /api/bot/cards/<key>.
 	const BACKGROUNDS = [
 		{ key: 'midnight', label: 'Midnight', premium: false, base: '#1a1b2e', accent: '#3b66ff', from: '#1a1b2e', to: '#3b3f7a' },
 		{ key: 'ocean', label: 'Ocean', premium: false, base: '#062a3a', accent: '#22d3ee', from: '#062a3a', to: '#0e7490' },
 		{ key: 'sunset', label: 'Sunset', premium: false, base: '#3a1c2e', accent: '#fb923c', from: '#3a1c2e', to: '#c2410c' },
 		{ key: 'forest', label: 'Forest', premium: false, base: '#0d2b1d', accent: '#4ade80', from: '#0d2b1d', to: '#166534' },
-		{ key: 'nebula', label: 'Nebula', premium: true, base: '#2e1065', accent: '#e879f9', from: '#2e1065', to: '#86198f' },
-		{ key: 'gold', label: 'Royal Gold', premium: true, base: '#292004', accent: '#facc15', from: '#292004', to: '#a16207' },
-		{ key: 'crimson', label: 'Crimson', premium: true, base: '#2a0a0a', accent: '#f87171', from: '#2a0a0a', to: '#991b1b' },
-		{ key: 'mono', label: 'Mono Light', premium: true, base: '#e8e8ec', accent: '#6366f1', from: '#f4f4f6', to: '#c7c9d4' }
+		{ key: 'nebula', label: 'Nebula', premium: false, base: '#2e1065', accent: '#e879f9', from: '#2e1065', to: '#86198f' },
+		{ key: 'gold', label: 'Royal Gold', premium: false, base: '#292004', accent: '#facc15', from: '#292004', to: '#a16207' },
+		{ key: 'crimson', label: 'Crimson', premium: false, base: '#2a0a0a', accent: '#f87171', from: '#2a0a0a', to: '#991b1b' },
+		{ key: 'mono', label: 'Mono Light', premium: false, base: '#e8e8ec', accent: '#6366f1', from: '#f4f4f6', to: '#c7c9d4' },
+		{ key: 'card1', label: 'Card 1', premium: true, file: 'card1.png', base: '#14532d', accent: '#4ade80', from: '#14532d', to: '#22c55e' },
+		{ key: 'card2', label: 'Card 2', premium: true, file: 'card2.png', base: '#1e3a8a', accent: '#a3e635', from: '#1e3a8a', to: '#0ea5e9' },
+		{ key: 'card3', label: 'Card 3', premium: true, file: 'card3.png', base: '#155e75', accent: '#fb923c', from: '#155e75', to: '#f59e0b' },
+		{ key: 'card4', label: 'Card 4', premium: true, file: 'card4.png', base: '#3b0764', accent: '#e879f9', from: '#3b0764', to: '#a21caf' }
 	];
 	const LAYOUTS = [
 		{ key: 'left', label: 'Avatar left' },
@@ -115,10 +120,15 @@
 	});
 
 	const dirty = $derived(baseline !== '' && snapshot() !== baseline);
-	const channelOptions = $derived((entry.detail?.channels ?? []).map((c) => ({ value: c.id, label: `#${c.name}` })));
+	const channelOptions = $derived((entry.detail?.channels ?? []).map((c) => ({ value: c.id, label: `#${c.name}`, kind: 'channel' as const })));
 
 	function bgOf(card: CardState) {
 		return BACKGROUNDS.find((b) => b.key === card.background) ?? BACKGROUNDS[0]!;
+	}
+
+	function bgImg(key: string): string {
+		const b = BACKGROUNDS.find((x) => x.key === key);
+		return b && 'file' in b ? `/api/bot/cards/${key}` : '';
 	}
 
 	function luminance(hex: string): number {
@@ -187,7 +197,7 @@
 
 <div class="card">
 	<div class="card-title"><h2>Welcome</h2><button class="btn btn-ghost btn-sm" onclick={useDefaultWelcome}>Use default</button></div>
-	<Select label="Welcome channel" bind:value={welcomeChannelId} options={channelOptions} />
+	<SearchPicker label="Welcome channel" bind:value={welcomeChannelId} options={channelOptions} />
 	<TextArea label="Welcome message" bind:value={welcomeMessage} maxlength={2000} hint="Supports user/prefix/server placeholders (see box above). Empty = default." />
 </div>
 
@@ -201,7 +211,7 @@
 				<button
 					type="button"
 					class="bg-pick {welcomeCard.background === b.key ? 'sel' : ''}"
-					style="background: linear-gradient(135deg, {b.from}, {b.to});"
+					style="{'file' in b ? `background-image: url(/api/bot/cards/${b.key}); background-size: cover; background-position: center;` : `background: linear-gradient(135deg, ${b.from}, ${b.to});`}"
 					disabled={b.premium && !isPremium}
 					title={b.premium && !isPremium ? `${b.label} (premium)` : b.label}
 					onclick={() => { welcomeCard.background = b.key; welcomeCard.textColor = b.key === 'mono' ? '#111111' : '#ffffff'; saved = false; }}
@@ -233,6 +243,7 @@
 		{#if welcomeCard.line2Enabled}<TextInput label="Line 2" bind:value={welcomeCard.line2} maxlength={140} />{/if}
 		<div class="section-title">Preview</div>
 		<div class="greet-preview" style="background: linear-gradient(135deg, {bgOf(welcomeCard).from}, {bgOf(welcomeCard).to}); color: {contrastOk(welcomeCard) ? welcomeCard.textColor : '#ffffff'}; {welcomeCard.layout === 'center' ? 'flex-direction: column; text-align: center;' : welcomeCard.layout === 'right' ? 'flex-direction: row-reverse; text-align: right;' : 'text-align: left;'}">
+			{#if bgImg(welcomeCard.background)}<img class="greet-bg" src={bgImg(welcomeCard.background)} alt="" />{/if}
 			<div class="greet-avatar">A</div>
 			<div class="greet-text">
 				{#if welcomeCard.showName}<div class="greet-name">Alex</div>{/if}
@@ -245,7 +256,7 @@
 
 <div class="card">
 	<div class="card-title"><h2>Farewell</h2><button class="btn btn-ghost btn-sm" onclick={useDefaultFarewell}>Use default</button></div>
-	<Select label="Farewell channel" bind:value={farewellChannelId} options={channelOptions} />
+	<SearchPicker label="Farewell channel" bind:value={farewellChannelId} options={channelOptions} />
 	<TextArea label="Farewell message" bind:value={farewellMessage} maxlength={2000} hint="Supports user/prefix/server placeholders (see box above). Empty = default." />
 </div>
 
@@ -259,7 +270,7 @@
 				<button
 					type="button"
 					class="bg-pick {farewellCard.background === b.key ? 'sel' : ''}"
-					style="background: linear-gradient(135deg, {b.from}, {b.to});"
+					style="{'file' in b ? `background-image: url(/api/bot/cards/${b.key}); background-size: cover; background-position: center;` : `background: linear-gradient(135deg, ${b.from}, ${b.to});`}"
 					disabled={b.premium && !isPremium}
 					title={b.premium && !isPremium ? `${b.label} (premium)` : b.label}
 					onclick={() => { farewellCard.background = b.key; farewellCard.textColor = b.key === 'mono' ? '#111111' : '#ffffff'; saved = false; }}
@@ -291,6 +302,7 @@
 		{#if farewellCard.line2Enabled}<TextInput label="Line 2" bind:value={farewellCard.line2} maxlength={140} />{/if}
 		<div class="section-title">Preview</div>
 		<div class="greet-preview" style="background: linear-gradient(135deg, {bgOf(farewellCard).from}, {bgOf(farewellCard).to}); color: {contrastOk(farewellCard) ? farewellCard.textColor : '#ffffff'}; {farewellCard.layout === 'center' ? 'flex-direction: column; text-align: center;' : farewellCard.layout === 'right' ? 'flex-direction: row-reverse; text-align: right;' : 'text-align: left;'}">
+			{#if bgImg(farewellCard.background)}<img class="greet-bg" src={bgImg(farewellCard.background)} alt="" />{/if}
 			<div class="greet-avatar">A</div>
 			<div class="greet-text">
 				{#if farewellCard.showName}<div class="greet-name">Alex</div>{/if}
@@ -364,6 +376,7 @@
 		color: #f0a832;
 	}
 	.greet-preview {
+		position: relative;
 		display: flex;
 		align-items: center;
 		gap: 18px;
@@ -371,6 +384,18 @@
 		padding: 22px 26px;
 		aspect-ratio: 3 / 1;
 		overflow: hidden;
+	}
+	.greet-bg {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+	.greet-avatar,
+	.greet-text {
+		position: relative;
+		z-index: 1;
 	}
 	.greet-avatar {
 		width: 84px;

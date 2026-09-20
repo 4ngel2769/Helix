@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { guildEntry, saveGuildConfig } from '../../lib/session.svelte';
 	import PageHeader from '../../components/PageHeader.svelte';
-	import Select from '../../components/Select.svelte';
+	import SearchPicker from '../../components/SearchPicker.svelte';
 	import TextInput from '../../components/TextInput.svelte';
 	import Toggle from '../../components/Toggle.svelte';
 	import RolePill from '../../components/RolePill.svelte';
@@ -123,7 +123,7 @@
 	});
 
 	const dirty = $derived(baseline !== '' && snapshot() !== baseline);
-	const channelOptions = $derived((entry.detail?.channels ?? []).map((c) => ({ value: c.id, label: `#${c.name}` })));
+	const channelOptions = $derived((entry.detail?.channels ?? []).map((c) => ({ value: c.id, label: `#${c.name}`, kind: 'channel' as const })));
 	const roles = $derived(entry.detail?.roles ?? []);
 	const channels = $derived(entry.detail?.channels ?? []);
 
@@ -167,7 +167,7 @@
 <div class="card">
 	<h3>Default destination</h3>
 	<div class="grid-2">
-		<Select label="Default log channel" value={defaultChannel} options={channelOptions} hint="Events without a per-event or fallback channel are skipped." onchange={(v) => { defaultChannel = v; saved = false; }} />
+		<SearchPicker label="Default log channel" value={defaultChannel} options={channelOptions} hint="Events without a per-event or fallback channel are skipped." onchange={(v) => { defaultChannel = v; saved = false; }} />
 		<Toggle title="Log bot actions" description="Include bot messages and bot join/leave events." checked={includeBots} onchange={(v) => { includeBots = v; saved = false; }} />
 	</div>
 </div>
@@ -187,7 +187,7 @@
 					<Toggle title={e.label} description={e.hint} checked={toggles[e.key] ?? e.def} onchange={(v) => { toggles[e.key] = v; saved = false; }} />
 				</div>
 				<div class="event-channel">
-					<Select label="Channel override" value={overrides[e.key] ?? ''} options={channelOptions} noneLabel="Use default" hint="" onchange={(v) => { overrides[e.key] = v; saved = false; }} />
+					<SearchPicker label="Channel override" value={overrides[e.key] ?? ''} options={channelOptions} noneLabel="Use default" onchange={(v) => { overrides[e.key] = v; saved = false; }} />
 				</div>
 			</div>
 		{/each}
@@ -199,7 +199,7 @@
 	<p class="hint">Old per-category channels. Used when an event has no override — keep them or migrate to the default channel above.</p>
 	<div class="grid-2">
 		{#each LEGACY as f (f.key)}
-			<Select label={f.label} value={legacy[f.key] ?? ''} options={channelOptions} hint={f.hint} onchange={(v) => { legacy[f.key] = v; saved = false; }} />
+			<SearchPicker label={f.label} value={legacy[f.key] ?? ''} options={channelOptions} hint={f.hint} onchange={(v) => { legacy[f.key] = v; saved = false; }} />
 		{/each}
 	</div>
 </div>

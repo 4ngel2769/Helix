@@ -4,9 +4,8 @@
 	import { api } from '../../lib/api';
 	import type { CommandEntry } from '../../lib/types';
 	import PageHeader from '../../components/PageHeader.svelte';
-	import RolePill from '../../components/RolePill.svelte';
 	import TextInput from '../../components/TextInput.svelte';
-	import Select from '../../components/Select.svelte';
+	import SearchPicker from '../../components/SearchPicker.svelte';
 	import SaveBar from '../../components/SaveBar.svelte';
 
 	let { guildId }: { guildId: string } = $props();
@@ -49,15 +48,7 @@
 		if (entry.config && baseline === '') syncFromCache();
 	});
 
-	const roleOptions = $derived((entry.detail?.roles ?? []).map((r) => ({ value: r.id, label: `@${r.name}` })));
-	// Cached roles (+ colors) from guild detail — no extra fetch per select.
-	const roleById = $derived(new Map((entry.detail?.roles ?? []).map((r) => [r.id, r])));
-	function pillFor(id: string): { name: string; color: string } | null {
-		if (!id) return null;
-		const r = roleById.get(id);
-		if (!r) return null;
-		return { name: r.name, color: r.color };
-	}
+	const roleOptions = $derived((entry.detail?.roles ?? []).map((r) => ({ value: r.id, label: `@${r.name}`, color: r.color, kind: 'role' as const })));
 
 	// Commands grouped by category for per-category toggling.
 	const grouped = $derived(() => {
@@ -124,22 +115,10 @@
 	<div class="card-title"><h2>Prefix & roles</h2></div>
 	<TextInput label="Command prefix" bind:value={prefix} maxlength={5} placeholder="x (default)" hint="1–5 characters. Empty means the bot default (x)." />
 	<div class="grid-2">
-		<div class="role-select-wrap">
-			<Select label="Admin role" bind:value={adminRoleId} options={roleOptions} />
-			{#if pillFor(adminRoleId)}<RolePill name={pillFor(adminRoleId)!.name} color={pillFor(adminRoleId)!.color} size="sm" />{/if}
-		</div>
-		<div class="role-select-wrap">
-			<Select label="Moderator role" bind:value={modRoleId} options={roleOptions} />
-			{#if pillFor(modRoleId)}<RolePill name={pillFor(modRoleId)!.name} color={pillFor(modRoleId)!.color} size="sm" />{/if}
-		</div>
-		<div class="role-select-wrap">
-			<Select label="Mute role" bind:value={muteRoleId} options={roleOptions} />
-			{#if pillFor(muteRoleId)}<RolePill name={pillFor(muteRoleId)!.name} color={pillFor(muteRoleId)!.color} size="sm" />{/if}
-		</div>
-		<div class="role-select-wrap">
-			<Select label="Auto-role on join" bind:value={autoroleId} options={roleOptions} hint="Given to every new member." />
-			{#if pillFor(autoroleId)}<RolePill name={pillFor(autoroleId)!.name} color={pillFor(autoroleId)!.color} size="sm" />{/if}
-		</div>
+		<SearchPicker label="Admin role" bind:value={adminRoleId} options={roleOptions} />
+		<SearchPicker label="Moderator role" bind:value={modRoleId} options={roleOptions} />
+		<SearchPicker label="Mute role" bind:value={muteRoleId} options={roleOptions} />
+		<SearchPicker label="Auto-role on join" bind:value={autoroleId} options={roleOptions} hint="Given to every new member." />
 	</div>
 </div>
 

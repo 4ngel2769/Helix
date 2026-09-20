@@ -60,6 +60,7 @@
     "generate": "sapphire generate",
     "clean:dist": "bun -e \"require('fs').rmSync('dist', { recursive: true, force: true })\"",
     "build": "bun run clean:dist && tsc",
+    "build:all": "bun run build && bun run dashboard:build",
     "typecheck": "tsc --noEmit",
     "start": "bun dist/index.js",
     "deploy": "bun run build && bun run start",

@@ -4,7 +4,7 @@
 	import { api } from '../../lib/api';
 	import type { RedditFeed } from '../../lib/types';
 	import PageHeader from '../../components/PageHeader.svelte';
-	import Select from '../../components/Select.svelte';
+	import SearchPicker from '../../components/SearchPicker.svelte';
 	import TextInput from '../../components/TextInput.svelte';
 	import Toggle from '../../components/Toggle.svelte';
 
@@ -21,7 +21,7 @@
 	let channelId = $state('');
 	let interval = $state('60');
 
-	const channelOptions = $derived((entry.detail?.channels ?? []).map((c) => ({ value: c.id, label: `#${c.name}` })));
+	const channelOptions = $derived((entry.detail?.channels ?? []).map((c) => ({ value: c.id, label: `#${c.name}`, kind: 'channel' as const })));
 	function channelName(id: string): string {
 		return entry.detail?.channels?.find((c) => c.id === id)?.name ?? id;
 	}
@@ -138,7 +138,7 @@
 	<div class="card-title"><h2>New feed</h2><span class="tag">{feeds.length}/10</span></div>
 	<div class="grid-2">
 		<TextInput label="Subreddit" bind:value={subreddit} placeholder="cats" hint="Letters, numbers and underscores, 3–21 chars. The r/ prefix is optional." />
-		<Select label="Channel" bind:value={channelId} options={channelOptions} allowNone={false} hint="The bot needs Send Messages + Embed Links here." />
+		<SearchPicker label="Channel" bind:value={channelId} options={channelOptions} allowNone={false} placeholder="Pick a channel…" hint="The bot needs Send Messages + Embed Links here." />
 		<TextInput label="Interval (minutes)" bind:value={interval} type="number" placeholder="60" hint="10–1440 minutes." />
 	</div>
 	<button class="btn btn-primary btn-sm" disabled={busy || !subreddit.trim() || !channelId || feeds.length >= 10} onclick={() => void create()}>

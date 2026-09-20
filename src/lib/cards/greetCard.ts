@@ -1,4 +1,6 @@
 import { createCanvas, loadImage } from 'canvas';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { getBackground } from './cardBackgrounds';
 import type { GreetCardConfig } from './cardBackgrounds';
 import { renderMessageTemplate, type TemplateContext } from '../utils/messagePlaceholders';
@@ -6,6 +8,24 @@ import { sanitizeText } from '../utils/sanitize';
 
 export const CARD_WIDTH = 900;
 export const CARD_HEIGHT = 300;
+
+/** Resolve a bundled background file (works from src/ and dist/ layouts). */
+export function resolveCardAsset(file: string): string | null {
+	const base = file.replace(/[/\\]/g, '').replace(/^\.+/, '');
+	if (!/^card[0-9]+\.png$/i.test(base)) return null; // never serve arbitrary paths
+	const candidates = [
+		join(process.cwd(), 'src', 'db', 'assets', 'cards', base),
+		join(__dirname, '..', '..', '..', 'src', 'db', 'assets', 'cards', base)
+	];
+	for (const p of candidates) {
+		try {
+			if (existsSync(p)) return p;
+		} catch {
+			// try next
+		}
+	}
+	return null;
+}
 
 /** 1 -> 1st, 2 -> 2nd, 3 -> 3rd, 11-13 -> th … */
 export function ordinal(n: number): string {
@@ -69,20 +89,41 @@ export async function renderGreetCard(card: GreetCardConfig, subject: GreetCardS
 	const canvas = createCanvas(CARD_WIDTH, CARD_HEIGHT);
 	const ctx = canvas.getContext('2d');
 
-	// Background gradient + decorative translucent circles.
-	const grad = ctx.createLinearGradient(0, 0, CARD_WIDTH, CARD_HEIGHT);
-	for (const s of bg.stops) grad.addColorStop(s.at, s.color);
-	ctx.fillStyle = grad;
-	ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT);
-	ctx.globalAlpha = 0.12;
-	ctx.fillStyle = bg.accent;
-	ctx.beginPath();
-	ctx.arc(CARD_WIDTH * 0.85, CARD_HEIGHT * -0.2, 220, 0, Math.PI * 2);
-	ctx.fill();
-	ctx.beginPath();
-	ctx.arc(CARD_WIDTH * 0.08, CARD_HEIGHT * 1.15, 260, 0, Math.PI * 2);
-	ctx.fill();
-	ctx.globalAlpha = 1;
+	// Background: file art (cover-fit) when available, else procedural gradient.
+	let painted = false;
+	if (bg.file) {
+		const asset = resolveCardAsset(bg.file);
+		if (asset) {
+			try {
+				const img = await loadImage(asset);
+				const scale = Math.max(CARD_WIDTH / img.width, CARD_HEIGHT / img.height);
+				const w = img.width * scale;
+				const h = img.height * scale;
+				ctx.drawImage(img, (CARD_WIDTH - w) / 2, (CARD_HEIGHT - h) / 2, w, h);
+				// Soft scrim so text stays readable on busy art.
+				ctx.fillStyle = 'rgba(0, 0, 0, 0.22)';
+				ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT);
+				painted = true;
+			} catch {
+				painted = false;
+			}
+		}
+	}
+	if (!painted) {
+		const grad = ctx.createLinearGradient(0, 0, CARD_WIDTH, CARD_HEIGHT);
+		for (const s of bg.stops) grad.addColorStop(s.at, s.color);
+		ctx.fillStyle = grad;
+		ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT);
+		ctx.globalAlpha = 0.12;
+		ctx.fillStyle = bg.accent;
+		ctx.beginPath();
+		ctx.arc(CARD_WIDTH * 0.85, CARD_HEIGHT * -0.2, 220, 0, Math.PI * 2);
+		ctx.fill();
+		ctx.beginPath();
+		ctx.arc(CARD_WIDTH * 0.08, CARD_HEIGHT * 1.15, 260, 0, Math.PI * 2);
+		ctx.fill();
+		ctx.globalAlpha = 1;
+	}
 
 	const color = readableTextColor(card.textColor, bg.base);
 	const name = sanitizeText(subject.displayName, 32) ?? 'Someone';

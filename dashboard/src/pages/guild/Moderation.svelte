@@ -4,7 +4,7 @@
 	import { api } from '../../lib/api';
 	import type { WarningEntry } from '../../lib/types';
 	import PageHeader from '../../components/PageHeader.svelte';
-	import Select from '../../components/Select.svelte';
+	import SearchPicker from '../../components/SearchPicker.svelte';
 	import TextInput from '../../components/TextInput.svelte';
 	import TextArea from '../../components/TextArea.svelte';
 	import SaveBar from '../../components/SaveBar.svelte';
@@ -57,7 +57,7 @@
 	});
 
 	const dirty = $derived(baseline !== '' && snapshot() !== baseline);
-	const channelOptions = $derived((entry.detail?.channels ?? []).map((c) => ({ value: c.id, label: `#${c.name}` })));
+	const channelOptions = $derived((entry.detail?.channels ?? []).map((c) => ({ value: c.id, label: `#${c.name}`, kind: 'channel' as const })));
 
 	async function save(): Promise<void> {
 		saving = true;
@@ -184,7 +184,7 @@
 	{/each}
 	<button class="btn btn-ghost btn-sm" onclick={addThreshold}>+ Add threshold</button>
 	<div style="margin-top: 14px; max-width: 560px;">
-		<Select label="Moderation notices channel" bind:value={modChannelId} options={channelOptions} />
+		<SearchPicker label="Moderation notices channel" bind:value={modChannelId} options={channelOptions} />
 	</div>
 </div>
 

@@ -82,7 +82,7 @@ All modules can be toggled per server from `/configmodule` or the dashboard. Def
 ## Versions
 
 | Core | Version(s) | Codename | Status | Engine | AI | Notes |
-|---|---|---|---|:---:|---|:---:|---|
+|---|---|:---:|:---:|---|:---:|---|
 | — | v1.0.0 → 1.1.8 | Rootspawn | 🔴 | D.js 12.2.0 | ❌ | |
 | — | v2.0.0 → 2.6.0 | Loopback | 🔴 | D.js 12.4.1 | ❌ | |
 | — | v3.0.0 → 3.5.0 | EchoRun | 🛟 | D.js 12.5.2 | ❌ | |
