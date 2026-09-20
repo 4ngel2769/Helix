@@ -8,8 +8,9 @@ import { getGameStatsModel } from '../../models/GameStats';
 import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
 
 @ApplyOptions<Command.Options>({
-    name: 'leaderboard',
+    name: 'game-leaderboard',
     description: 'View the leaderboard for a specific game.',
+    aliases: ['gameboard'],
     fullCategory: ['Fun'],
     enabled: true
 })
