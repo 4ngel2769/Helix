@@ -244,7 +244,7 @@
 
 <div class="card">
 	<div class="card-title"><h2>Welcome image card</h2><span class="tag">{welcomeCard.enabled ? 'on' : 'off'}</span></div>
-	<Toggle title="Attach an image card" description="Posted to the welcome channel under the text message." checked={welcomeCard.enabled} onchange={(v) => { welcomeCard.enabled = v; saved = false; }} />
+	<Toggle title="Attach an image card" description="Posted to the welcome channel in the same message as the text." checked={welcomeCard.enabled} onchange={(v) => { welcomeCard.enabled = v; saved = false; }} />
 	{#if welcomeCard.enabled}
 		<div class="section-title">Background {#if !isPremium}<span class="tag">🔒 more with premium</span>{/if}</div>
 		<div class="bg-grid">
@@ -300,7 +300,7 @@
 
 <div class="card">
 	<div class="card-title"><h2>Farewell image card</h2><span class="tag">{farewellCard.enabled ? 'on' : 'off'}</span></div>
-	<Toggle title="Attach an image card" description="Posted to the farewell channel under the text message." checked={farewellCard.enabled} onchange={(v) => { farewellCard.enabled = v; saved = false; }} />
+	<Toggle title="Attach an image card" description="Posted to the farewell channel in the same message as the text." checked={farewellCard.enabled} onchange={(v) => { farewellCard.enabled = v; saved = false; }} />
 	{#if farewellCard.enabled}
 		<div class="section-title">Background {#if !isPremium}<span class="tag">🔒 more with premium</span>{/if}</div>
 		<div class="bg-grid">
@@ -360,7 +360,8 @@
 	.bg-pick {
 		border: 2px solid transparent;
 		border-radius: 8px;
-		padding: 14px 8px;
+		aspect-ratio: 11 / 5;
+		padding: 8px;
 		color: #fff;
 		font-weight: 600;
 		font-size: 12px;

@@ -48,26 +48,29 @@ export class GuildMemberRemoveListener extends Listener<typeof Events.GuildMembe
 				serverMembers: member.guild.memberCount
 			});
 
+		const card = withCardDefaults((guildData as unknown as Record<string, unknown>)?.farewellCard);
+		if (!card.enabled) {
 			await (channel as unknown as { send: (content: string) => Promise<unknown> }).send(text);
+			return;
+		}
 
-			const card = withCardDefaults((guildData as unknown as Record<string, unknown>)?.farewellCard);
-			if (card.enabled) {
-				try {
-					const buffer = await renderGreetCard(card, {
-						displayName,
-						avatarUrl: member.user?.displayAvatarURL({ extension: 'png', size: 256 }) ?? '',
-						memberCount: member.guild.memberCount,
-						serverName: member.guild.name,
-						prefix: resolvedPrefix,
-						userTag: member.user?.username ?? displayName
-					});
-					await (channel as unknown as { send: (msg: unknown) => Promise<unknown> }).send({
-						files: [{ attachment: buffer, name: 'farewell.png' }]
-					});
-				} catch (cardError) {
-					container.logger.warn(`[farewell-card] failed for ${member.id} in ${member.guild.id}:`, cardError);
-				}
-			}
+		try {
+			const buffer = await renderGreetCard(card, {
+				displayName,
+				avatarUrl: member.user?.displayAvatarURL({ extension: 'png', size: 256 }) ?? '',
+				memberCount: member.guild.memberCount,
+				serverName: member.guild.name,
+				prefix: resolvedPrefix,
+				userTag: member.user?.username ?? displayName
+			});
+			await (channel as unknown as { send: (msg: unknown) => Promise<unknown> }).send({
+				content: text,
+				files: [{ attachment: buffer, name: 'farewell.png' }]
+			});
+		} catch (cardError) {
+			container.logger.warn(`[farewell-card] failed for ${member.id} in ${member.guild.id}:`, cardError);
+			await (channel as unknown as { send: (content: string) => Promise<unknown> }).send(text);
+		}
 		} catch (error) {
 			container.logger.warn(`[farewell] failed to say goodbye to ${member.id} in ${member.guild.id}:`, error);
 		}
