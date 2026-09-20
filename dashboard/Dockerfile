@@ -1,5 +1,5 @@
 # Helix dashboard image (Bun server serving the built Vite SPA + OAuth/API proxy).
-# Build context is the REPO ROOT (see docker-compose.yml). All runtime config
+# Build context is ./dashboard (see docker-compose.yml). All runtime config
 # comes from environment variables (dashboard/.env is gitignored).
 FROM oven/bun:1-debian
 
@@ -8,10 +8,10 @@ WORKDIR /app/dashboard
 RUN apt-get update && apt-get install -y --no-install-recommends curl wget \
     && rm -rf /var/lib/apt/lists
 
-COPY dashboard/package.json dashboard/bun.lock ./
+COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 
-COPY dashboard/ ./
+COPY . ./
 
 # vite build -> dist/ (served by the Bun server)
 RUN bun run build
