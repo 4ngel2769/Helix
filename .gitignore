@@ -35,8 +35,8 @@ build/Release
 .yarn-integrity
 
 # Config files with sensitive information
-config.ts
-config.json
+src/config.ts
+/config.json
 
 # Environment variables
 .env
