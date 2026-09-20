@@ -106,15 +106,15 @@ export class EconomyCommand extends HybridModuleCommand<EconomyModule> {
                 // Create a starter embed that includes the current user
                 const embed = new EmbedBuilder()
                     .setColor(config.bot.embedColor.warn as ColorResolvable)
-                    .setTitle('?? Economy Leaderboard')
+                    .setTitle('📊 Economy Leaderboard')
                     .setDescription(
-                        '?? **Getting Started!**\n\n' +
+                        '🎯 **Getting Started!**\n\n' +
                         'No other users have participated in the economy yet!\n' +
                         'You can be one of the first by using economy commands like:\n\n' +
-                        '? `/daily` - Get your daily coins\n' +
-                        '? `/balance` - Check your balance\n' +
-                        '? `/shop` - Visit the shop\n' +
-                        '? `/work` - Work a shift at your job\n\n' +
+                        '• `/daily` - Get your daily coins\n' +
+                        '• `/balance` - Check your balance\n' +
+                        '• `/shop` - Visit the shop\n' +
+                        '• `/work` - Work a shift at your job\n\n' +
                         'Start building your wealth and others will follow!'
                     )
                     .addFields({
@@ -175,7 +175,7 @@ export class EconomyCommand extends HybridModuleCommand<EconomyModule> {
             
             const embed = new EmbedBuilder()
                 .setColor(config.bot.embedColor.err as ColorResolvable)
-                .setTitle('âŒ Error')
+                .setTitle('❌ Error')
                 .setDescription('An error occurred while fetching the leaderboard.')
                 .setTimestamp();
 
@@ -278,17 +278,17 @@ export class EconomyCommand extends HybridModuleCommand<EconomyModule> {
 
     private formatUserStats(currentUser: IUser, type: 'total' | 'wallet' | 'bank' | 'level'): string {
         const typeEmojis = {
-            total: 'ðŸ’°',
-            wallet: 'ðŸ’µ',
-            bank: 'ðŸ¦', 
-            level: 'â­'
+            total: '💰',
+            wallet: '💵',
+            bank: '🏦', 
+            level: '⭐'
         };
 
         if (type === 'total') {
             const total = (currentUser.economy?.wallet || 0) + (currentUser.economy?.bank || 0);
-            return `ðŸ’° **${total.toLocaleString()}** coins total\nðŸ’µ ${(currentUser.economy?.wallet || 0).toLocaleString()} in wallet\nðŸ¦ ${(currentUser.economy?.bank || 0).toLocaleString()} in bank`;
+            return `💰 **${total.toLocaleString()}** coins total\n💵 ${(currentUser.economy?.wallet || 0).toLocaleString()} in wallet\n🏦 ${(currentUser.economy?.bank || 0).toLocaleString()} in bank`;
         } else if (type === 'level') {
-            return `â­ **Level ${currentUser.economy?.level || 1}**\nðŸ“ˆ ${(currentUser.economy?.experience || 0).toLocaleString()} experience points`;
+            return `⭐ **Level ${currentUser.economy?.level || 1}**\n📈 ${(currentUser.economy?.experience || 0).toLocaleString()} experience points`;
         } else {
             const amount = currentUser.economy?.[type] || 0;
             return `${typeEmojis[type]} **${amount.toLocaleString()}** coins`;
@@ -367,7 +367,7 @@ export class EconomyCommand extends HybridModuleCommand<EconomyModule> {
     private createEmptyLeaderboardEmbed(currentUser: IUser, type: LeaderboardType): EmbedBuilder {
         return new EmbedBuilder()
             .setColor(config.bot.embedColor.warn as ColorResolvable)
-            .setTitle('ðŸ“Š Economy Leaderboard')
+            .setTitle('📊 Economy Leaderboard')
             .setDescription('No users found with economy data.')
             .addFields({
                 name: 'Your Current Stats',
@@ -429,16 +429,16 @@ export class EconomyCommand extends HybridModuleCommand<EconomyModule> {
         };
 
         const typeEmojis = {
-            total: 'ðŸ’°',
-            wallet: 'ðŸ’µ',
-            bank: 'ðŸ¦', 
-            level: 'â­'
+            total: '💰',
+            wallet: '💵',
+            bank: '🏦', 
+            level: '⭐'
         };
 
         const embed = new EmbedBuilder()
             .setColor(config.bot.embedColor.default as ColorResolvable)
             .setTitle(`${typeEmojis[type]} ${typeNames[type]} Leaderboard`)
-            .setDescription(`${isGlobal ? 'ðŸŒ Global' : 'ðŸ  ' + serverName} â€¢ Top ${users.length} Users`)
+            .setDescription(`${isGlobal ? '🌍 Global' : '🏠 ' + serverName} • Top ${users.length} Users`)
             .setTimestamp();
 
         // Create leaderboard text
@@ -448,7 +448,7 @@ export class EconomyCommand extends HybridModuleCommand<EconomyModule> {
             const position = i + 1;
             
             // Get medal emoji for top 3
-            const medal = position === 1 ? 'ðŸ¥‡' : position === 2 ? 'ðŸ¥ˆ' : position === 3 ? 'ðŸ¥‰' : `**${position}.**`;
+            const medal = position === 1 ? '🥇' : position === 2 ? '🥈' : position === 3 ? '🥉' : `**${position}.**`;
             
             let value = '';
             if (type === 'total') {
@@ -463,7 +463,7 @@ export class EconomyCommand extends HybridModuleCommand<EconomyModule> {
 
             // Highlight current user
             const isCurrentUser = user.userId === currentUser.userId;
-            const userLine = `${medal} ${isCurrentUser ? '**' : ''}<@${user.userId}>${isCurrentUser ? '**' : ''} â€¢ ${value}${isCurrentUser ? ' â¬…ï¸' : ''}`;
+            const userLine = `${medal} ${isCurrentUser ? '**' : ''}<@${user.userId}>${isCurrentUser ? '**' : ''} • ${value}${isCurrentUser ? ' ⬅️' : ''}`;
             
             leaderboardText += userLine + '\n';
         }
@@ -479,7 +479,7 @@ export class EconomyCommand extends HybridModuleCommand<EconomyModule> {
 
         embed.addFields({
             name: `Your ${typeNames[type]}`,
-            value: userStats + (userPosition > 0 ? `\nðŸ“Š **Rank #${userPosition}**` : '\nðŸ“Š **Not ranked**'),
+            value: userStats + (userPosition > 0 ? `\n📊 **Rank #${userPosition}**` : '\n📊 **Not ranked**'),
             inline: true
         });
 
@@ -496,25 +496,25 @@ export class EconomyCommand extends HybridModuleCommand<EconomyModule> {
                     .setLabel('Total Wealth')
                     .setDescription('Wallet + Bank combined')
                     .setValue('total')
-                    .setEmoji('ðŸ’°')
+                    .setEmoji('💰')
                     .setDefault(currentType === 'total'),
                 new StringSelectMenuOptionBuilder()
                     .setLabel('Wallet Balance')
                     .setDescription('Money in wallet only')
                     .setValue('wallet')
-                    .setEmoji('ðŸ’µ')
+                    .setEmoji('💵')
                     .setDefault(currentType === 'wallet'),
                 new StringSelectMenuOptionBuilder()
                     .setLabel('Bank Balance')
                     .setDescription('Money in bank only')
                     .setValue('bank')
-                    .setEmoji('ðŸ¦')
+                    .setEmoji('🏦')
                     .setDefault(currentType === 'bank'),
                 new StringSelectMenuOptionBuilder()
                     .setLabel('Level & Experience')
                     .setDescription('User levels and XP')
                     .setValue('level')
-                    .setEmoji('â­')
+                    .setEmoji('⭐')
                     .setDefault(currentType === 'level')
             );
 
@@ -522,14 +522,14 @@ export class EconomyCommand extends HybridModuleCommand<EconomyModule> {
         const scopeButton = new ButtonBuilder()
             .setCustomId('leaderboard_scope')
             .setLabel(isGlobal ? 'Show Server Only' : 'Show Global')
-            .setEmoji(isGlobal ? 'ðŸ ' : 'ðŸŒ')
+            .setEmoji(isGlobal ? '🏠' : '🌍')
             .setStyle(ButtonStyle.Secondary);
 
         // Refresh button
         const refreshButton = new ButtonBuilder()
             .setCustomId('leaderboard_refresh')
             .setLabel('Refresh')
-            .setEmoji('ðŸ”„')
+            .setEmoji('🔄')
             .setStyle(ButtonStyle.Primary);
 
         return [
