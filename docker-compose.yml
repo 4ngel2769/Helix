@@ -1,0 +1,85 @@
+# Helix bot + dashboard stack for Coolify (git deploy: point a Docker Compose
+# resource at this repo). Set every ${VAR} in the Coolify UI under
+# Environment Variables — nothing secret is committed here.
+#
+# Required env:
+#   DISCORD_TOKEN            bot token (Developer Portal -> Bot)
+#   DISCORD_CLIENT_ID        same Discord app as the bot
+#   DISCORD_CLIENT_SECRET    same Discord app as the bot
+#   SESSION_SECRET           long random string (bot requires it in production)
+#   OWNER_IDS                your Discord user ID (comma-separated if several)
+#
+# Optional env (sane defaults below):
+#   PREFIX                   default command prefix (default: x)
+#   MONGO                    override only to use an external database
+#   BOT_INVITE_PERMISSIONS   permissions integer for invite links (default: 8)
+#
+# Coolify domains: attach https://helixdash.angellabs.xyz to the *dashboard*
+# service (port 3000, auto-TLS). The bot service needs no public domain —
+# it only talks outbound to Discord plus http://bot:8080/api internally.
+# Also add https://helixdash.angellabs.xyz/api/auth/callback to the Discord
+# app's OAuth2 redirects.
+
+services:
+  mongo:
+    image: mongo:8
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  bot:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DISCORD_TOKEN: ${DISCORD_TOKEN:?DISCORD_TOKEN is required}
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:?DISCORD_CLIENT_ID is required}
+      DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET:?DISCORD_CLIENT_SECRET is required}
+      SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET is required}
+      OWNER_IDS: ${OWNER_IDS:?OWNER_IDS is required}
+      PREFIX: ${PREFIX:-x}
+      MONGO: ${MONGO:-mongodb://mongo:27017/helix?retryWrites=true}
+      # Bot's own HTTP API (consumed by the dashboard internally).
+      DASHBOARD_PORT: 8080
+      DASHBOARD_DOMAIN: https://helixdash.angellabs.xyz
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  dashboard:
+    build: ./dashboard
+    restart: unless-stopped
+    depends_on:
+      - bot
+    environment:
+      NODE_ENV: production
+      DASHBOARD_WEB_PORT: 3000
+      DASHBOARD_WEB_URL: https://helixdash.angellabs.xyz
+      # SITE_URL defaults to https://helix.pages.dev — set only if the main site moves.
+      BOT_API_URL: http://bot:8080/api
+      SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET is required}
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:?DISCORD_CLIENT_ID is required}
+      DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET:?DISCORD_CLIENT_SECRET is required}
+      OWNER_IDS: ${OWNER_IDS:?OWNER_IDS is required}
+      BOT_INVITE_PERMISSIONS: ${BOT_INVITE_PERMISSIONS:-8}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  mongo-data:

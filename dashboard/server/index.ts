@@ -63,6 +63,26 @@ function checkOrigin(req: Request): boolean {
 	}
 }
 
+/**
+ * CORS for the main website's login-state probe (GET /api/me with
+ * fetch credentials:include). Only the configured site origin is ever
+ * echoed — never a wildcard, which browsers reject with credentials.
+ */
+function siteCorsHeaders(req: Request): Record<string, string> {
+	const origin = req.headers.get('origin');
+	if (!origin) return {};
+	try {
+		if (new URL(origin).origin !== new URL(dashboardConfig.siteUrl).origin) return {};
+	} catch {
+		return {};
+	}
+	return {
+		'Access-Control-Allow-Origin': origin,
+		'Access-Control-Allow-Credentials': 'true',
+		Vary: 'Origin'
+	};
+}
+
 // Simple in-memory rate limiter for the auth endpoints.
 const authHits = new Map<string, { count: number; resetAt: number }>();
 function authRateLimited(ip: string): boolean {
@@ -206,11 +226,18 @@ const server = Bun.serve({
 		}
 
 		if (pathname === '/api/me') {
+			const cors = siteCorsHeaders(req);
+			if (req.method === 'OPTIONS') {
+				return new Response(null, {
+					status: 204,
+					headers: { ...cors, 'Access-Control-Allow-Methods': 'GET, OPTIONS', 'Access-Control-Max-Age': '86400' }
+				});
+			}
 			const session = await readSession(req);
-			if (!session) return json({ error: 'Unauthorized' }, 401);
+			if (!session) return json({ error: 'Unauthorized' }, 401, cors);
 			const fresh = await withFreshToken(session);
-			if (!fresh) return json({ error: 'Session expired' }, 401, { 'Set-Cookie': clearSessionCookie() });
-			const headers: Record<string, string> = {};
+			if (!fresh) return json({ error: 'Session expired' }, 401, { ...cors, 'Set-Cookie': clearSessionCookie() });
+			const headers: Record<string, string> = { ...cors };
 			if (fresh.refreshed) {
 				headers['Set-Cookie'] = sessionCookie(await sealSession(fresh.session), 7 * 24 * 3600);
 			}

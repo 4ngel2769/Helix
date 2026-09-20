@@ -35,12 +35,19 @@ export async function unsealSession(token: string): Promise<DashboardSession | n
 	}
 }
 
+// Production uses SameSite=None so the main website (a different origin) can
+// probe the login state with fetch credentials:include. Mutation endpoints
+// stay CSRF-safe through the server-side Origin check in index.ts.
+function sameSiteAttr(): string {
+	return dashboardConfig.isProduction ? 'SameSite=None' : 'SameSite=Lax';
+}
+
 export function sessionCookie(value: string, maxAgeSeconds: number): string {
 	const parts = [
 		`${dashboardConfig.session.cookieName}=${encodeURIComponent(value)}`,
 		'Path=/',
 		'HttpOnly',
-		'SameSite=Lax',
+		sameSiteAttr(),
 		`Max-Age=${maxAgeSeconds}`
 	];
 	if (dashboardConfig.isProduction) parts.push('Secure');
@@ -48,7 +55,7 @@ export function sessionCookie(value: string, maxAgeSeconds: number): string {
 }
 
 export function clearSessionCookie(): string {
-	const parts = [`${dashboardConfig.session.cookieName}=`, 'Path=/', 'HttpOnly', 'SameSite=Lax', 'Max-Age=0'];
+	const parts = [`${dashboardConfig.session.cookieName}=`, 'Path=/', 'HttpOnly', sameSiteAttr(), 'Max-Age=0'];
 	if (dashboardConfig.isProduction) parts.push('Secure');
 	return parts.join('; ');
 }

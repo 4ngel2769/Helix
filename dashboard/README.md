@@ -43,19 +43,20 @@ Precedence: real environment > `dashboard/.env` > `src/.env` > built-in defaults
 | Var | Default | Purpose |
 |---|---|---|
 | `DASHBOARD_WEB_PORT` | `3000` | Dashboard listen port |
-| `DASHBOARD_WEB_URL` | `DASHBOARD_DOMAIN` or `http://localhost:3000` | Public origin, e.g. `https://dash.domain.tld` |
+| `DASHBOARD_WEB_URL` | `DASHBOARD_DOMAIN` or `http://localhost:3000` | Public origin, e.g. `https://helixdash.angellabs.xyz` |
 | `BOT_API_URL` | `http://localhost:{DASHBOARD_PORT}/api` | Bot HTTP API base |
 | `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET` | — | OAuth app (same app as the bot) |
 | `SESSION_SECRET` | — | Key for the session cookie (required in prod-style setups) |
 | `BOT_INVITE_PERMISSIONS` | `8` | Permissions integer for invite links |
+| `SITE_URL` | `https://helix.pages.dev` | Main website origin allowed to probe login state (`/api/me` CORS) |
 | `NODE_ENV=production` | — | Enables `Secure` cookies |
 
 **Discord portal:** add `{DASHBOARD_WEB_URL}/api/auth/callback` to the app's OAuth2 redirects (multiple redirects are allowed alongside the bot's own). Scopes used: `identify guilds`.
 
-**Reverse proxy** (`dash.domain.tld`): terminate TLS at nginx/Caddy and proxy `/` to `127.0.0.1:3000`. Example (Caddy):
+**Reverse proxy** (`helixdash.angellabs.xyz`): terminate TLS at nginx/Caddy and proxy `/` to `127.0.0.1:3000`. Example (Caddy):
 
 ```
-dash.domain.tld {
+helixdash.angellabs.xyz {
 	reverse_proxy 127.0.0.1:3000
 }
 ```
