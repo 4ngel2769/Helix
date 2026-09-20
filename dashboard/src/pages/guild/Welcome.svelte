@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { guildEntry, saveGuildConfig } from '../../lib/session.svelte';
+	import { apiBlob } from '../../lib/api';
 	import PageHeader from '../../components/PageHeader.svelte';
 	import SearchPicker from '../../components/SearchPicker.svelte';
+	import DiscordPreview from '../../components/DiscordPreview.svelte';
 	import TextArea from '../../components/TextArea.svelte';
 	import TextInput from '../../components/TextInput.svelte';
 	import Toggle from '../../components/Toggle.svelte';
@@ -126,10 +128,49 @@
 		return BACKGROUNDS.find((b) => b.key === card.background) ?? BACKGROUNDS[0]!;
 	}
 
-	function bgImg(key: string): string {
-		const b = BACKGROUNDS.find((x) => x.key === key);
-		return b && 'file' in b ? `/api/bot/cards/${key}` : '';
+	// Live bot-rendered card PNGs (debounced; object URLs revoked on replace).
+	let welcomePng = $state('');
+	let farewellPng = $state('');
+	let previewSeq = 0;
+
+	async function fetchCardPng(card: CardState, slot: 'welcome' | 'farewell', seq: number): Promise<void> {
+		if (!card.enabled) {
+			if (slot === 'welcome' && welcomePng) URL.revokeObjectURL(welcomePng);
+			if (slot === 'farewell' && farewellPng) URL.revokeObjectURL(farewellPng);
+			if (slot === 'welcome') welcomePng = '';
+			else farewellPng = '';
+			return;
+		}
+		try {
+			const blob = await apiBlob(`/cards/preview`, {
+				method: 'POST',
+				body: { guildId, card: { ...card } }
+			});
+			if (seq !== previewSeq) return; // stale response
+			const url = URL.createObjectURL(blob);
+			if (slot === 'welcome') {
+				if (welcomePng) URL.revokeObjectURL(welcomePng);
+				welcomePng = url;
+			} else {
+				if (farewellPng) URL.revokeObjectURL(farewellPng);
+				farewellPng = url;
+			}
+		} catch {
+			// keep previous preview; save errors surface via SaveBar
+		}
 	}
+
+	$effect(() => {
+		const w = JSON.stringify(welcomeCard);
+		const f = JSON.stringify(farewellCard);
+		if (baseline === '') return;
+		const seq = ++previewSeq;
+		const t = setTimeout(() => {
+			void fetchCardPng(JSON.parse(w), 'welcome', seq);
+			void fetchCardPng(JSON.parse(f), 'farewell', seq);
+		}, 700);
+		return () => clearTimeout(t);
+	});
 
 	function luminance(hex: string): number {
 		const c = hex.replace('#', '');
@@ -241,16 +282,13 @@
 		{#if welcomeCard.line1Enabled}<TextInput label="Line 1" bind:value={welcomeCard.line1} maxlength={140} />{/if}
 		<Toggle title="Text line 2 (smaller)" description="Default: Welcome to your server" checked={welcomeCard.line2Enabled} onchange={(v) => { welcomeCard.line2Enabled = v; saved = false; }} />
 		{#if welcomeCard.line2Enabled}<TextInput label="Line 2" bind:value={welcomeCard.line2} maxlength={140} />{/if}
-		<div class="section-title">Preview</div>
-		<div class="greet-preview" style="background: linear-gradient(135deg, {bgOf(welcomeCard).from}, {bgOf(welcomeCard).to}); color: {contrastOk(welcomeCard) ? welcomeCard.textColor : '#ffffff'}; {welcomeCard.layout === 'center' ? 'flex-direction: column; text-align: center;' : welcomeCard.layout === 'right' ? 'flex-direction: row-reverse; text-align: right;' : 'text-align: left;'}">
-			{#if bgImg(welcomeCard.background)}<img class="greet-bg" src={bgImg(welcomeCard.background)} alt="" />{/if}
-			<div class="greet-avatar">A</div>
-			<div class="greet-text">
-				{#if welcomeCard.showName}<div class="greet-name">Alex</div>{/if}
-				{#if welcomeCard.line1Enabled && welcomeCard.line1.trim() !== ''}<div class="greet-l1">{renderSample(welcomeCard.line1)}</div>{/if}
-				{#if welcomeCard.line2Enabled && welcomeCard.line2.trim() !== ''}<div class="greet-l2">{renderSample(welcomeCard.line2)}</div>{/if}
-			</div>
-		</div>
+		<div class="section-title">Preview — the whole message</div>
+		<DiscordPreview
+			botName="Helix"
+			avatarUrl={entry.detail?.botAvatar ?? ''}
+			content={renderSample(welcomeMessage || DEFAULT_WELCOME)}
+			imageUrl={welcomePng}
+		/>
 	{/if}
 </div>
 
@@ -300,16 +338,13 @@
 		{#if farewellCard.line1Enabled}<TextInput label="Line 1" bind:value={farewellCard.line1} maxlength={140} />{/if}
 		<Toggle title="Text line 2 (smaller)" description="Default: Alex has left your server" checked={farewellCard.line2Enabled} onchange={(v) => { farewellCard.line2Enabled = v; saved = false; }} />
 		{#if farewellCard.line2Enabled}<TextInput label="Line 2" bind:value={farewellCard.line2} maxlength={140} />{/if}
-		<div class="section-title">Preview</div>
-		<div class="greet-preview" style="background: linear-gradient(135deg, {bgOf(farewellCard).from}, {bgOf(farewellCard).to}); color: {contrastOk(farewellCard) ? farewellCard.textColor : '#ffffff'}; {farewellCard.layout === 'center' ? 'flex-direction: column; text-align: center;' : farewellCard.layout === 'right' ? 'flex-direction: row-reverse; text-align: right;' : 'text-align: left;'}">
-			{#if bgImg(farewellCard.background)}<img class="greet-bg" src={bgImg(farewellCard.background)} alt="" />{/if}
-			<div class="greet-avatar">A</div>
-			<div class="greet-text">
-				{#if farewellCard.showName}<div class="greet-name">Alex</div>{/if}
-				{#if farewellCard.line1Enabled && farewellCard.line1.trim() !== ''}<div class="greet-l1">{renderSample(farewellCard.line1)}</div>{/if}
-				{#if farewellCard.line2Enabled && farewellCard.line2.trim() !== ''}<div class="greet-l2">{renderSample(farewellCard.line2)}</div>{/if}
-			</div>
-		</div>
+		<div class="section-title">Preview — the whole message</div>
+		<DiscordPreview
+			botName="Helix"
+			avatarUrl={entry.detail?.botAvatar ?? ''}
+			content={renderSample(farewellMessage || DEFAULT_FAREWELL)}
+			imageUrl={farewellPng}
+		/>
 	{/if}
 </div>
 
@@ -374,57 +409,5 @@
 	}
 	.warn {
 		color: #f0a832;
-	}
-	.greet-preview {
-		position: relative;
-		display: flex;
-		align-items: center;
-		gap: 18px;
-		border-radius: 12px;
-		padding: 22px 26px;
-		aspect-ratio: 3 / 1;
-		overflow: hidden;
-	}
-	.greet-bg {
-		position: absolute;
-		inset: 0;
-		width: 100%;
-		height: 100%;
-		object-fit: cover;
-	}
-	.greet-avatar,
-	.greet-text {
-		position: relative;
-		z-index: 1;
-	}
-	.greet-avatar {
-		width: 84px;
-		height: 84px;
-		flex: none;
-		border-radius: 50%;
-		background: rgba(255, 255, 255, 0.25);
-		border: 3px solid #fff;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		font-size: 38px;
-		font-weight: 700;
-	}
-	.greet-text {
-		flex: 1;
-		min-width: 0;
-	}
-	.greet-name {
-		font-size: 26px;
-		font-weight: 800;
-	}
-	.greet-l1 {
-		font-size: 15px;
-		margin-top: 4px;
-	}
-	.greet-l2 {
-		font-size: 12px;
-		opacity: 0.85;
-		margin-top: 2px;
 	}
 </style>

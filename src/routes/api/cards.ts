@@ -4,8 +4,9 @@ import type { ApiRequest, ApiResponse } from '@sapphire/plugin-api';
 import type { RouteOptions } from '@sapphire/plugin-api';
 import { readFile } from 'node:fs/promises';
 import { getBackground } from '../../lib/cards/cardBackgrounds';
-import { resolveCardAsset } from '../../lib/cards/greetCard';
-import { requireAuth } from '../../lib/utils/apiAuth';
+import { resolveCardAsset, renderGreetCard } from '../../lib/cards/greetCard';
+import { validateGreetCard } from '../../lib/cards/cardValidation';
+import { isSnowflake, readJsonBody, requireAuth, requireManageableGuild } from '../../lib/utils/apiAuth';
 
 /**
  * Serve bundled greeting-card backgrounds (src/db/assets/cards/).
@@ -15,12 +16,42 @@ import { requireAuth } from '../../lib/utils/apiAuth';
 @ApplyOptions<RouteOptions>({
 	name: 'api-cards',
 	route: 'cards/[key]',
-	methods: ['GET']
+	methods: ['GET', 'POST']
 })
 export class ApiCardsRoute extends Route {
 	public override async run(request: ApiRequest, response: ApiResponse) {
 		const auth = await requireAuth(request, response);
 		if (!auth) return undefined;
+
+		// POST { guildId, card } renders a sample card PNG with the given config
+		// (premium art allowed — seeing is not choosing; saving stays gated).
+		if (request.method === 'POST') {
+			const body = await readJsonBody<Record<string, unknown>>(request);
+			const guildId = typeof body.guildId === 'string' ? body.guildId : null;
+			if (!guildId || !isSnowflake(guildId)) return response.status(400).json({ error: 'guildId (snowflake) is required' });
+			if (!requireManageableGuild(auth, guildId, response)) return undefined;
+			const { card, error } = validateGreetCard(body.card, { allowPremium: true });
+			if (error || !card) return response.status(400).json({ error: error ?? 'Invalid card config' });
+			try {
+				const png = await renderGreetCard(card, {
+					displayName: 'Alex',
+					avatarUrl: '',
+					memberCount: 42,
+					serverName: 'Preview Server',
+					prefix: 'x',
+					userTag: 'alex'
+				});
+				response.writeHead(200, {
+					'content-type': 'image/png',
+					'content-length': png.length,
+					'cache-control': 'no-store'
+				});
+				response.end(png);
+				return undefined;
+			} catch {
+				return response.status(500).json({ error: 'Failed to render card preview' });
+			}
+		}
 
 		const { key } = request.params as { key?: string };
 		const bg = typeof key === 'string' ? getBackground(key) : undefined;

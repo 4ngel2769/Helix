@@ -6,6 +6,7 @@
 	import MyData from './pages/MyData.svelte';
 	import Economy from './pages/Economy.svelte';
 	import DevGuilds from './pages/dev/DevGuilds.svelte';
+	import DevUsers from './pages/dev/DevUsers.svelte';
 	import DevStats from './pages/dev/DevStats.svelte';
 	import GuildLayout from './pages/GuildLayout.svelte';
 
@@ -30,6 +31,7 @@
 	const myData = linkProps('/panel/me');
 	const economy = linkProps('/panel/economy');
 	const devGuilds = linkProps('/panel/dev/guilds');
+	const devUsers = linkProps('/panel/dev/users');
 	const devStats = linkProps('/panel/dev/stats');
 	const guildParams = $derived(match('/panel/guilds/:guildId/:section'));
 	const devParams = $derived(match('/panel/dev/:section'));
@@ -54,6 +56,7 @@
 		<a class="nav-link" style="padding: 6px 10px;" href="/panel/economy" onclick={economy.onclick}>Economy</a>
 		{#if session.isDeveloper}
 			<a class="nav-link" style="padding: 6px 10px;" href="/panel/dev/guilds" onclick={devGuilds.onclick}>Bot servers</a>
+			<a class="nav-link" style="padding: 6px 10px;" href="/panel/dev/users" onclick={devUsers.onclick}>Bot users</a>
 			<a class="nav-link" style="padding: 6px 10px;" href="/panel/dev/stats" onclick={devStats.onclick}>Bot stats</a>
 		{/if}
 		<span class="user-chip">
@@ -75,6 +78,8 @@
 {:else if devParams}
 	{#if devParams.section === 'guilds'}
 		<DevGuilds />
+	{:else if devParams.section === 'users'}
+		<DevUsers />
 	{:else if devParams.section === 'stats'}
 		<DevStats />
 	{:else}

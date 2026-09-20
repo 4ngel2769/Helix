@@ -130,6 +130,12 @@ bun run dev:all
 
 Boots the bot first, waits for its API, then boots the dashboard. Bot logs pass through untouched; dashboard lines are re-tagged `TIMESTAMP - DASH - …` (magenta). `Ctrl+C` stops everything.
 
+To rebuild bot + dashboard from clean first (so a broken compile fails before anything launches):
+
+```bash
+bun run dev:fresh
+```
+
 ### Dashboard (Svelte 5 + Bun)
 
 The web dashboard lives in `dashboard/` — a Svelte SPA served by a Bun server that handles Discord login and proxies the bot API.

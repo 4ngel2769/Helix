@@ -51,7 +51,8 @@ export class ApiGuildDetailRoute extends Route {
 			canManage: manageable,
 			joinedAt: guild.joinedAt?.toISOString() ?? null,
 			ownerId: guild.ownerId ?? null,
-			defaultPrefix
+			defaultPrefix,
+			botAvatar: this.container.client.user?.displayAvatarURL({ size: 128 }) ?? null
 		};
 
 		if (!manageable) return response.json({ guild: base });

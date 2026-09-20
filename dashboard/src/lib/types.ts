@@ -40,6 +40,7 @@ export interface GuildDetail {
 	joinedAt: string | null;
 	ownerId: string | null;
 	defaultPrefix?: string | null;
+	botAvatar?: string | null;
 	config?: Record<string, unknown> | null;
 	channels?: GuildChannel[];
 	roles?: GuildRole[];
@@ -159,6 +160,24 @@ export interface DevGuildEntry {
 	joinedAt: string | null;
 	channels: number;
 	roles: number;
+	isPremium?: boolean;
+	botDisabled?: boolean;
+	guildBanned?: boolean;
+	disabledMessage?: string | null;
+	banReason?: string | null;
+}
+
+export interface DevUserEntry {
+	userId: string;
+	username: string | null;
+	isPremium: boolean;
+	botBanned: boolean;
+	banReason: string | null;
+	lastSeen: string | null;
+	wallet: number;
+	bank: number;
+	level: number;
+	activeWarnings: number;
 }
 
 export interface DevStats {

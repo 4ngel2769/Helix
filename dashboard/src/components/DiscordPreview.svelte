@@ -13,27 +13,32 @@
 
 	let {
 		botName = 'Helix',
+		avatarUrl = '',
 		content = '',
 		title = '',
 		description = '',
 		footer = '',
 		thumbUrl = '',
 		embedColor = '#3b66ff',
+		imageUrl = '',
 		buttons = [],
 		select
 	}: {
 		botName?: string;
+		avatarUrl?: string;
 		content?: string;
 		title?: string;
 		description?: string;
 		footer?: string;
 		thumbUrl?: string;
 		embedColor?: string;
+		imageUrl?: string;
 		buttons?: PreviewButton[];
 		select?: PreviewSelect;
 	} = $props();
 
 	const initial = $derived((botName.trim()[0] ?? 'H').toUpperCase());
+	const showAvatar = $derived(/^https?:\/\/.+\..+/.test(avatarUrl.trim()));
 	const showThumb = $derived(/^https?:\/\/.+\..+/.test(thumbUrl.trim()));
 	const showEmbed = $derived(title.trim() !== '' || description.trim() !== '' || footer.trim() !== '' || showThumb);
 
@@ -45,7 +50,7 @@
 </script>
 
 <div class="dc-msg">
-	<div class="dc-avatar">{initial}</div>
+	{#if showAvatar}<img class="dc-avatar-img" src={avatarUrl.trim()} alt="" />{:else}<div class="dc-avatar">{initial}</div>{/if}
 	<div class="dc-body">
 		<div class="dc-head">
 			<span class="dc-name">{botName}</span>
@@ -53,6 +58,7 @@
 			<span class="dc-time">Today at {new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
 		</div>
 		{#if content.trim() !== ''}<div class="dc-content">{content}</div>{/if}
+		{#if imageUrl.trim() !== ''}<img class="dc-attach" src={imageUrl} alt="card preview" />{/if}
 		{#if showEmbed}
 			<div class="dc-embed" style="--embed-color: {embedColor};">
 				<div class="dc-embed-main">
@@ -109,6 +115,21 @@
 		justify-content: center;
 		font-weight: 700;
 		font-size: 18px;
+	}
+	.dc-avatar-img {
+		width: 40px;
+		height: 40px;
+		flex: none;
+		border-radius: 50%;
+		object-fit: cover;
+		background: #5865f2;
+	}
+	.dc-attach {
+		display: block;
+		max-width: 400px;
+		width: 100%;
+		border-radius: 8px;
+		margin-top: 6px;
 	}
 	.dc-body {
 		flex: 1;

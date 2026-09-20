@@ -227,6 +227,8 @@
 	<div class="card">
 		<div class="card-title"><h2>Live preview</h2><span class="tag">exactly how it looks on Discord</span></div>
 		<DiscordPreview
+			botName="Helix"
+			avatarUrl={entry.detail?.botAvatar ?? ''}
 			title={title || '(title)'}
 			description={description || 'Select your roles below'}
 			footer={active ? 'Select roles from the dropdown menu below' : 'This role selection menu is currently paused'}

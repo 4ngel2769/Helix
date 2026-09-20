@@ -90,6 +90,8 @@
 <div class="card">
 	<div class="card-title"><h2>Live preview</h2><span class="tag">exactly how it looks on Discord</span></div>
 	<DiscordPreview
+		botName="Helix"
+		avatarUrl={entry.detail?.botAvatar ?? ''}
 		title={title || 'Server Verification'}
 		description={message || 'Click the button below to verify yourself and gain access to the server!'}
 		footer={footer}

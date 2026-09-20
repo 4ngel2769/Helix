@@ -117,6 +117,12 @@ export interface IGuild extends Document, LegacyModuleFlags, VerificationSetting
   logIncludeBots?: boolean;
   // Greeting image cards + premium flag
   isPremium?: boolean;
+  // Soft disable: bot stays but answers commands with disabledMessage.
+  botDisabled?: boolean;
+  disabledMessage?: string;
+  // Hard ban: bot leaves and guildCreate refuses re-entry.
+  guildBanned?: boolean;
+  banReason?: string;
   welcomeCard?: Record<string, unknown>;
   farewellCard?: Record<string, unknown>;
   welcomeChannelId?: string;
@@ -163,6 +169,12 @@ const guildSchema = new Schema<IGuild>({
 
   // Greeting image cards (see src/lib/cards/) + premium flag (granted out-of-band)
   isPremium: { type: Boolean, default: false },
+  // Soft disable: bot stays, commands reply with disabledMessage (or the default).
+  botDisabled: { type: Boolean, default: false },
+  disabledMessage: { type: String, default: null },
+  // Hard ban: bot leaves; guildCreate refuses re-entry while set.
+  guildBanned: { type: Boolean, default: false },
+  banReason: { type: String, default: null },
   welcomeCard: { type: Schema.Types.Mixed, default: {} },
   farewellCard: { type: Schema.Types.Mixed, default: {} },
   

@@ -56,6 +56,41 @@ export async function api<T = unknown>(
 	return data as T;
 }
 
+/** Same as api() but returns the raw Blob (for PNG previews). */
+export async function apiBlob(
+	path: string,
+	options: { method?: string; body?: unknown; query?: Record<string, string | number | boolean | undefined> } = {}
+): Promise<Blob> {
+	const controller = new AbortController();
+	const timer = setTimeout(() => controller.abort(), 20000);
+	let res: Response;
+	try {
+		res = await fetch(buildUrl(path, options.query), {
+			method: options.method ?? 'GET',
+			headers: { 'content-type': 'application/json' },
+			body: options.body === undefined ? undefined : JSON.stringify(cleanPayload(options.body)),
+			signal: controller.signal
+		});
+	} catch (error) {
+		if (error instanceof DOMException && error.name === 'AbortError') {
+			throw new Error('Request timed out after 20s — is the bot API reachable?');
+		}
+		throw error;
+	} finally {
+		clearTimeout(timer);
+	}
+	if (!res.ok) {
+		let data: unknown = null;
+		try {
+			data = await res.json();
+		} catch {
+			// ignore
+		}
+		throw new ApiError(res.status, data);
+	}
+	return res.blob();
+}
+
 export async function inviteUrl(guildId?: string): Promise<string> {
 	const qs = guildId ? `?guildId=${encodeURIComponent(guildId)}` : '';
 	const res = await fetch(`/api/invite-url${qs}`);

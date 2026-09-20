@@ -686,6 +686,12 @@ textarea::placeholder {
 	color: var(--danger);
 }
 
+.tag-warn {
+	background: rgba(240, 168, 50, 0.14);
+	border-color: #f0a832;
+	color: #f0a832;
+}
+
 /* ---------- Login ---------- */
 .login-wrap {
 	min-height: calc(100vh - var(--topbar-h));

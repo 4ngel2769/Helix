@@ -9,6 +9,12 @@ import { Guild as GuildModel } from '../../models/Guild';
 export class GuildCreateListener extends Listener {
     public async run(guild: Guild) {
         try {
+            const existing = await GuildModel.findOne({ guildId: guild.id }, { guildBanned: 1 }).lean();
+            if (existing?.guildBanned) {
+                this.container.logger.warn(`Refusing banned guild ${guild.name} (${guild.id})`);
+                await guild.leave().catch(() => null);
+                return;
+            }
             const result = await GuildModel.updateOne(
                 { guildId: guild.id },
                 { $setOnInsert: { guildId: guild.id } },
