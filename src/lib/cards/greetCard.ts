@@ -86,41 +86,43 @@ function fitFont(ctx: { font: string; measureText: (t: string) => { width: numbe
 
 export async function renderGreetCard(card: GreetCardConfig, subject: GreetCardSubject): Promise<Buffer> {
 	const bg = getBackground(card.background);
-	const canvas = createCanvas(CARD_WIDTH, CARD_HEIGHT);
-	const ctx = canvas.getContext('2d');
 
-	// Background: file art (cover-fit) when available, else procedural gradient.
-	let painted = false;
+	// File art is painted 1:1 at its native size (the premium cards are
+	// 1100x500) — never cover-fit, so the official ratio survives and the
+	// art's lower text zone stays where the layout below expects it.
+	// Procedural fallback stays 900x300.
+	let art: Awaited<ReturnType<typeof loadImage>> | null = null;
 	if (bg.file) {
 		const asset = resolveCardAsset(bg.file);
 		if (asset) {
 			try {
-				const img = await loadImage(asset);
-				const scale = Math.max(CARD_WIDTH / img.width, CARD_HEIGHT / img.height);
-				const w = img.width * scale;
-				const h = img.height * scale;
-				ctx.drawImage(img, (CARD_WIDTH - w) / 2, (CARD_HEIGHT - h) / 2, w, h);
-				// Soft scrim so text stays readable on busy art.
-				ctx.fillStyle = 'rgba(0, 0, 0, 0.22)';
-				ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT);
-				painted = true;
+				art = await loadImage(asset);
 			} catch {
-				painted = false;
+				art = null;
 			}
 		}
 	}
-	if (!painted) {
-		const grad = ctx.createLinearGradient(0, 0, CARD_WIDTH, CARD_HEIGHT);
+	const W = art?.width ?? CARD_WIDTH;
+	const H = art?.height ?? CARD_HEIGHT;
+	const canvas = createCanvas(W, H);
+	const ctx = canvas.getContext('2d');
+
+	// Background: file art 1:1 when available (it carries its own text pill,
+	// so no scrim), else procedural gradient.
+	if (art) {
+		ctx.drawImage(art, 0, 0);
+	} else {
+		const grad = ctx.createLinearGradient(0, 0, W, H);
 		for (const s of bg.stops) grad.addColorStop(s.at, s.color);
 		ctx.fillStyle = grad;
-		ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT);
+		ctx.fillRect(0, 0, W, H);
 		ctx.globalAlpha = 0.12;
 		ctx.fillStyle = bg.accent;
 		ctx.beginPath();
-		ctx.arc(CARD_WIDTH * 0.85, CARD_HEIGHT * -0.2, 220, 0, Math.PI * 2);
+		ctx.arc(W * 0.85, H * -0.2, 220, 0, Math.PI * 2);
 		ctx.fill();
 		ctx.beginPath();
-		ctx.arc(CARD_WIDTH * 0.08, CARD_HEIGHT * 1.15, 260, 0, Math.PI * 2);
+		ctx.arc(W * 0.08, H * 1.15, 260, 0, Math.PI * 2);
 		ctx.fill();
 		ctx.globalAlpha = 1;
 	}
@@ -140,15 +142,19 @@ export async function renderGreetCard(card: GreetCardConfig, subject: GreetCardS
 	const line2 = card.line2Enabled ? (sanitizeText(renderMessageTemplate(card.line2 || '', templateCtx), 140) ?? '') : '';
 
 	// Avatar (circular, white ring). Falls back to initial letter on load failure.
-	const AV = 160;
+	// All geometry is proportional to the canvas, so file art keeps its
+	// official ratio and the text block lands inside the art's text zone
+	// instead of running off the bottom edge.
+	const kx = W / CARD_WIDTH;
+	const ky = H / CARD_HEIGHT;
 	const positions = {
-		left: { ax: 150, textX: 270, align: 'left' as const },
-		right: { ax: CARD_WIDTH - 150, textX: CARD_WIDTH - 270, align: 'right' as const },
-		center: { ax: CARD_WIDTH / 2, textX: CARD_WIDTH / 2, align: 'center' as const }
+		left: { ax: 150 * kx, textX: 270 * kx, align: 'left' as const },
+		right: { ax: W - 150 * kx, textX: W - 270 * kx, align: 'right' as const },
+		center: { ax: W / 2, textX: W / 2, align: 'center' as const }
 	};
 	const pos = positions[card.layout] ?? positions.left;
-	const avatarY = card.layout === 'center' ? 105 : CARD_HEIGHT / 2;
-	const avatarR = card.layout === 'center' ? 62 : AV / 2;
+	const avatarR = card.layout === 'center' ? 0.23 * H : 80 * ky;
+	const avatarY = card.layout === 'center' ? 0.16 * H + avatarR : H / 2;
 
 	try {
 		const img = await loadImage(subject.avatarUrl);
@@ -173,32 +179,32 @@ export async function renderGreetCard(card: GreetCardConfig, subject: GreetCardS
 	}
 	ctx.save();
 	ctx.strokeStyle = '#ffffff';
-	ctx.lineWidth = 5;
+	ctx.lineWidth = Math.max(4, Math.round(5 * ky));
 	ctx.beginPath();
 	ctx.arc(pos.ax, avatarY, avatarR, 0, Math.PI * 2);
 	ctx.stroke();
 	ctx.restore();
 
 	// Text block.
-	const maxW = card.layout === 'center' ? CARD_WIDTH - 120 : CARD_WIDTH - 340;
+	const maxW = card.layout === 'center' ? W - 120 * kx : W - 340 * kx;
 	ctx.fillStyle = color;
 	ctx.textBaseline = 'alphabetic';
-	let y = card.layout === 'center' ? 210 : CARD_HEIGHT / 2 - 30;
+	let y = card.layout === 'center' ? avatarY + avatarR + 0.085 * H : H / 2 - 30 * ky;
 	ctx.textAlign = pos.align;
 	if (card.showName) {
-		const size = fitFont(ctx as never, name, maxW, 46);
+		const size = fitFont(ctx as never, name, maxW, Math.round(0.09 * H));
 		ctx.font = `bold ${size}px sans-serif`;
 		ctx.fillText(name, pos.textX, y);
 		y += size + 12;
 	}
 	if (line1) {
-		const size = fitFont(ctx as never, line1, maxW, 28);
+		const size = fitFont(ctx as never, line1, maxW, Math.round(0.064 * H));
 		ctx.font = `${size}px sans-serif`;
 		ctx.fillText(line1, pos.textX, y);
 		y += size + 10;
 	}
 	if (line2) {
-		const size = fitFont(ctx as never, line2, maxW, 21);
+		const size = fitFont(ctx as never, line2, maxW, Math.round(0.05 * H));
 		ctx.globalAlpha = 0.85;
 		ctx.font = `${size}px sans-serif`;
 		ctx.fillText(line2, pos.textX, y);
