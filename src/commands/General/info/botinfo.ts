@@ -20,6 +20,12 @@ export class BotinfoCommand extends ModuleCommand<GeneralModule> {
         super(context, { ...options, module: 'General', description: 'Show bot information', enabled: true });
     }
 
+    public override registerApplicationCommands(registry: Command.Registry) {
+        registry.registerChatInputCommand((builder) =>
+            builder.setName(this.name).setDescription(this.description).setIntegrationTypes(0, 1).setContexts(0, 1, 2)
+        );
+    }
+
     public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
         await interaction.deferReply();
         try {
@@ -56,26 +62,39 @@ export class BotinfoCommand extends ModuleCommand<GeneralModule> {
             )
             .setThumbnail(user.displayAvatarURL({ size: 128 }))
             .addFields(
-                { name: 'Current guild prefix', value: `\`${prefix}\``, inline: true },
-                { name: 'Client ID', value: `\`${user.id}\``, inline: true },
-                { name: 'Developers', value: '**Angel**, **Eve**', inline: true },
-                { name: 'Servers', value: client.guilds.cache.size.toLocaleString(), inline: true },
-                { name: 'Users', value: client.guilds.cache.reduce((a, g) => a + g.memberCount, 0).toLocaleString(), inline: true },
-                { name: 'Uptime', value: this.formatUptime(process.uptime()), inline: true },
-                { name: 'Memory', value: `${(process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2)} MB`, inline: true },
-                { name: 'Shard', value: `${shardId}/${shardCount}`, inline: true },
+                {
+                    name: 'Overview',
+                    value: [
+                        `> Servers **${client.guilds.cache.size.toLocaleString()}**`,
+                        `> Users **${client.guilds.cache.reduce((a, g) => a + g.memberCount, 0).toLocaleString()}**`,
+                        `> Uptime **${this.formatUptime(process.uptime())}**`,
+                        `> Memory **${(process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2)} MB**`,
+                        `> Shard **${shardId}/${shardCount}**`
+                    ].join('\n'),
+                    inline: true
+                },
+                {
+                    name: 'Bot',
+                    value: [
+                        `> Prefix \`${prefix}\``,
+                        `> Client ID \`${user.id}\``,
+                        '> Developers **Angel**, **Eve**',
+                        `> Version \`v${config.bot.version}\``
+                    ].join('\n'),
+                    inline: true
+                },
                 {
                     name: 'Internal Information',
-                    value:
-                        `**Version** \`v${config.bot.version}\`\n` +
-                        `**Bot Library** \`discord.js v${discordJsVersion.split(' ')[0]}\`\n` +
-                        '**Database** `MongoDB (Mongoose)`\n' +
-                        '**Runtime** `Bun + TypeScript + Sapphire`',
+                    value: [
+                        `> Bot Library \`discord.js v${discordJsVersion.split(' ')[0]}\``,
+                        '> Database `MongoDB (Mongoose)`',
+                        '> Runtime `Bun + TypeScript + Sapphire`'
+                    ].join('\n'),
                     inline: false
                 },
                 {
                     name: 'Links',
-                    value: `[Invite Helix](${inviteLink}) | [Support Server](${config.support.invite})`,
+                    value: `> [Invite Helix](${inviteLink}) | [Support Server](${config.support.invite})`,
                     inline: false
                 }
             )
