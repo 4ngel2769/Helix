@@ -14,6 +14,11 @@ RUN bun install --frozen-lockfile
 
 COPY . .
 
+# src/config.ts is gitignored, so a fresh clone has no copy. Derive it from
+# the example (values are all env-driven at runtime) so tsc always has the
+# full config shape — including `support` — to compile against.
+RUN if [ ! -f src/config.ts ]; then cp src/config.example.ts src/config.ts; fi
+
 ENV NODE_ENV=production
 
 # deploy = build (tsc -> dist) + start (dist/index.js)
