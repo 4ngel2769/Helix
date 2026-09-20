@@ -115,6 +115,10 @@ export interface IGuild extends Document, LegacyModuleFlags, VerificationSetting
   logIgnoredRoles?: string[];
   logIgnoredChannels?: string[];
   logIncludeBots?: boolean;
+  // Greeting image cards + premium flag
+  isPremium?: boolean;
+  welcomeCard?: Record<string, unknown>;
+  farewellCard?: Record<string, unknown>;
   welcomeChannelId?: string;
   welcomeMessage?: string;
   farewellChannelId?: string;
@@ -156,6 +160,11 @@ const guildSchema = new Schema<IGuild>({
   logIgnoredRoles: { type: [String], default: [] },
   logIgnoredChannels: { type: [String], default: [] },
   logIncludeBots: { type: Boolean, default: false },
+
+  // Greeting image cards (see src/lib/cards/) + premium flag (granted out-of-band)
+  isPremium: { type: Boolean, default: false },
+  welcomeCard: { type: Schema.Types.Mixed, default: {} },
+  farewellCard: { type: Schema.Types.Mixed, default: {} },
   
   // Welcome / Farewell
   welcomeChannelId: { type: String, default: null },

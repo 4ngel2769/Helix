@@ -8,6 +8,7 @@
 	import Select from '../../components/Select.svelte';
 	import TextInput from '../../components/TextInput.svelte';
 	import TextArea from '../../components/TextArea.svelte';
+	import DiscordPreview from '../../components/DiscordPreview.svelte';
 
 	let { guildId }: { guildId: string } = $props();
 	const entry = $derived(guildEntry(guildId));
@@ -196,10 +197,10 @@
 			<TextInput label="Message ID" bind:value={messageId} placeholder="123456789…" hint={editing ? 'The Discord message this menu is attached to.' : 'ID of an existing bot message to attach this menu to.'} />
 		{/if}
 		<Select label="Channel" bind:value={channelId} options={channelOptions} allowNone={false} hint={postViaBot && !editing ? 'The bot will post the menu message here.' : ''} />
-		<TextInput label="Title" bind:value={title} />
+		<TextInput label="Title" bind:value={title} maxlength={256} />
 		<TextInput label="Max selections (0 = unlimited)" bind:value={maxSelections} type="number" />
 	</div>
-	<TextArea label="Description" bind:value={description} rows={2} />
+	<TextArea label="Description" bind:value={description} maxlength={2000} rows={2} />
 	<label class="check-item" style="max-width: 220px; margin-bottom: 14px;">
 		<input type="checkbox" bind:checked={active} /> Active
 	</label>
@@ -212,7 +213,7 @@
 					{#if roles[i]!.roleId}<RolePill name={roleName(roles[i]!.roleId)} color={roleColor(roles[i]!.roleId)} size="sm" />{/if}
 				</div>
 			</div>
-			<div style="flex: 2;"><TextInput label="Label" bind:value={roles[i]!.label} /></div>
+			<div style="flex: 2;"><TextInput label="Label" bind:value={roles[i]!.label} maxlength={100} /></div>
 			<div style="flex: 1;"><TextInput label="Emoji" bind:value={roles[i]!.emoji} placeholder="🎮" /></div>
 			<div style="flex: 0; padding-bottom: 16px;"><button class="btn btn-danger btn-sm" onclick={() => (roles = roles.filter((_, j) => j !== i))}>✕</button></div>
 		</div>
@@ -224,3 +225,20 @@
 		</button>
 	</div>
 </div>
+
+{#if title.trim() || description.trim() || roles.length > 0}
+	<div class="card">
+		<div class="card-title"><h2>Live preview</h2><span class="tag">exactly how it looks on Discord</span></div>
+		<DiscordPreview
+			title={title || '(title)'}
+			description={description || 'Select your roles below'}
+			footer={active ? 'Select roles from the dropdown menu below' : 'This role selection menu is currently paused'}
+			embedColor="#3b66ff"
+			select={{
+				placeholder: active ? 'Select roles...' : 'Menu is currently paused',
+				options: roles.filter((r) => r.label).map((r) => ({ label: r.label, emoji: r.emoji || undefined })),
+				disabled: !active
+			}}
+		/>
+	</div>
+{/if}

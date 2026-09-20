@@ -4,6 +4,7 @@ import type { ApiRequest, ApiResponse } from '@sapphire/plugin-api';
 import type { RouteOptions } from '@sapphire/plugin-api';
 import { CustomMessage } from '../../models/customMessages';
 import { isSnowflake, readJsonBody, requireAuth, requireManageableGuild } from '../../lib/utils/apiAuth';
+import { sanitizeText } from '../../lib/utils/sanitize';
 
 const KEY_PATTERN = /^[a-z0-9-]{1,64}$/;
 
@@ -44,15 +45,17 @@ export class ApiGuildMessagesRoute extends Route {
 			if (!KEY_PATTERN.test(key)) {
 				return response.status(400).json({ error: `Message key "${key.slice(0, 32)}" must match [a-z0-9-]{1,64}` });
 			}
-			if (typeof value !== 'string' || value.length === 0 || value.length > 2000) {
-				return response.status(400).json({ error: `Message "${key}" must be a string of 1-2000 chars` });
+			const clean = sanitizeText(value, 2000);
+			if (clean === null || clean.length === 0) {
+				return response.status(400).json({ error: `Message "${key}" must be text of 1-2000 chars` });
 			}
+			(body.messages as Record<string, string>)[key] = clean;
 		}
 
 		try {
 			const setOps: Record<string, string> = {};
-			for (const [key, value] of entries) {
-				setOps[`messages.${key}`] = value as string;
+			for (const [key] of entries) {
+				setOps[`messages.${key}`] = (body.messages as Record<string, string>)[key]!;
 			}
 			const doc = await CustomMessage.findOneAndUpdate({ guildId }, { $set: setOps }, { upsert: true, returnDocument: 'after' }).lean();
 			return response.json({ guildId, updated: entries.map(([k]) => k), messages: doc?.messages ?? {} });

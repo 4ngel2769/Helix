@@ -92,8 +92,8 @@
 
 <div class="card">
 	<div class="card-title"><h2>{key && messages[key] !== undefined ? 'Edit message' : 'New message'}</h2></div>
-	<TextInput label="Key" bind:value={key} placeholder="welcome-dm" hint="Lowercase letters, numbers and dashes." />
-	<TextArea label="Text" bind:value={text} hint="Max 2000 characters." rows={3} />
+	<TextInput label="Key" bind:value={key} maxlength={64} placeholder="welcome-dm" hint="Lowercase letters, numbers and dashes." />
+	<TextArea label="Text" bind:value={text} maxlength={2000} hint="Max 2000 characters." rows={3} />
 	<button class="btn btn-primary btn-sm" disabled={busy || !key.trim() || !text} onclick={() => void save()}>
 		{busy ? 'Saving…' : 'Save message'}
 	</button>

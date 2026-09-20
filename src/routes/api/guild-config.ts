@@ -7,6 +7,8 @@ import { GuildConfigService } from '../../lib/services/GuildConfigService';
 import { clearGuildPrefixCache, setGuildPrefixInCache } from '../../lib/utils/prefixCache';
 import { clearDisabledCommandsCache } from '../../lib/utils/disabledCommandsCache';
 import { LOG_EVENT_KEYS } from '../../lib/logging/logEvents';
+import { cleanAutomodKeywords, cleanNullableText, cleanWarnSettings, isHexColor, isSafeImageUrl, sanitizeText } from '../../lib/utils/sanitize';
+import { CARD_BACKGROUNDS, CARD_LAYOUTS, withCardDefaults } from '../../lib/cards/cardBackgrounds';
 import { isSnowflake, readJsonBody, readStringArray, requireAuth, requireManageableGuild } from '../../lib/utils/apiAuth';
 
 const UPDATABLE_FIELDS = [
@@ -42,7 +44,9 @@ const UPDATABLE_FIELDS = [
 	'verificationFooter',
 	'verificationThumb',
 	'automodKeywords',
-	'warnSettings'
+	'warnSettings',
+	'welcomeCard',
+	'farewellCard'
 ] as const;
 
 type UpdatableField = (typeof UPDATABLE_FIELDS)[number];
@@ -57,7 +61,7 @@ function sanitizeConfigUpdate(body: Record<string, unknown>): Record<string, unk
 	return update;
 }
 
-function validateConfigUpdate(update: Record<string, unknown>): string | null {
+function validateConfigUpdate(update: Record<string, unknown>, isPremium: boolean): string | null {
 	if ('prefix' in update) {
 		const prefix = update.prefix;
 		if (prefix !== null && (typeof prefix !== 'string' || prefix.length === 0 || prefix.length > 5)) {
@@ -79,12 +83,30 @@ function validateConfigUpdate(update: Record<string, unknown>): string | null {
 		}
 	}
 	if ('automodKeywords' in update) {
-		const v = update.automodKeywords as Record<string, unknown> | null;
-		if (v !== null && typeof v !== 'object') return 'automodKeywords must be an object';
+		const err = cleanAutomodKeywords(update);
+		if (err) return err;
 	}
 	if ('warnSettings' in update) {
-		const v = update.warnSettings as Record<string, unknown> | null;
-		if (v !== null && typeof v !== 'object') return 'warnSettings must be an object';
+		const err = cleanWarnSettings(update);
+		if (err) return err;
+	}
+	for (const [key, max] of [
+		['welcomeMessage', 2000],
+		['farewellMessage', 2000],
+		['verificationTitle', 256],
+		['verificationMessage', 2000],
+		['verificationDisabledMessage', 1000],
+		['verificationFooter', 500]
+	] as const) {
+		const err = cleanNullableText(update, key, max);
+		if (err) return err;
+	}
+	if ('verificationThumb' in update && update.verificationThumb !== null && update.verificationThumb !== undefined) {
+		const thumb = update.verificationThumb;
+		if (typeof thumb !== 'string' || (thumb !== '' && !isSafeImageUrl(thumb))) {
+			return 'verificationThumb must be null or an http(s) image URL';
+		}
+		if (typeof thumb === 'string') update.verificationThumb = thumb.trim();
 	}
 	if ('logEvents' in update) {
 		const v = update.logEvents as Record<string, unknown> | null;
@@ -112,6 +134,39 @@ function validateConfigUpdate(update: Record<string, unknown>): string | null {
 	if ('logIncludeBots' in update && typeof update.logIncludeBots !== 'boolean') {
 		return 'logIncludeBots must be a boolean';
 	}
+	for (const key of ['welcomeCard', 'farewellCard'] as const) {
+		if (key in update) {
+			const err = cleanGreetCard(update, key, isPremium);
+			if (err) return err;
+		}
+	}
+	return null;
+}
+
+function cleanGreetCard(update: Record<string, unknown>, key: 'welcomeCard' | 'farewellCard', isPremium: boolean): string | null {
+	const v = update[key];
+	if (typeof v !== 'object' || v === null || Array.isArray(v)) return `${key} must be an object`;
+	const rec = v as Record<string, unknown>;
+	const merged = withCardDefaults(rec);
+	if (typeof rec.enabled !== 'boolean') return `${key}.enabled must be a boolean`;
+	if (typeof rec.background !== 'string' || !CARD_BACKGROUNDS.some((b) => b.key === rec.background)) {
+		return `${key}.background must be one of: ${CARD_BACKGROUNDS.map((b) => b.key).join(', ')}`;
+	}
+	const bg = CARD_BACKGROUNDS.find((b) => b.key === rec.background)!;
+	if (bg.premium && !isPremium) return `${key}.background "${bg.key}" requires premium`;
+	if (typeof rec.layout !== 'string' || !(CARD_LAYOUTS as readonly string[]).includes(rec.layout)) {
+		return `${key}.layout must be left, center or right`;
+	}
+	for (const flag of ['showName', 'line1Enabled', 'line2Enabled'] as const) {
+		if (typeof rec[flag] !== 'boolean') return `${key}.${flag} must be a boolean`;
+	}
+	for (const line of ['line1', 'line2'] as const) {
+		const clean = sanitizeText(rec[line], 140);
+		if (clean === null) return `${key}.${line} must be text up to 140 chars`;
+		rec[line] = clean;
+	}
+	if (!isHexColor(rec.textColor)) return `${key}.textColor must be a #rrggbb hex color`;
+	update[key] = { ...merged, ...rec };
 	return null;
 }
 
@@ -151,7 +206,13 @@ export class ApiGuildConfigRoute extends Route {
 			return response.status(400).json({ error: `No updatable fields provided. Allowed: ${UPDATABLE_FIELDS.join(', ')}` });
 		}
 
-		const validationError = validateConfigUpdate(update);
+		let isPremium = false;
+		try {
+			isPremium = (await Guild.findOne({ guildId }, { isPremium: 1 }).lean())?.isPremium === true;
+		} catch {
+			isPremium = false;
+		}
+		const validationError = validateConfigUpdate(update, isPremium);
 		if (validationError) return response.status(400).json({ error: validationError });
 
 		try {

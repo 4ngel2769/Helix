@@ -784,14 +784,15 @@ textarea::placeholder {
 	flex: 1;
 }
 
-/* ---------- Role pills (Discord colors, cached via guild detail) ---------- */
+/* ---------- Role pills (Discord-style: colored border, tinted interior) ---------- */
 .role-pill {
 	display: inline-flex;
 	align-items: center;
 	gap: 7px;
-	border: 1px solid var(--border-strong);
+	border: 1px solid var(--role-color, #99aab5);
 	border-radius: 999px;
-	background: var(--bg-soft);
+	background: color-mix(in srgb, var(--role-color, #99aab5) 16%, transparent);
+	color: color-mix(in srgb, var(--role-color, #99aab5) 55%, white);
 	padding: 4px 12px 4px 8px;
 	font-size: 13px;
 	font-weight: 650;
@@ -819,6 +820,43 @@ textarea::placeholder {
 }
 
 .role-pill-wrap {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+/* ---------- Channel pills (Discord-style rounded mention) ---------- */
+.channel-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 2px;
+	border-radius: 6px;
+	background: rgba(88, 101, 242, 0.25);
+	color: #c9cdfb;
+	padding: 2px 8px;
+	font-size: 13px;
+	font-weight: 600;
+	line-height: 1.5;
+	white-space: nowrap;
+	max-width: 100%;
+}
+
+.channel-pill.sm {
+	font-size: 12px;
+	padding: 1px 6px;
+}
+
+.channel-pill .channel-hash {
+	opacity: 0.8;
+	font-weight: 700;
+}
+
+.channel-pill .channel-name {
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.channel-pill-wrap {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 8px;

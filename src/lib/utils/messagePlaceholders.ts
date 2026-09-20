@@ -11,6 +11,8 @@ export interface TemplateContext {
 	serverName: string;
 	/** Current member count */
 	serverMembers: number;
+	/** Ordinal of the member count (1st, 2nd, 3rd…) — optional, falls back to `${serverMembers}th`-style */
+	serverOrdinal?: string;
 }
 
 export const PLACEHOLDER_DOC = [
@@ -38,6 +40,7 @@ export function renderMessageTemplate(template: string, ctx: TemplateContext): s
 		.replaceAll('{{prefix}}', ctx.prefix)
 		.replaceAll('{{server.name}}', ctx.serverName)
 		.replaceAll('{{server.members}}', String(ctx.serverMembers))
+		.replaceAll('{{server.ordinal}}', ctx.serverOrdinal ?? `${ctx.serverMembers}th`)
 		.replaceAll('{user}', ctx.userMention)
 		.replaceAll('{server}', ctx.serverName)
 		.replaceAll('{memberCount}', String(ctx.serverMembers));

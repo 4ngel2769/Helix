@@ -164,6 +164,8 @@ export class SetupVerificationCommand extends ModuleCommand<VerificationModule> 
             .setTitle(guildData.verificationTitle || 'Server Verification')
             .setDescription(guildData.verificationMessage || 
                 'Click the button below to verify yourself and gain access to the server!');
+        if (guildData.verificationFooter) embed.setFooter({ text: guildData.verificationFooter });
+        if (guildData.verificationThumb) embed.setThumbnail(guildData.verificationThumb);
 
         const button = new ButtonBuilder()
             .setCustomId('verify-button')

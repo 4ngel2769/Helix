@@ -1,3 +1,5 @@
+import { cleanPayload } from './sanitize';
+
 export class ApiError extends Error {
 	status: number;
 	data: unknown;
@@ -31,7 +33,8 @@ export async function api<T = unknown>(
 		res = await fetch(buildUrl(path, options.query), {
 			method: options.method ?? 'GET',
 			headers: { 'content-type': 'application/json' },
-			body: options.body === undefined ? undefined : JSON.stringify(options.body),
+			// Strip control/invisible chars client-side too (server re-validates).
+			body: options.body === undefined ? undefined : JSON.stringify(cleanPayload(options.body)),
 			signal: controller.signal
 		});
 	} catch (error) {

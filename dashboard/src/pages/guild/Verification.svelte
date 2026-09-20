@@ -4,6 +4,7 @@
 	import Select from '../../components/Select.svelte';
 	import TextInput from '../../components/TextInput.svelte';
 	import TextArea from '../../components/TextArea.svelte';
+	import DiscordPreview from '../../components/DiscordPreview.svelte';
 	import SaveBar from '../../components/SaveBar.svelte';
 
 	let { guildId }: { guildId: string } = $props();
@@ -77,13 +78,25 @@
 		<Select label="Verification channel" bind:value={channelId} options={channelOptions} hint="Where the verify prompt is posted." />
 		<Select label="Verified role" bind:value={roleId} options={roleOptions} hint="Granted after verifying." />
 	</div>
-	<TextInput label="Title" bind:value={title} />
-	<TextArea label="Message" bind:value={message} hint="Supports the same user/prefix/server placeholders as Welcome messages." />
-	<TextArea label="Disabled message" bind:value={disabledMessage} hint="Shown when verification is paused." rows={2} />
+	<TextInput label="Title" bind:value={title} maxlength={256} />
+	<TextArea label="Message" bind:value={message} maxlength={2000} hint="Supports the same user/prefix/server placeholders as Welcome messages." />
+	<TextArea label="Disabled message" bind:value={disabledMessage} maxlength={1000} hint="Shown when verification is paused." rows={2} />
 	<div class="grid-2">
-		<TextInput label="Footer" bind:value={footer} />
-		<TextInput label="Thumbnail URL" bind:value={thumb} />
+		<TextInput label="Footer" bind:value={footer} maxlength={500} />
+		<TextInput label="Thumbnail URL" bind:value={thumb} maxlength={512} hint="https:// image URL." />
 	</div>
+</div>
+
+<div class="card">
+	<div class="card-title"><h2>Live preview</h2><span class="tag">exactly how it looks on Discord</span></div>
+	<DiscordPreview
+		title={title || 'Server Verification'}
+		description={message || 'Click the button below to verify yourself and gain access to the server!'}
+		footer={footer}
+		thumbUrl={thumb}
+		embedColor="#3b66ff"
+		buttons={[{ label: 'Verify', style: 'primary', emoji: '✅' }]}
+	/>
 </div>
 
 <SaveBar {dirty} {saving} {error} {saved} onsave={() => void save()} onreset={syncFromCache} />

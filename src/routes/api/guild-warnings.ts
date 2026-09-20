@@ -4,6 +4,7 @@ import type { ApiRequest, ApiResponse } from '@sapphire/plugin-api';
 import type { RouteOptions } from '@sapphire/plugin-api';
 import { User } from '../../models/User';
 import { isSnowflake, readJsonBody, readQueryParam, readString, requireAuth, requireManageableGuild } from '../../lib/utils/apiAuth';
+import { sanitizeText } from '../../lib/utils/sanitize';
 
 /**
  * Moderation warnings (stored on the User document, scoped by guildId).
@@ -47,7 +48,7 @@ export class ApiGuildWarningsRoute extends Route {
 		if (request.method === 'POST') {
 			const body = await readJsonBody<Record<string, unknown>>(request);
 			const targetUserId = readString(body, 'userId', 32);
-			const reason = readString(body, 'reason', 1000);
+			const reason = sanitizeText(body.reason, 1000);
 			if (!targetUserId || !isSnowflake(targetUserId) || !reason) {
 				return response.status(400).json({ error: 'userId (snowflake) and reason (1-1000 chars) are required' });
 			}

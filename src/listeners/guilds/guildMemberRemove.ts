@@ -2,6 +2,8 @@ import { Events, Listener, container } from '@sapphire/framework';
 import type { GuildMember, PartialGuildMember } from 'discord.js';
 import { Guild } from '../../models/Guild';
 import { consumeSuppressed, sendLog } from '../../lib/logging/logService';
+import { withCardDefaults } from '../../lib/cards/cardBackgrounds';
+import { renderGreetCard } from '../../lib/cards/greetCard';
 import { getGuildPrefixFromCache, setGuildPrefixInCache } from '../../lib/utils/prefixCache';
 import { DEFAULT_FAREWELL_MESSAGE, renderMessageTemplate } from '../../lib/utils/messagePlaceholders';
 
@@ -47,6 +49,25 @@ export class GuildMemberRemoveListener extends Listener<typeof Events.GuildMembe
 			});
 
 			await (channel as unknown as { send: (content: string) => Promise<unknown> }).send(text);
+
+			const card = withCardDefaults((guildData as unknown as Record<string, unknown>)?.farewellCard);
+			if (card.enabled) {
+				try {
+					const buffer = await renderGreetCard(card, {
+						displayName,
+						avatarUrl: member.user?.displayAvatarURL({ extension: 'png', size: 256 }) ?? '',
+						memberCount: member.guild.memberCount,
+						serverName: member.guild.name,
+						prefix: resolvedPrefix,
+						userTag: member.user?.username ?? displayName
+					});
+					await (channel as unknown as { send: (msg: unknown) => Promise<unknown> }).send({
+						files: [{ attachment: buffer, name: 'farewell.png' }]
+					});
+				} catch (cardError) {
+					container.logger.warn(`[farewell-card] failed for ${member.id} in ${member.guild.id}:`, cardError);
+				}
+			}
 		} catch (error) {
 			container.logger.warn(`[farewell] failed to say goodbye to ${member.id} in ${member.guild.id}:`, error);
 		}

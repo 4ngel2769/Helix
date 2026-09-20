@@ -6,6 +6,8 @@ import { Guild } from '../../models/Guild';
 import { GuildConfigService } from '../../lib/services/GuildConfigService';
 import { postReactionRoleMenuMessage } from '../../lib/utils/reactionRolesHelpers';
 import { isSnowflake, readJsonBody, readQueryParam, requireAuth, requireManageableGuild } from '../../lib/utils/apiAuth';
+import { sanitizeText } from '../../lib/utils/sanitize';
+import { isValidEmoji } from '../../config/modules';
 
 interface ReactionRoleInput {
 	roleId: string;
@@ -55,8 +57,8 @@ export class ApiGuildReactionRolesRoute extends Route {
 		if (method === 'POST') {
 			const body = await readJsonBody<Record<string, unknown>>(request);
 			const channelId = typeof body.channelId === 'string' ? body.channelId : null;
-			const title = typeof body.title === 'string' ? body.title.trim() : '';
-			const description = typeof body.description === 'string' ? body.description.slice(0, 2000) : '';
+			const title = sanitizeText(body.title, 256) ?? '';
+			const description = sanitizeText(body.description ?? '', 2000) ?? '';
 			const messageId = typeof body.messageId === 'string' ? body.messageId : undefined;
 			const createMessage = body.createMessage === true;
 			const maxSelections =
@@ -84,9 +86,13 @@ export class ApiGuildReactionRolesRoute extends Route {
 				}
 				const rec = r as Record<string, unknown>;
 				const roleId = typeof rec.roleId === 'string' ? rec.roleId : '';
-				const label = typeof rec.label === 'string' ? rec.label.trim().slice(0, 100) : '';
-				const rDescription = typeof rec.description === 'string' ? rec.description.slice(0, 200) : undefined;
-				const emoji = typeof rec.emoji === 'string' ? rec.emoji.slice(0, 64) : undefined;
+				const label = sanitizeText(rec.label, 100) ?? '';
+				const rDescription = sanitizeText(rec.description ?? '', 200) || undefined;
+				const rawEmoji = typeof rec.emoji === 'string' && rec.emoji.trim() !== '' ? rec.emoji.trim().slice(0, 64) : undefined;
+				if (rawEmoji && !isValidEmoji(rawEmoji)) {
+					return response.status(400).json({ error: 'Role emoji must be a unicode emoji or a Discord custom emoji (<:name:id>)' });
+				}
+				const emoji = rawEmoji;
 				if (!isSnowflake(roleId) || !label) {
 					return response.status(400).json({ error: 'Every role needs a roleId (snowflake) and a label' });
 				}
@@ -168,15 +174,20 @@ export class ApiGuildReactionRolesRoute extends Route {
 					}
 					const rec = r as Record<string, unknown>;
 					const roleId = typeof rec.roleId === 'string' ? rec.roleId : '';
-					const label = typeof rec.label === 'string' ? rec.label.trim().slice(0, 100) : '';
+					const label = sanitizeText(rec.label, 100) ?? '';
 					if (!isSnowflake(roleId) || !label) {
 						return response.status(400).json({ error: 'Every role needs a roleId (snowflake) and a label' });
+					}
+					const rDescription = sanitizeText(rec.description ?? '', 200) || undefined;
+					const rawEmoji = typeof rec.emoji === 'string' && rec.emoji.trim() !== '' ? rec.emoji.trim().slice(0, 64) : undefined;
+					if (rawEmoji && !isValidEmoji(rawEmoji)) {
+						return response.status(400).json({ error: 'Role emoji must be a unicode emoji or a Discord custom emoji (<:name:id>)' });
 					}
 					cleanRoles.push({
 						roleId,
 						label,
-						description: typeof rec.description === 'string' ? rec.description.slice(0, 200) : undefined,
-						emoji: typeof rec.emoji === 'string' ? rec.emoji.slice(0, 64) : undefined
+						description: rDescription,
+						emoji: rawEmoji
 					});
 				}
 			}
@@ -186,8 +197,16 @@ export class ApiGuildReactionRolesRoute extends Route {
 				const idx = (data.reactionRolesMenus ?? []).findIndex((m) => m.messageId === messageId);
 				if (idx === -1) return response.status(404).json({ error: 'Reaction-role menu not found' });
 				if (body.channelId !== undefined) setOps[`reactionRolesMenus.${idx}.channelId`] = body.channelId;
-				if (body.title !== undefined) setOps[`reactionRolesMenus.${idx}.title`] = (body.title as string).trim();
-				if (body.description !== undefined) setOps[`reactionRolesMenus.${idx}.description`] = body.description;
+			if (body.title !== undefined) {
+				const clean = sanitizeText(body.title, 256);
+				if (!clean) return response.status(400).json({ error: 'title must be 1-256 chars' });
+				setOps[`reactionRolesMenus.${idx}.title`] = clean;
+			}
+			if (body.description !== undefined) {
+				const clean = sanitizeText(body.description, 2000);
+				if (clean === null) return response.status(400).json({ error: 'description must be text of max 2000 chars' });
+				setOps[`reactionRolesMenus.${idx}.description`] = clean;
+			}
 				if (body.maxSelections !== undefined) setOps[`reactionRolesMenus.${idx}.maxSelections`] = body.maxSelections;
 				if (body.active !== undefined) setOps[`reactionRolesMenus.${idx}.active`] = body.active;
 				if (cleanRoles !== undefined) setOps[`reactionRolesMenus.${idx}.roles`] = cleanRoles;

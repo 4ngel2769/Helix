@@ -214,8 +214,8 @@
 		</table>
 	{/if}
 	<div class="grid-2" style="margin-top: 16px;">
-		<TextInput label="User ID" bind:value={newUserId} placeholder="123456789…" />
-		<TextInput label="Reason" bind:value={newReason} placeholder="Spamming links" />
+		<TextInput label="User ID" bind:value={newUserId} maxlength={32} placeholder="123456789…" />
+		<TextInput label="Reason" bind:value={newReason} maxlength={1000} placeholder="Spamming links" />
 	</div>
 	<button class="btn btn-primary btn-sm" disabled={creating || !newUserId.trim() || !newReason.trim()} onclick={() => void createWarning()}>
 		{creating ? 'Adding…' : 'Add warning'}
@@ -228,7 +228,7 @@
 	{#if actMsg}<div class="notice notice-ok">{actMsg}</div>{/if}
 	{#if actErr}<div class="notice notice-error">{actErr}</div>{/if}
 	<div class="grid-2">
-		<TextInput label="User ID" bind:value={actUserId} />
+		<TextInput label="User ID" bind:value={actUserId} maxlength={32} />
 		<div class="field">
 			<label for="live-action">Action</label>
 			<select id="live-action" bind:value={actAction}>
@@ -239,7 +239,7 @@
 				<option value="unban">Unban</option>
 			</select>
 		</div>
-		<TextInput label="Reason" bind:value={actReason} />
+		<TextInput label="Reason" bind:value={actReason} maxlength={512} />
 		<TextInput label="Timeout minutes" bind:value={actDuration} type="number" />
 	</div>
 	<button class="btn btn-danger btn-sm" disabled={acting || !actUserId.trim()} onclick={() => void moderate()}>

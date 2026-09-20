@@ -4,6 +4,8 @@
 	import Select from '../../components/Select.svelte';
 	import TextInput from '../../components/TextInput.svelte';
 	import Toggle from '../../components/Toggle.svelte';
+	import RolePill from '../../components/RolePill.svelte';
+	import ChannelPill from '../../components/ChannelPill.svelte';
 	import SaveBar from '../../components/SaveBar.svelte';
 
 	// Mirror of src/lib/logging/logEvents.ts — keep labels/defaults in sync there.
@@ -73,6 +75,8 @@
 	let ignoredChannels = $state<string[]>([]);
 	let ignoredRoles = $state<string[]>([]);
 	let ignoredUsersText = $state('');
+	let ignoreChannelQuery = $state('');
+	let ignoreRoleQuery = $state('');
 	let baseline = $state('');
 	let saving = $state(false);
 	let error = $state<string | null>(null);
@@ -108,6 +112,10 @@
 
 	function snapshot(): string {
 		return JSON.stringify({ defaultChannel, includeBots, toggles, overrides, legacy, ignoredChannels: [...ignoredChannels].sort(), ignoredRoles: [...ignoredRoles].sort(), ignoredUsersText });
+	}
+
+	function matches(q: string, name: string): boolean {
+		return name.toLowerCase().includes(q.trim().toLowerCase());
 	}
 
 	$effect(() => {
@@ -199,16 +207,24 @@
 <div class="card">
 	<h3>Ignored noise</h3>
 	<p class="hint">Events from ignored users, roles, or channels are never logged.</p>
+	<div class="field" style="max-width: 320px;">
+		<label for="ignore-channel-search">Search channels</label>
+		<input id="ignore-channel-search" type="search" placeholder="Search…" bind:value={ignoreChannelQuery} />
+	</div>
 	<div class="check-list">
 		<div class="check-title">Channels</div>
-		{#each channels as c (c.id)}
-			<label><input type="checkbox" checked={ignoredChannels.includes(c.id)} onchange={() => { ignoredChannels = flipList(ignoredChannels, c.id); saved = false; }} /> #{c.name}</label>
+		{#each channels.filter((c) => !ignoreChannelQuery || matches(ignoreChannelQuery, c.name)) as c (c.id)}
+			<label class="check-item"><input type="checkbox" checked={ignoredChannels.includes(c.id)} onchange={() => { ignoredChannels = flipList(ignoredChannels, c.id); saved = false; }} /> <ChannelPill name={c.name} size="sm" /></label>
 		{/each}
+	</div>
+	<div class="field" style="max-width: 320px;">
+		<label for="ignore-role-search">Search roles</label>
+		<input id="ignore-role-search" type="search" placeholder="Search…" bind:value={ignoreRoleQuery} />
 	</div>
 	<div class="check-list">
 		<div class="check-title">Roles</div>
-		{#each roles as r (r.id)}
-			<label><input type="checkbox" checked={ignoredRoles.includes(r.id)} onchange={() => { ignoredRoles = flipList(ignoredRoles, r.id); saved = false; }} /> {r.name}</label>
+		{#each roles.filter((r) => !ignoreRoleQuery || matches(ignoreRoleQuery, r.name)) as r (r.id)}
+			<label class="check-item"><input type="checkbox" checked={ignoredRoles.includes(r.id)} onchange={() => { ignoredRoles = flipList(ignoredRoles, r.id); saved = false; }} /> <RolePill name={r.name} color={r.color} size="sm" /></label>
 		{/each}
 	</div>
 	<TextInput label="Ignored user IDs" bind:value={ignoredUsersText} placeholder="1234..., 5678..." hint="Comma-separated Discord user IDs." />

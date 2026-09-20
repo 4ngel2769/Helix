@@ -2,6 +2,8 @@ import { Events, Listener, container } from '@sapphire/framework';
 import type { GuildMember } from 'discord.js';
 import { Guild } from '../../models/Guild';
 import { sendLog } from '../../lib/logging/logService';
+import { withCardDefaults } from '../../lib/cards/cardBackgrounds';
+import { renderGreetCard } from '../../lib/cards/greetCard';
 import { getGuildPrefixFromCache, setGuildPrefixInCache } from '../../lib/utils/prefixCache';
 import { DEFAULT_WELCOME_MESSAGE, renderMessageTemplate } from '../../lib/utils/messagePlaceholders';
 
@@ -41,6 +43,25 @@ export class GuildMemberAddListener extends Listener<typeof Events.GuildMemberAd
 			});
 
 			await (channel as unknown as { send: (content: string) => Promise<unknown> }).send(text);
+
+			const card = withCardDefaults((guildData as unknown as Record<string, unknown>)?.welcomeCard);
+			if (card.enabled) {
+				try {
+					const buffer = await renderGreetCard(card, {
+						displayName: member.displayName,
+						avatarUrl: member.user.displayAvatarURL({ extension: 'png', size: 256 }),
+						memberCount: member.guild.memberCount,
+						serverName: member.guild.name,
+						prefix: resolvedPrefix,
+						userTag: member.user.username
+					});
+					await (channel as unknown as { send: (msg: unknown) => Promise<unknown> }).send({
+						files: [{ attachment: buffer, name: 'welcome.png' }]
+					});
+				} catch (cardError) {
+					container.logger.warn(`[welcome-card] failed for ${member.id} in ${member.guild.id}:`, cardError);
+				}
+			}
 		} catch (error) {
 			container.logger.warn(`[welcome] failed to greet ${member.id} in ${member.guild.id}:`, error);
 		}

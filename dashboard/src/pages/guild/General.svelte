@@ -19,6 +19,7 @@
 	let autoroleId = $state('');
 	let disabled: string[] = $state([]);
 	let commands = $state<CommandEntry[]>([]);
+	let cmdQuery = $state('');
 	let baseline = $state('');
 	let saving = $state(false);
 	let error = $state<string | null>(null);
@@ -121,7 +122,7 @@
 
 <div class="card">
 	<div class="card-title"><h2>Prefix & roles</h2></div>
-	<TextInput label="Command prefix" bind:value={prefix} placeholder="x (default)" hint="1–5 characters. Empty means the bot default (x)." />
+	<TextInput label="Command prefix" bind:value={prefix} maxlength={5} placeholder="x (default)" hint="1–5 characters. Empty means the bot default (x)." />
 	<div class="grid-2">
 		<div class="role-select-wrap">
 			<Select label="Admin role" bind:value={adminRoleId} options={roleOptions} />
@@ -145,24 +146,30 @@
 <div class="card">
 	<div class="card-title"><h2>Disabled commands</h2><span class="tag">{disabled.length} off</span></div>
 	<p class="card-desc">Checked commands are turned off in this server. Toggle a whole category, or pick individual commands. Whole feature areas can also be switched off under <a href={`/panel/guilds/${guildId}/modules`}>Modules</a> (Sapphire module toggles).</p>
+	<div class="field" style="max-width: 320px;">
+		<label for="cmd-search">Search commands</label>
+		<input id="cmd-search" type="search" placeholder="Search…" bind:value={cmdQuery} />
+	</div>
 	{#if commands.length === 0}
 		<p class="muted small">Command list unavailable.</p>
 	{:else}
 		{#each grouped() as [category, cmds] (category)}
-			{@const allOff = cmds.every((c) => disabled.includes(c.name))}
-			{@const someOff = !allOff && cmds.some((c) => disabled.includes(c.name))}
+			{@const visible = cmds.filter((c) => !cmdQuery.trim() || c.name.toLowerCase().includes(cmdQuery.trim().toLowerCase()) || (c.description ?? '').toLowerCase().includes(cmdQuery.trim().toLowerCase()))}
+			{#if visible.length > 0}
+			{@const allOff = visible.every((c) => disabled.includes(c.name))}
 			<div class="card-title" style="margin-top: 14px;">
 				<h3>{category} <span class="tag">{cmds.filter((c) => disabled.includes(c.name)).length}/{cmds.length} off</span></h3>
-				<button class="btn btn-ghost btn-sm" onclick={() => toggleCategory(cmds)}>{allOff ? 'Enable all' : 'Disable all'}</button>
+				<button class="btn btn-ghost btn-sm" onclick={() => toggleCategory(visible)}>{allOff ? 'Enable all' : 'Disable all'}</button>
 			</div>
 			<div class="check-list" style="margin-bottom: 6px;">
-				{#each cmds as cmd (cmd.name)}
+				{#each visible as cmd (cmd.name)}
 					<label class="check-item" title={cmd.description}>
 						<input type="checkbox" checked={disabled.includes(cmd.name)} onchange={() => toggleCommand(cmd.name)} />
 						<span class="mono">{cmd.name}</span>
 					</label>
 				{/each}
 			</div>
+			{/if}
 		{/each}
 	{/if}
 </div>
