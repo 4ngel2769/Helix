@@ -5,7 +5,7 @@ FROM oven/bun:1-debian
 
 WORKDIR /app/dashboard
 
-RUN apt-get update && apt-get install -y --no-install-recommends curl \
+RUN apt-get update && apt-get install -y --no-install-recommends curl wget \
     && rm -rf /var/lib/apt/lists
 
 COPY dashboard/package.json dashboard/bun.lock ./
