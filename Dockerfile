@@ -5,9 +5,14 @@ FROM oven/bun:1-debian
 WORKDIR /app
 
 # canvas (greeting cards) needs Cairo/Pango build libs; curl/wget back healthchecks.
+# iputils-ping/net-tools/iproute2 (ping/ifconfig/ip) + zsh with oh-my-zsh as
+# default shell for debugging inside the container.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev curl wget \
-    && rm -rf /var/lib/apt/lists
+    build-essential libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev curl wget git \
+    iputils-ping net-tools iproute2 zsh \
+    && rm -rf /var/lib/apt/lists \
+    && sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended \
+    && chsh -s /bin/zsh root
 
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
