@@ -37,6 +37,10 @@ export const config = {
 	secrets: {
 		apiNinjas: process.env.API_NINJAS_KEY || '',
 	},
+	support: {
+		serverId: process.env.SUPPORT_SERVER_ID || '',
+		invite: process.env.SUPPORT_SERVER_INVITE || '',
+	},
 	dashboard: {
 		port: parseInt(process.env.DASHBOARD_PORT || '8080', 10),
 		domain: process.env.DASHBOARD_DOMAIN || 'http://localhost',
