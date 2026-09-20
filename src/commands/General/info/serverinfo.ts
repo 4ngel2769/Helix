@@ -51,12 +51,12 @@ export class ServerinfoCommand extends ModuleCommand<GeneralModule> {
       .setTitle(guild.name)
       .setThumbnail(guild.iconURL({ size: 1024 }))
       .addFields(
-        { name: 'Owner', value: owner.user.tag, inline: true },
-        { name: 'Members', value: guild.memberCount.toString(), inline: true },
-        { name: 'Channels', value: guild.channels.cache.size.toString(), inline: true },
-        { name: 'Roles', value: guild.roles.cache.size.toString(), inline: true },
-        { name: 'Created', value: `<t:${Math.floor(guild.createdTimestamp / 1000)}:R>`, inline: true },
-        { name: 'ID', value: guild.id, inline: true }
+        { name: 'Owner', value: `> ${owner.user.tag}`, inline: true },
+        { name: 'Members', value: `> ${guild.memberCount.toString()}`, inline: true },
+        { name: 'Channels', value: `> ${guild.channels.cache.size.toString()}`, inline: true },
+        { name: 'Roles', value: `> ${guild.roles.cache.size.toString()}`, inline: true },
+        { name: 'Created', value: `> <t:${Math.floor(guild.createdTimestamp / 1000)}:R>`, inline: true },
+        { name: 'ID', value: `> ${guild.id}`, inline: true }
       )
       .setFooter({ text: `Requested by ${requesterTag}` });
   }

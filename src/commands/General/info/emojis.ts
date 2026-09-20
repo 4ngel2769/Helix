@@ -40,6 +40,6 @@ export class EmojisCommand extends ModuleCommand<GeneralModule> {
     if (!guild) return 'This command can only be used in a server.';
     if (!guild.emojis.cache.size) return 'No custom emojis in this server.';
 
-    return `Emojis: ${guild.emojis.cache.map((emoji) => emoji.toString()).join(' ')}`;
+    return `> Emojis: ${guild.emojis.cache.map((emoji) => emoji.toString()).join(' ')}`;
   }
 }

@@ -43,6 +43,6 @@ export class MembersCommand extends ModuleCommand<GeneralModule> {
     const humans = guild.members.cache.filter((member) => !member.user.bot).size;
     const bots = guild.members.cache.filter((member) => member.user.bot).size;
 
-    return `Total members: ${total} (${humans} humans, ${bots} bots)`;
+    return `> Total members: **${total}**\n> Humans: **${humans}**\n> Bots: **${bots}**`;
   }
 }

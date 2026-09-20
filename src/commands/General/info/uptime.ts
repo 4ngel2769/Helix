@@ -20,7 +20,7 @@ export class UptimeCommand extends ModuleCommand<GeneralModule> {
   public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
     await interaction.deferReply();
     try {
-      return interaction.editReply(`Uptime: ${this.formatUptime(process.uptime())}`);
+      return interaction.editReply(`> Uptime: ${this.formatUptime(process.uptime())}`);
     } catch (error) {
       this.container.logger.error('Error in uptime:', error);
       return interaction.editReply({ content: 'An error occurred.' });
@@ -29,7 +29,7 @@ export class UptimeCommand extends ModuleCommand<GeneralModule> {
 
   public override async messageRun(message: Message) {
     try {
-      return message.reply(`Uptime: ${this.formatUptime(process.uptime())}`);
+      return message.reply(`> Uptime: ${this.formatUptime(process.uptime())}`);
     } catch (error) {
       this.container.logger.error('Error in uptime:', error);
       return message.reply('An error occurred.');

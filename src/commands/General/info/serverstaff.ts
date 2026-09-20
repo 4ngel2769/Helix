@@ -47,6 +47,6 @@ export class ServerstaffCommand extends ModuleCommand<GeneralModule> {
       )
       .map((member) => member.user.tag);
 
-    return `Staff: ${staff.join(', ') || 'None found'}`;
+    return `> Staff: ${staff.join(', ') || 'None found'}`;
   }
 }

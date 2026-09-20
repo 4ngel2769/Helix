@@ -41,7 +41,7 @@ export class InvitemeCommand extends ModuleCommand<GeneralModule> {
     return new EmbedBuilder()
       .setColor(config.bot.embedColor.default as ColorResolvable)
       .setTitle('Invite Me')
-      .setDescription('Add Helix to your server!')
+      .setDescription('> Add Helix to your server!')
       .setURL(`https://discord.com/oauth2/authorize?client_id=${config.bot.client.id}&scope=bot+applications.commands&permissions=8`);
   }
 }

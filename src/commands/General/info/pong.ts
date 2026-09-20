@@ -24,7 +24,7 @@ export class PongCommand extends ModuleCommand<GeneralModule> {
       const latency = pingMessage.createdTimestamp - interaction.createdTimestamp;
       const apiLatency = Math.round(interaction.client.ws.ping);
 
-      return interaction.editReply(`Pong! Latency: ${latency}ms | API: ${apiLatency}ms`);
+      return interaction.editReply(`> Pong!\n> Latency: **${latency}ms**\n> API: **${apiLatency}ms**`);
     } catch (error) {
       this.container.logger.error('Error in pong:', error);
       return interaction.editReply({ content: 'An error occurred.' });
@@ -37,7 +37,7 @@ export class PongCommand extends ModuleCommand<GeneralModule> {
       const latency = pingMessage.createdTimestamp - message.createdTimestamp;
       const apiLatency = Math.round(message.client.ws.ping);
 
-      return pingMessage.edit(`Pong! Latency: ${latency}ms | API: ${apiLatency}ms`);
+      return pingMessage.edit(`> Pong!\n> Latency: **${latency}ms**\n> API: **${apiLatency}ms**`);
     } catch (error) {
       this.container.logger.error('Error in pong:', error);
       return message.reply('An error occurred.');

@@ -43,6 +43,6 @@ export class ModsCommand extends ModuleCommand<GeneralModule> {
       .filter((member) => member.permissions.has(PermissionFlagsBits.ModerateMembers) && !member.user.bot)
       .map((member) => member.user.tag);
 
-    return `Server moderators: ${moderators.join(', ') || 'None found'}`;
+    return `> Server moderators: ${moderators.join(', ') || 'None found'}`;
   }
 }

@@ -53,7 +53,7 @@ export class PermissionsCommand extends ModuleCommand<GeneralModule> {
       .toArray()
       .filter((permission) => !permission.startsWith('View') && !permission.startsWith('Read'));
     const midpoint = Math.ceil(permissions.length / 2);
-    const firstColumn = permissions.length > 0 ? permissions.slice(0, midpoint).map((permission) => `\`${permission}\``).join('\n') : 'No permissions found';
+    const firstColumn = permissions.length > 0 ? permissions.slice(0, midpoint).map((permission) => `> \`${permission}\``).join('\n') : '> No permissions found';
 
     const embed = new EmbedBuilder()
       .setColor(config.bot.embedColor.default as ColorResolvable)
@@ -63,7 +63,7 @@ export class PermissionsCommand extends ModuleCommand<GeneralModule> {
     if (permissions.length > midpoint) {
       embed.addFields({
         name: '\u200b',
-        value: permissions.slice(midpoint).map((permission) => `\`${permission}\``).join('\n'),
+        value: permissions.slice(midpoint).map((permission) => `> \`${permission}\``).join('\n'),
         inline: true
       });
     }

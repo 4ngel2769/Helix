@@ -53,11 +53,11 @@ export class ChannelinfoCommand extends ModuleCommand<GeneralModule> {
       .setColor(config.bot.embedColor.default as ColorResolvable)
       .setTitle('Channel Info')
       .addFields(
-        { name: 'Name', value: channelName, inline: true },
-        { name: 'ID', value: channel.id, inline: true },
-        { name: 'Type', value: channelType, inline: true },
-        { name: 'Category', value: channelCategory, inline: true },
-        { name: 'Topic', value: channelTopic, inline: false }
+        { name: 'Name', value: `> ${channelName}`, inline: true },
+        { name: 'ID', value: `> ${channel.id}`, inline: true },
+        { name: 'Type', value: `> ${channelType}`, inline: true },
+        { name: 'Category', value: `> ${channelCategory}`, inline: true },
+        { name: 'Topic', value: `> ${channelTopic}`, inline: false }
       );
   }
 }

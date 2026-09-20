@@ -144,8 +144,8 @@ export class UserinfoCommand extends HybridModuleCommand<GeneralModule> {
 		return flags.map(flag => {
 			const emoji = this.badgeEmojis[flag as keyof typeof this.badgeEmojis] || '🏷️';
 			const friendlyName = this.badgeNames[flag as keyof typeof this.badgeNames] || flag;
-			return `${emoji} \`${friendlyName}\``;
-		}).join(' ');
+			return `> ${emoji} \`${friendlyName}\``;
+		}).join('\n');
 	}
 
 	
@@ -207,7 +207,7 @@ export class UserinfoCommand extends HybridModuleCommand<GeneralModule> {
 			if (memberToGet && config.bot.ownerIDs.includes(memberToGet.id as string)) {
 				embed.addFields({
 					name: 'Notables',
-					value: `${emojis.badgesBlurple.developer} \` This user is the Bot developer \``
+					value: `> ${emojis.badgesBlurple.developer} \` This user is the Bot developer \``
 				})
 			};
 
@@ -296,7 +296,7 @@ export class UserinfoCommand extends HybridModuleCommand<GeneralModule> {
 			if (config.bot.ownerIDs.includes(memberToGet.id as string)) {
 				embed.addFields({
 					name: 'Notables',
-					value: `${emojis.badgesBlurple.developer} \` This user is the Bot developer \``
+					value: `> ${emojis.badgesBlurple.developer} \` This user is the Bot developer \``
 				});
 			}
 		} else {
@@ -311,7 +311,7 @@ export class UserinfoCommand extends HybridModuleCommand<GeneralModule> {
 			if (config.bot.ownerIDs.includes(userToGet.id as string)) {
 				embed.addFields({
 					name: 'Notables',
-					value: `${emojis.badgesBlurple.developer} \` This user is the Bot developer \``
+					value: `> ${emojis.badgesBlurple.developer} \` This user is the Bot developer \``
 				});
 			}
 		}

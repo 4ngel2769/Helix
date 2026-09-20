@@ -50,6 +50,6 @@ export class AliasesCommand extends ModuleCommand<GeneralModule> {
       aliasesList.push(`${name}: ${aliases.join(', ')}`);
     }
 
-    return aliasesList.length > 0 ? `Command aliases:\n${aliasesList.join('\n')}` : 'No aliases configured.';
+    return aliasesList.length > 0 ? `Command aliases:\n${aliasesList.map((entry) => `> ${entry}`).join('\n')}` : '> No aliases configured.';
   }
 }

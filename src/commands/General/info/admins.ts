@@ -43,6 +43,6 @@ export class AdminsCommand extends ModuleCommand<GeneralModule> {
       .filter((member) => member.permissions.has(PermissionFlagsBits.Administrator) && !member.user.bot)
       .map((member) => member.user.tag);
 
-    return `Server admins: ${admins.join(', ') || 'None found'}`;
+    return `> Server admins: ${admins.join(', ') || 'None found'}`;
   }
 }

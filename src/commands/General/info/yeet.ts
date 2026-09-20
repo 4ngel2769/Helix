@@ -50,11 +50,11 @@ export class YeetCommand extends ModuleCommand<GeneralModule> {
     return new EmbedBuilder()
       .setColor(config.bot.embedColor.magic as ColorResolvable)
       .setTitle('YEET!')
-      .setDescription(`${user.tag} has been yeeted!`)
+      .setDescription(`> ${user.tag} has been yeeted!`)
       .setThumbnail(user.displayAvatarURL())
       .addFields(
-        { name: 'Joined', value: joinedAt, inline: true },
-        { name: 'Roles', value: roleCount, inline: true }
+        { name: 'Joined', value: `> ${joinedAt}`, inline: true },
+        { name: 'Roles', value: `> ${roleCount}`, inline: true }
       );
   }
 }

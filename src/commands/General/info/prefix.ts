@@ -22,7 +22,7 @@ export class PrefixCommand extends ModuleCommand<GeneralModule> {
     await interaction.deferReply();
     try {
       const prefix = await this.resolvePrefix(interaction.guildId);
-      return interaction.editReply(`Current prefix: \`${prefix}\``);
+      return interaction.editReply(`> Current prefix: \`${prefix}\``);
     } catch (error) {
       this.container.logger.error('Error in prefix:', error);
       return interaction.editReply({ content: 'An error occurred.' });
@@ -32,7 +32,7 @@ export class PrefixCommand extends ModuleCommand<GeneralModule> {
   public override async messageRun(message: import('discord.js').Message) {
     try {
       const prefix = await this.resolvePrefix(message.guildId);
-      return message.reply(`Current prefix: \`${prefix}\``);
+      return message.reply(`> Current prefix: \`${prefix}\``);
     } catch (error) {
       this.container.logger.error('Error in prefix:', error);
       return message.reply('An error occurred.');

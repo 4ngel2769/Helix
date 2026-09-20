@@ -41,7 +41,7 @@ export class SupportserverCommand extends ModuleCommand<GeneralModule> {
     return new EmbedBuilder()
       .setColor(config.bot.embedColor.default as ColorResolvable)
       .setTitle('Support Server')
-      .setDescription('Need help? Join our support server!')
+      .setDescription('> Need help? Join our support server!')
       .setURL('https://discord.gg/helix');
   }
 }
