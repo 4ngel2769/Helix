@@ -8,7 +8,14 @@ import { clearGuildPrefixCache, setGuildPrefixInCache } from '../../lib/utils/pr
 import { clearDisabledCommandsCache } from '../../lib/utils/disabledCommandsCache';
 import { LOG_EVENT_KEYS } from '../../lib/logging/logEvents';
 import { isPremiumActive } from '../../lib/utils/premium';
-import { cleanAutomodKeywords, cleanAutomodSettings, cleanLeveling, cleanNullableText, cleanWarnSettings, isSafeImageUrl } from '../../lib/utils/sanitize';
+import {
+	cleanAutomodKeywords,
+	cleanAutomodSettings,
+	cleanLeveling,
+	cleanNullableText,
+	cleanWarnSettings,
+	isSafeImageUrl
+} from '../../lib/utils/sanitize';
 import { validateGreetCard } from '../../lib/cards/cardValidation';
 import { clearGuildAutomation } from '../../lib/utils/guildAutomationCache';
 import { isSnowflake, readJsonBody, readStringArray, requireAuth, requireManageableGuild } from '../../lib/utils/apiAuth';
@@ -30,6 +37,8 @@ const UPDATABLE_FIELDS = [
 	'welcomeMessage',
 	'farewellChannelId',
 	'farewellMessage',
+	'banMessage',
+	'joinDmMessage',
 	'systemChannelId',
 	'logChannelId',
 	'logEvents',
@@ -105,6 +114,8 @@ function validateConfigUpdate(update: Record<string, unknown>, isPremium: boolea
 	for (const [key, max] of [
 		['welcomeMessage', 2000],
 		['farewellMessage', 2000],
+		['banMessage', 2000],
+		['joinDmMessage', 2000],
 		['verificationTitle', 256],
 		['verificationMessage', 2000],
 		['verificationDisabledMessage', 1000],
@@ -221,4 +232,3 @@ export class ApiGuildConfigRoute extends Route {
 		}
 	}
 }
-

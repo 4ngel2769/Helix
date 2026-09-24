@@ -77,32 +77,16 @@ server.tool('helix_health', 'Check the Helix bot API health (version, uptime, gu
 	textResult(await api('/health'))
 );
 
-server.tool(
-	'helix_stats',
-	'Get Helix bot statistics (servers, users, channels, commands, modules, memory).',
-	{},
-	async () => textResult(await api('/stats'))
+server.tool('helix_stats', 'Get Helix bot statistics (servers, users, channels, commands, modules, memory).', {}, async () =>
+	textResult(await api('/stats'))
 );
 
-server.tool(
-	'helix_commands',
-	'List all bot commands (name, description, category).',
-	{},
-	async () => textResult(await api('/commands'))
-);
+server.tool('helix_commands', 'List all bot commands (name, description, category).', {}, async () => textResult(await api('/commands')));
 
-server.tool(
-	'helix_modules',
-	'List the module catalog (key, name, description, default state).',
-	{},
-	async () => textResult(await api('/modules'))
-);
+server.tool('helix_modules', 'List the module catalog (key, name, description, default state).', {}, async () => textResult(await api('/modules')));
 
-server.tool(
-	'helix_public_guilds',
-	'List public servers the bot is in (id, name, member count, icon).',
-	{},
-	async () => textResult(await api('/guilds'))
+server.tool('helix_public_guilds', 'List public servers the bot is in (id, name, member count, icon).', {}, async () =>
+	textResult(await api('/guilds'))
 );
 
 // ---------- Authenticated user ----------
@@ -154,6 +138,8 @@ server.tool(
 		welcomeMessage: z.string().nullable().optional(),
 		farewellChannelId: z.string().nullable().optional(),
 		farewellMessage: z.string().nullable().optional(),
+		banMessage: z.string().nullable().optional(),
+		joinDmMessage: z.string().nullable().optional(),
 		systemChannelId: z.string().nullable().optional(),
 		verificationChannelId: z.string().nullable().optional(),
 		verificationRoleId: z.string().nullable().optional(),
@@ -285,9 +271,7 @@ server.tool(
 		warningId: z.string().describe('Warning document ID (from helix_warnings_list).')
 	},
 	async ({ guildId, discordToken, userId, warningId }) =>
-		textResult(
-			await api(`/guilds/${guildId}/warnings`, { method: 'DELETE', token: tokenOf(discordToken), query: { userId, warningId } })
-		)
+		textResult(await api(`/guilds/${guildId}/warnings`, { method: 'DELETE', token: tokenOf(discordToken), query: { userId, warningId } }))
 );
 
 server.tool(
@@ -376,9 +360,7 @@ server.tool(
 		messageId: z.string().describe('Discord message ID of the menu.')
 	},
 	async ({ guildId, discordToken, messageId }) =>
-		textResult(
-			await api(`/guilds/${guildId}/reaction-roles`, { method: 'DELETE', token: tokenOf(discordToken), query: { messageId } })
-		)
+		textResult(await api(`/guilds/${guildId}/reaction-roles`, { method: 'DELETE', token: tokenOf(discordToken), query: { messageId } }))
 );
 
 // ---------- Custom messages ----------

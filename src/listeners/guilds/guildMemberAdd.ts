@@ -20,51 +20,57 @@ export class GuildMemberAddListener extends Listener<typeof Events.GuildMemberAd
 		});
 		try {
 			const guildData = await Guild.findOne({ guildId: member.guild.id }).lean();
-			const channelId = guildData?.welcomeChannelId;
-			if (!channelId) return;
-
-			const channel = await member.guild.channels.fetch(channelId).catch(() => null);
-			if (!channel || !channel.isTextBased()) return;
-
 			const configuredDefault = this.container.client.options.defaultPrefix;
-			const defaultPrefix: string =
-				(Array.isArray(configuredDefault) ? configuredDefault[0] : configuredDefault) ?? 'x';
+			const defaultPrefix: string = (Array.isArray(configuredDefault) ? configuredDefault[0] : configuredDefault) ?? 'x';
 			const resolvedPrefix = getGuildPrefixFromCache(member.guild.id) ?? guildData?.prefix ?? defaultPrefix;
 			setGuildPrefixInCache(member.guild.id, resolvedPrefix);
 
-			const template = guildData?.welcomeMessage || DEFAULT_WELCOME_MESSAGE;
-			const text = renderMessageTemplate(template, {
+			const templateContext = {
 				userMention: `<@${member.id}>`,
 				userName: member.displayName,
 				userTag: member.user.username,
 				prefix: resolvedPrefix,
 				serverName: member.guild.name,
 				serverMembers: member.guild.memberCount
-			});
+			};
 
-		const card = withCardDefaults((guildData as unknown as Record<string, unknown>)?.welcomeCard);
-		if (!card.enabled) {
-			await (channel as unknown as { send: (content: string) => Promise<unknown> }).send(text);
-			return;
-		}
+			if (guildData?.joinDmMessage) {
+				const directMessage = renderMessageTemplate(guildData.joinDmMessage, templateContext);
+				await member.user.send(directMessage).catch((error) => {
+					container.logger.warn(`[welcome-dm] failed for ${member.id} in ${member.guild.id}:`, error);
+				});
+			}
 
-		try {
-			const buffer = await renderGreetCard(card, {
-				displayName: member.displayName,
-				avatarUrl: member.user.displayAvatarURL({ extension: 'png', size: 256 }),
-				memberCount: member.guild.memberCount,
-				serverName: member.guild.name,
-				prefix: resolvedPrefix,
-				userTag: member.user.username
-			});
-			await (channel as unknown as { send: (msg: unknown) => Promise<unknown> }).send({
-				content: text,
-				files: [{ attachment: buffer, name: 'welcome.png' }]
-			});
-		} catch (cardError) {
-			container.logger.warn(`[welcome-card] failed for ${member.id} in ${member.guild.id}:`, cardError);
-			await (channel as unknown as { send: (content: string) => Promise<unknown> }).send(text);
-		}
+			const channelId = guildData?.welcomeChannelId;
+			if (!channelId) return;
+
+			const channel = await member.guild.channels.fetch(channelId).catch(() => null);
+			if (!channel || !channel.isTextBased()) return;
+
+			const text = renderMessageTemplate(guildData?.welcomeMessage || DEFAULT_WELCOME_MESSAGE, templateContext);
+			const card = withCardDefaults((guildData as unknown as Record<string, unknown>)?.welcomeCard);
+			if (!card.enabled) {
+				await (channel as unknown as { send: (content: string) => Promise<unknown> }).send(text);
+				return;
+			}
+
+			try {
+				const buffer = await renderGreetCard(card, {
+					displayName: member.displayName,
+					avatarUrl: member.user.displayAvatarURL({ extension: 'png', size: 256 }),
+					memberCount: member.guild.memberCount,
+					serverName: member.guild.name,
+					prefix: resolvedPrefix,
+					userTag: member.user.username
+				});
+				await (channel as unknown as { send: (msg: unknown) => Promise<unknown> }).send({
+					content: text,
+					files: [{ attachment: buffer, name: 'welcome.png' }]
+				});
+			} catch (cardError) {
+				container.logger.warn(`[welcome-card] failed for ${member.id} in ${member.guild.id}:`, cardError);
+				await (channel as unknown as { send: (content: string) => Promise<unknown> }).send(text);
+			}
 		} catch (error) {
 			container.logger.warn(`[welcome] failed to greet ${member.id} in ${member.guild.id}:`, error);
 		}
