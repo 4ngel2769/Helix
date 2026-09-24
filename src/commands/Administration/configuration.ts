@@ -13,6 +13,7 @@ import { ErrorHandler } from '../../lib/structures/ErrorHandler';
 import config from '../../config';
 
 import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+import { commandHelpEmbed } from '../../lib/utils/commandHelp';
 
 @ApplyOptions<Command.Options>({
     name: 'config',
@@ -57,10 +58,18 @@ export class ConfigCommand extends HybridModuleCommand<AdministrationModule> {
                                 .setRequired(true)
                         )
                 )
+                .addSubcommand((subcommand) => subcommand.setName('help').setDescription('Show the configuration options and usage'))
         );
     }
 
     public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
+        if (interaction.options.getSubcommand() === 'help') {
+            return interaction.reply({
+                embeds: [commandHelpEmbed(this, 'Configure the roles used by Helix administration.')],
+                flags: MessageFlags.Ephemeral
+            });
+        }
+
         // Check if user has required permissions
         const member = interaction.member;
         const isOwner = interaction.guild?.ownerId === member?.user.id;

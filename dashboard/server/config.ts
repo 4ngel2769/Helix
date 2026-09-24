@@ -8,6 +8,13 @@ function optional(name: string, fallback: string): string {
 	return process.env[name] || fallback;
 }
 
+function ownerIds(value: string | undefined): string[] {
+	return (value ?? '')
+		.split(',')
+		.map((id) => id.trim())
+		.filter((id) => /^\d{16,22}$/.test(id));
+}
+
 export const dashboardConfig = {
 	/** Port the dashboard web server listens on. */
 	port: parseInt(optional('DASHBOARD_WEB_PORT', '3000'), 10),
@@ -28,10 +35,7 @@ export const dashboardConfig = {
 		invitePermissions: optional('BOT_INVITE_PERMISSIONS', '8')
 	},
 	/** Discord user IDs treated as bot developers (extra dashboard tabs). */
-	devUserIds: (process.env.OWNER_IDS ?? process.env.DASHBOARD_OWNER_IDS ?? '')
-		.split(',')
-		.map((s) => s.trim())
-		.filter((s) => /^\d{16,22}$/.test(s)),
+	devUserIds: [...new Set([...ownerIds(process.env.OWNER_IDS), ...ownerIds(process.env.DASHBOARD_OWNER_IDS)])],
 	isProduction: process.env.NODE_ENV === 'production'
 };
 

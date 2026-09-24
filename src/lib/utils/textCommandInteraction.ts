@@ -18,6 +18,7 @@ import { getGuildPrefixFromCache } from './prefixCache';
 /** Subset of the (snake_case) application command option JSON we care about. */
 export interface TextOptionData {
 	name: string;
+	description?: string;
 	type: number;
 	required?: boolean;
 	options?: TextOptionData[];

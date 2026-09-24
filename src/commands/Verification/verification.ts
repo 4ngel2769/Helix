@@ -18,6 +18,7 @@ import { ErrorHandler } from '../../lib/structures/ErrorHandler';
 import config from '../../config';
 
 import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+import { commandHelpEmbed } from '../../lib/utils/commandHelp';
 
 @ApplyOptions<Command.Options>({
     name: 'verification',
@@ -216,6 +217,7 @@ export class VerificationCommand extends HybridModuleCommand<VerificationModule>
                                 .setRequired(true)
                         )
                 )
+                .addSubcommand((subcommand) => subcommand.setName('help').setDescription('Show the verification options and usage'))
         );
     }
 
@@ -223,6 +225,13 @@ export class VerificationCommand extends HybridModuleCommand<VerificationModule>
         // Check if user is a moderator
         if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
             return ErrorHandler.sendModeratorError(interaction);
+        }
+
+        if (interaction.options.getSubcommand() === 'help') {
+            return interaction.reply({
+                embeds: [commandHelpEmbed(this, 'Configure verification channels, roles, messages, and availability.')],
+                flags: MessageFlags.Ephemeral
+            });
         }
 
         const subcommand = interaction.options.getSubcommand();

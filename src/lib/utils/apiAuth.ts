@@ -263,10 +263,8 @@ export async function getTokenUserId(token: string): Promise<string | null> {
 }
 
 function botOwnerIds(): string[] {
-	return (process.env.OWNER_IDS ?? process.env.DASHBOARD_OWNER_IDS ?? '')
-		.split(',')
-		.map((s) => s.trim())
-		.filter((s) => isSnowflake(s));
+	const values = [process.env.OWNER_IDS ?? '', process.env.DASHBOARD_OWNER_IDS ?? ''];
+	return [...new Set(values.flatMap((value) => value.split(',')).map((s) => s.trim()).filter((s) => isSnowflake(s)))];
 }
 
 export function isBotOwner(userId: string): boolean {

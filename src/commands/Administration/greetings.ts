@@ -2,6 +2,7 @@ import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { ChannelType, MessageFlags, PermissionFlagsBits } from 'discord.js';
+import { commandHelpEmbed } from '../../lib/utils/commandHelp';
 import { AdministrationModule } from '../../modules/Administration';
 import { Guild } from '../../models/Guild';
 import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
@@ -112,12 +113,20 @@ export class GreetingsCommand extends HybridModuleCommand<AdministrationModule> 
 								.setRequired(true)
 						)
 				)
+				.addSubcommand((subcommand) => subcommand.setName('help').setDescription('Show the greeting options and usage'))
 		);
 	}
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
 		if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
 			return interaction.reply({ content: 'You need Administrator permission.', flags: MessageFlags.Ephemeral });
+		}
+
+		if (interaction.options.getSubcommand() === 'help') {
+			return interaction.reply({
+				embeds: [commandHelpEmbed(this, 'Configure new-member, departure, ban, and direct-message greetings.')],
+				flags: MessageFlags.Ephemeral
+			});
 		}
 
 		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
