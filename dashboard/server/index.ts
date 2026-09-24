@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import './dotenv';
 import { dashboardConfig, validateDiscordConfig } from './config';
-import { avatarUrl, botInviteUrl, exchangeCode, fetchDiscordUser, loginUrl, refreshAccessToken } from './discord';
+import { avatarUrl, botInviteUrl, exchangeCode, fetchDiscordUser, inviteLoginUrl, loginUrl, refreshAccessToken } from './discord';
 import { clearSessionCookie, sealSession, sessionCookie, unsealSession, type DashboardSession } from './session';
 
 const DIST_DIR = path
@@ -187,6 +187,17 @@ const server = Bun.serve({
 			const headers = {
 				'Set-Cookie': `${STATE_COOKIE}=${state}; Path=/; HttpOnly; SameSite=Lax; Max-Age=300${dashboardConfig.isProduction ? '; Secure' : ''}`,
 				Location: loginUrl(state)
+			};
+			return new Response(null, { status: 302, headers });
+		}
+
+		if (pathname === '/api/auth/invite') {
+			if (authRateLimited(clientIp(req))) return json({ error: 'Too many requests' }, 429);
+			if (!dashboardConfig.discord.clientId) return json({ error: 'Discord OAuth not configured' }, 500);
+			const state = randomBytes(16).toString('hex');
+			const headers = {
+				'Set-Cookie': `${STATE_COOKIE}=${state}; Path=/; HttpOnly; SameSite=Lax; Max-Age=300${dashboardConfig.isProduction ? '; Secure' : ''}`,
+				Location: inviteLoginUrl(state)
 			};
 			return new Response(null, { status: 302, headers });
 		}

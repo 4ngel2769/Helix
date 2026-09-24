@@ -19,6 +19,19 @@ export function loginUrl(state: string): string {
 	return `https://discord.com/oauth2/authorize?${params.toString()}`;
 }
 
+export function inviteLoginUrl(state: string): string {
+	const params = new URLSearchParams({
+		client_id: dashboardConfig.discord.clientId,
+		response_type: 'code',
+		redirect_uri: redirectUri(),
+		scope: `${SCOPES} bot applications.commands`,
+		permissions: dashboardConfig.session.invitePermissions,
+		state,
+		prompt: 'consent'
+	});
+	return `https://discord.com/oauth2/authorize?${params.toString()}`;
+}
+
 export function botInviteUrl(guildId?: string): string {
 	const params = new URLSearchParams({
 		client_id: dashboardConfig.discord.clientId,
