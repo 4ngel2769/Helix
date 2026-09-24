@@ -67,7 +67,7 @@ export function buildHelpEmbed(filteredModules: string[]) {
 
 export function createHomeButton(disabled = false) {
   return new ButtonBuilder()
-    .setCustomId('help-home')
+    .setCustomId('helix-help-home')
     .setLabel('Main Help')
     .setStyle(ButtonStyle.Secondary)
     .setDisabled(disabled);

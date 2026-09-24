@@ -31,8 +31,9 @@ export class ButtonHandler extends InteractionHandler {
             '2-1',
             '2-2',
             // Help command pagination buttons (handled by the help command collector)
-            'previous',
-            'next'
+            'helix-help-previous',
+            'helix-help-next',
+            'helix-help-home'
         ];
 
         // Check for buttons that start with specific prefixes

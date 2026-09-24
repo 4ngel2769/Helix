@@ -64,6 +64,13 @@ const UPDATABLE_FIELDS = [
 
 type UpdatableField = (typeof UPDATABLE_FIELDS)[number];
 
+function publicConfig(data: unknown): unknown {
+	const value = data && typeof data === 'object' && 'toObject' in data && typeof data.toObject === 'function' ? data.toObject() : data;
+	if (!value || typeof value !== 'object') return value;
+	const { setupWizard: _setupWizard, ...config } = value as Record<string, unknown>;
+	return config;
+}
+
 function sanitizeConfigUpdate(body: Record<string, unknown>): Record<string, unknown> {
 	const update: Record<string, unknown> = {};
 	for (const field of UPDATABLE_FIELDS) {
@@ -196,7 +203,7 @@ export class ApiGuildConfigRoute extends Route {
 		if (request.method === 'GET') {
 			try {
 				const data = await GuildConfigService.getOrCreateGuildData(guildId);
-				return response.json({ guildId, config: data });
+				return response.json({ guildId, config: publicConfig(data) });
 			} catch {
 				return response.status(500).json({ error: 'Failed to load guild config' });
 			}
@@ -217,6 +224,15 @@ export class ApiGuildConfigRoute extends Route {
 		}
 		const validationError = validateConfigUpdate(update, isPremium);
 		if (validationError) return response.status(400).json({ error: validationError });
+		const guild = this.container.client.guilds.cache.get(guildId);
+		for (const field of ['adminRoleId', 'modRoleId', 'muteRoleId', 'autoroleId'] as const) {
+			if (!(field in update) || update[field] === null) continue;
+			const roleId = update[field] as string;
+			const role = guild?.roles.cache.get(roleId);
+			if (!guild || roleId === guild.roles.everyone.id || role?.managed) {
+				return response.status(400).json({ error: `${field} cannot be the @everyone role or a managed integration role` });
+			}
+		}
 
 		try {
 			const data = await Guild.findOneAndUpdate({ guildId }, { $set: update }, { upsert: true, returnDocument: 'after' });
@@ -225,8 +241,8 @@ export class ApiGuildConfigRoute extends Route {
 				else clearGuildPrefixCache(guildId);
 			}
 			if ('disabledCommands' in update) clearDisabledCommandsCache(guildId);
-			if ('leveling' in update || 'automodSettings' in update || 'modules' in update) clearGuildAutomation(guildId);
-			return response.json({ guildId, updated: Object.keys(update), config: data });
+			if ('leveling' in update || 'automodSettings' in update || 'modules' in update || 'adminRoleId' in update || 'modRoleId' in update || 'muteRoleId' in update) clearGuildAutomation(guildId);
+			return response.json({ guildId, updated: Object.keys(update), config: publicConfig(data) });
 		} catch {
 			return response.status(500).json({ error: 'Failed to update guild config' });
 		}

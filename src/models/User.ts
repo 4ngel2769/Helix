@@ -129,6 +129,13 @@ export interface UserWarning {
   moderatorTag: string;
   timestamp: Date;
   active: boolean;
+  source?: 'manual' | 'automod' | 'api' | 'system';
+  rule?: string;
+  channelId?: string;
+  message?: string;
+  clearedAt?: Date;
+  clearedBy?: string;
+  _id?: string;
 }
 
 export interface IUser extends Document {
@@ -287,7 +294,13 @@ const userSchema = new Schema<IUser>({
     moderatorId: { type: String, required: true },
     moderatorTag: { type: String, required: true },
     timestamp: { type: Date, default: Date.now },
-    active: { type: Boolean, default: true }
+    active: { type: Boolean, default: true },
+    source: { type: String, enum: ['manual', 'automod', 'api', 'system'], default: 'manual' },
+    rule: { type: String, default: null },
+    channelId: { type: String, default: null },
+    message: { type: String, default: null },
+    clearedAt: { type: Date, default: null },
+    clearedBy: { type: String, default: null }
   }],
   
   joinedServers: [{ type: String }],

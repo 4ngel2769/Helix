@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import type { AutomodFilter } from '../../lib/types';
 	import { api } from '../../lib/api';
 	import { guildEntry, saveGuildConfig } from '../../lib/session.svelte';
 	import PageHeader from '../../components/PageHeader.svelte';
@@ -26,7 +27,21 @@
 	const ACTIONS = [
 		{ value: 'delete', label: 'Delete only' },
 		{ value: 'delete_warn', label: 'Delete + warn' },
-		{ value: 'delete_timeout', label: 'Delete + warn + timeout' }
+		{ value: 'delete_timeout', label: 'Delete + warn + timeout' },
+		{ value: 'delete_kick', label: 'Delete + warn + kick' },
+		{ value: 'delete_ban', label: 'Delete + warn + ban' }
+	];
+
+	const FILTERS: Array<{ key: AutomodFilter; label: string }> = [
+		{ key: 'invites', label: 'Invites' },
+		{ key: 'links', label: 'Links' },
+		{ key: 'caps', label: 'Caps' },
+		{ key: 'emoji', label: 'Emoji' },
+		{ key: 'spam', label: 'Spam' },
+		{ key: 'repeat', label: 'Repeat text' },
+		{ key: 'spoilers', label: 'Spoilers' },
+		{ key: 'attachments', label: 'Attachments' },
+		{ key: 'zalgo', label: 'Zalgo' }
 	];
 
 	// Keyword lists (feed the /automod preset installer)
@@ -45,7 +60,14 @@
 	let spamOn = $state(true);
 	let spamCount = $state(5);
 	let spamSecs = $state(10);
+	let repeatOn = $state(false);
+	let repeatCount = $state(3);
+	let repeatSecs = $state(60);
+	let spoilersOn = $state(false);
+	let attachmentsOn = $state(true);
+	let attachmentsMax = $state(5);
 	let action = $state('delete');
+	let actions = $state<Record<string, string>>({});
 	let timeoutSecs = $state(600);
 	let ignoredChannels = $state<string[]>([]);
 	let ignoredRoles = $state<string[]>([]);
@@ -88,6 +110,9 @@
 		const caps = (fx.caps ?? {}) as Record<string, unknown>;
 		const emoji = (fx.emoji ?? {}) as Record<string, unknown>;
 		const spam = (fx.spam ?? {}) as Record<string, unknown>;
+		const repeat = (fx.repeatText ?? {}) as Record<string, unknown>;
+		const spoilers = (fx.spoilers ?? {}) as Record<string, unknown>;
+		const attachments = (fx.attachments ?? {}) as Record<string, unknown>;
 		fxEnabled = fx.enabled === true;
 		blockInvites = fx.blockInvites === true;
 		blockLinks = fx.blockLinks === true;
@@ -100,7 +125,14 @@
 		spamOn = spam.enabled !== false;
 		spamCount = num(spam.count, 5);
 		spamSecs = num(spam.intervalSeconds, 10);
+		repeatOn = repeat.enabled === true;
+		repeatCount = num(repeat.count, 3);
+		repeatSecs = num(repeat.intervalSeconds, 60);
+		spoilersOn = spoilers.enabled === true;
+		attachmentsOn = attachments.enabled !== false;
+		attachmentsMax = num(attachments.max, 5);
 		action = typeof fx.action === 'string' ? fx.action : 'delete';
+		actions = typeof fx.actions === 'object' && fx.actions !== null && !Array.isArray(fx.actions) ? (fx.actions as Record<string, string>) : {};
 		timeoutSecs = num(fx.timeoutSeconds, 600);
 		ignoredChannels = Array.isArray(fx.ignoredChannels) ? (fx.ignoredChannels as string[]) : [];
 		ignoredRoles = Array.isArray(fx.ignoredRoles) ? (fx.ignoredRoles as string[]) : [];
@@ -109,7 +141,7 @@
 	}
 
 	function snapshot(): string {
-		return JSON.stringify({ values, fxEnabled, blockInvites, blockLinks, zalgo, capsOn, capsMin, capsPct, emojiOn, emojiMax, spamOn, spamCount, spamSecs, action, timeoutSecs, ignoredChannels, ignoredRoles });
+		return JSON.stringify({ values, fxEnabled, blockInvites, blockLinks, zalgo, capsOn, capsMin, capsPct, emojiOn, emojiMax, spamOn, spamCount, spamSecs, repeatOn, repeatCount, repeatSecs, spoilersOn, attachmentsOn, attachmentsMax, action, actions, timeoutSecs, ignoredChannels, ignoredRoles });
 	}
 
 	$effect(() => {
@@ -136,7 +168,11 @@
 					caps: { enabled: capsOn, minLength: capsMin, percent: capsPct },
 					emoji: { enabled: emojiOn, max: emojiMax },
 					spam: { enabled: spamOn, count: spamCount, intervalSeconds: spamSecs },
+					repeatText: { enabled: repeatOn, count: repeatCount, intervalSeconds: repeatSecs },
+					spoilers: { enabled: spoilersOn },
+					attachments: { enabled: attachmentsOn, max: attachmentsMax },
 					action,
+					actions,
 					timeoutSeconds: timeoutSecs,
 					ignoredChannels,
 					ignoredRoles
@@ -211,6 +247,9 @@
 		<Toggle title="Caps filter" description="Delete ALL-CAPS shouting." checked={capsOn} onchange={(v) => { capsOn = v; saved = false; }} />
 		<Toggle title="Emoji spam filter" description="Delete messages stuffed with emoji." checked={emojiOn} onchange={(v) => { emojiOn = v; saved = false; }} />
 		<Toggle title="Spam filter" description="Delete rapid repeat messages." checked={spamOn} onchange={(v) => { spamOn = v; saved = false; }} />
+		<Toggle title="Repeat text filter" description="Delete repeated messages in the same channel." checked={repeatOn} onchange={(v) => { repeatOn = v; saved = false; }} />
+		<Toggle title="Spoiler filter" description="Delete Discord spoiler-formatted text and attachments." checked={spoilersOn} onchange={(v) => { spoilersOn = v; saved = false; }} />
+		<Toggle title="Attachment limit" description="Delete messages above the attachment limit." checked={attachmentsOn} onchange={(v) => { attachmentsOn = v; saved = false; }} />
 		<Toggle title="Zalgo filter" description="Delete glitch-text (combining marks)." checked={zalgo} onchange={(v) => { zalgo = v; saved = false; }} />
 	</div>
 	<div class="grid-3" style="margin-top: 12px;">
@@ -219,13 +258,33 @@
 		<div class="field"><label for="am-emojimax">Max emoji</label><input id="am-emojimax" type="number" min={1} max={100} bind:value={emojiMax} oninput={() => (saved = false)} /></div>
 		<div class="field"><label for="am-spamcount">Spam messages</label><input id="am-spamcount" type="number" min={2} max={20} bind:value={spamCount} oninput={() => (saved = false)} /></div>
 		<div class="field"><label for="am-spamsecs">Spam window (sec)</label><input id="am-spamsecs" type="number" min={2} max={120} bind:value={spamSecs} oninput={() => (saved = false)} /></div>
+		<div class="field"><label for="am-repeatcount">Repeat count</label><input id="am-repeatcount" type="number" min={2} max={20} bind:value={repeatCount} oninput={() => (saved = false)} /></div>
+		<div class="field"><label for="am-repeatsecs">Repeat window (sec)</label><input id="am-repeatsecs" type="number" min={2} max={300} bind:value={repeatSecs} oninput={() => (saved = false)} /></div>
+		<div class="field"><label for="am-attachmentsmax">Max attachments</label><input id="am-attachmentsmax" type="number" min={0} max={10} bind:value={attachmentsMax} oninput={() => (saved = false)} /></div>
 		<div class="field"><label for="am-timeout">Timeout (sec)</label><input id="am-timeout" type="number" min={10} max={2419200} bind:value={timeoutSecs} oninput={() => (saved = false)} /></div>
 	</div>
 	<div class="field" style="max-width: 320px;">
-		<label for="am-action">On violation</label>
+		<label for="am-action">Default action</label>
 		<select id="am-action" bind:value={action} onchange={() => (saved = false)}>
 			{#each ACTIONS as a (a.value)}<option value={a.value}>{a.label}</option>{/each}
 		</select>
+	</div>
+	<div class="grid-2" style="margin-top: 12px;">
+		{#each FILTERS as filter (filter.key)}
+			<div class="field">
+				<label for={`am-action-${filter.key}`}>{filter.label} action</label>
+				<select
+					id={`am-action-${filter.key}`}
+					value={actions[filter.key] ?? action}
+					onchange={(event) => {
+						actions = { ...actions, [filter.key]: (event.currentTarget as HTMLSelectElement).value };
+						saved = false;
+					}}
+				>
+					{#each ACTIONS as a (a.value)}<option value={a.value}>{a.label}</option>{/each}
+				</select>
+			</div>
+		{/each}
 	</div>
 	<div class="field" style="max-width: 320px;">
 		<label for="am-ignore-channel-search">Exempt channels</label>

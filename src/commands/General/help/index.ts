@@ -45,6 +45,33 @@ interface ExtendedCommand extends Command<Args, CommandOptions> {
   category: string | null;
 }
 
+interface HelpOption {
+  name: string;
+  type: number;
+  options?: HelpOption[];
+}
+
+function hasCommandPath(command: ExtendedCommand, path: string[]): boolean {
+  let options = command.options?.options as HelpOption[] | undefined;
+  for (const segment of path) {
+    const option = options?.find((entry) => entry.name.toLowerCase() === segment.toLowerCase());
+    if (!option) return false;
+    options = option.options;
+  }
+  return true;
+}
+
+function canViewCommand(command: ExtendedCommand, permissions: bigint | Readonly<PermissionsBitField> | null | undefined): boolean {
+  const applicationPermissions = container.client.application?.commands.cache.find((entry) => entry.name === command.name)?.defaultMemberPermissions;
+  const required = command.options?.requiredUserPermissions ?? applicationPermissions;
+  if (!required) return true;
+  if (!permissions) return false;
+  const requiredBits = new PermissionsBitField(required);
+  return typeof permissions === 'bigint'
+    ? (permissions & requiredBits.bitfield) === requiredBits.bitfield
+    : requiredBits.has(permissions);
+}
+
 @ApplyOptions<Command.Options>({
   name: 'help',
   description: 'Shows all available commands',
@@ -167,7 +194,7 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
         if (i.isStringSelectMenu()) {
           await this.handleModuleSelect(i, filteredModules, categories);
         } else if (i.isButton()) {
-          if (i.customId === 'help-home') {
+          if (i.customId === 'helix-help-home') {
             const mainEmbed = buildHelpEmbed(filteredModules);
             const selectRow = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(moduleSelect);
             const buttonRow = new ActionRowBuilder<ButtonBuilder>().addComponents(createHomeButton(true));
@@ -261,8 +288,8 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
 
         const currentPage = parseInt(match[1]) - 1;
         let newPage = currentPage;
-        if (i.customId === 'previous') newPage--;
-        if (i.customId === 'next') newPage++;
+        if (i.customId === 'helix-help-previous') newPage--;
+        if (i.customId === 'helix-help-next') newPage++;
 
         if (newPage < 0 || newPage >= pages.length) return;
 
@@ -292,27 +319,28 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
     return response;
   }
 
-  private async showCommandHelp(interaction: Command.ChatInputCommandInteraction, commandName: string) {
+	private async showCommandHelp(interaction: Command.ChatInputCommandInteraction, commandName: string) {
+    const path = commandName.trim().split(/\s+/);
+    const rootName = path.shift() ?? '';
     const commandStore = this.container.client.stores.get('commands');
     const command = Array.from(commandStore.values()).find(
-      cmd => cmd.name.toLowerCase() === commandName.toLowerCase()
+      cmd => cmd.name.toLowerCase() === rootName.toLowerCase()
     ) as ExtendedCommand | undefined;
 
-    if (!command) {
+    if (!command || !hasCommandPath(command, path)) {
       return interaction.editReply({ content: `Command \`/${commandName}\` was not found.` });
     }
 
-    const requiredPerms = command.options?.requiredUserPermissions;
-    if (requiredPerms && interaction.member?.permissions instanceof PermissionsBitField &&
-      !(interaction.member.permissions as Readonly<PermissionsBitField>).has(requiredPerms)) {
+    if (!canViewCommand(command, interaction.memberPermissions)) {
       return interaction.editReply({ content: `You don't have the required permissions to view this command.` });
     }
 
     const commandId = this.container.client.application?.commands.cache.find(c => c.name === command.name)?.id;
+    const displayName = [command.name, ...path].join(' ');
 
     const embed = new EmbedBuilder()
       .setColor(config.bot.embedColor.default as ColorResolvable)
-      .setTitle(`Command: /${command.name}`);
+      .setTitle(`Command: /${displayName}`);
 
     let description = `${command.description || 'No description available'}\n`;
 
@@ -395,9 +423,9 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
 
     description += '> **Usage:** ';
     if (commandId) {
-      description += `</${command.name}:${commandId}>`;
+      description += `</${displayName}:${commandId}>`;
     } else {
-      description += `\`/${command.name}\``;
+      description += `\`/${displayName}\``;
     }
 
     if (hasSubcommandOptions) {
@@ -418,27 +446,37 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
   }
 
   private async showMessageCommandHelp(message: Message, commandName: string) {
+    const path = commandName.trim().split(/\s+/);
+    const rootName = path.shift() ?? '';
     const commandStore = this.container.client.stores.get('commands');
     const command = Array.from(commandStore.values()).find(
-      cmd => cmd.name.toLowerCase() === commandName.toLowerCase()
+      cmd => cmd.name.toLowerCase() === rootName.toLowerCase()
     ) as ExtendedCommand | undefined;
 
-    if (!command) {
+    if (!command || !hasCommandPath(command, path)) {
       return message.reply({
         content: `Command \`${commandName}\` was not found.`,
         allowedMentions: { repliedUser: false }
       });
     }
 
+    if (!canViewCommand(command, message.member?.permissions)) {
+      return message.reply({
+        content: `You don't have the required permissions to view this command.`,
+        allowedMentions: { repliedUser: false }
+      });
+    }
+
     const commandId = this.container.client.application?.commands.cache.find(c => c.name === command.name)?.id;
+    const displayName = [command.name, ...path].join(' ');
 
     const embed = new EmbedBuilder()
       .setColor(config.bot.embedColor.default as ColorResolvable)
-      .setTitle(`Command: ${command.name}`)
+      .setTitle(`Command: ${displayName}`)
       .setDescription(command.description || 'No description available')
       .addFields({
         name: 'Usage',
-        value: commandId ? `\`${message.content.split(/\s+/)[0]}\` • </${command.name}:${commandId}>` : `\`${message.content.split(/\s+/)[0]}\``
+        value: commandId ? `\`${message.content.split(/\s+/)[0]}\` • </${displayName}:${commandId}>` : `\`${message.content.split(/\s+/)[0]}\``
       });
 
     return message.reply({ embeds: [embed], allowedMentions: { repliedUser: false } });
@@ -448,15 +486,9 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
     try {
       const selectedModule = interaction.values[0];
 
+      const memberPermissions = getMemberPermissions(interaction.member);
       const commands = Array.from(container.stores.get('commands').values() as IterableIterator<ExtendedCommand>)
-        .filter(cmd => {
-          if (cmd.category?.toLowerCase() !== selectedModule) return false;
-          const requiredPerms = cmd.options?.requiredUserPermissions;
-          if (requiredPerms) {
-            return interaction.member?.permissions instanceof PermissionsBitField;
-          }
-          return true;
-        });
+        .filter(cmd => cmd.category?.toLowerCase() === selectedModule && canViewCommand(cmd, memberPermissions));
 
       if (!commands.length) {
         const categoriesSet = new Set<string>();
@@ -480,7 +512,6 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
 
       const guildId = interaction.guildId!;
       const guildData = await GuildModel.findOne({ guildId }) as Record<string, unknown> | null;
-      const memberPermissions = getMemberPermissions(interaction.member);
 
       const newFilteredModules = await getFilteredModules(
         categories, guildData, interaction.guild as DiscordGuild | null, interaction, memberPermissions
@@ -581,8 +612,8 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
       const totalPages = parseInt(totalPagesStr);
 
       let newPage = currentPage;
-      if (interaction.customId === 'previous') newPage--;
-      if (interaction.customId === 'next') newPage++;
+      if (interaction.customId === 'helix-help-previous') newPage--;
+      if (interaction.customId === 'helix-help-next') newPage++;
 
       if (newPage < 1 || newPage > totalPages) return;
 
@@ -592,10 +623,13 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
       const selectedModule = titleText.split(' ')[0].toLowerCase();
 
       const commandStore = container.stores.get('commands');
+      const memberPermissions = getMemberPermissions(interaction.member);
       const commands = Array.from(commandStore.values())
         .filter(cmd => cmd.category?.toLowerCase() === selectedModule) as unknown as ExtendedCommand[];
+      const visibleCommands = commands.filter(cmd => canViewCommand(cmd, memberPermissions));
 
-      const pages = paginateItems(commands, COMMANDS_PER_PAGE);
+      const pages = paginateItems(visibleCommands, COMMANDS_PER_PAGE);
+      if (pages.length === 0 || newPage > pages.length) return;
       const embed = generateCommandEmbed(pages[newPage - 1], selectedModule, newPage, totalPages);
       const buttons = createHelpPaginationButtons(newPage - 1, totalPages);
 
@@ -620,16 +654,20 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
   }
 
   public override async autocompleteRun(interaction: Command.AutocompleteInteraction) {
-    const focusedValue = interaction.options.getFocused().toLowerCase();
-    const commandStore = this.container.client.stores.get('commands');
+    const focusedValue = interaction.options.getFocused().trim().toLowerCase();
+    const commandStore = this.container.stores.get('commands');
     const commands = Array.from(commandStore.values()) as ExtendedCommand[];
+    const rootQuery = focusedValue.split(/\s+/)[0];
 
     let filtered = commands;
     if (focusedValue) {
       filtered = commands.filter(cmd =>
-        cmd.name.toLowerCase().includes(focusedValue) ||
-        (cmd.description && cmd.description.toLowerCase().includes(focusedValue)) ||
-        (cmd.category && cmd.category.toLowerCase().includes(focusedValue))
+        cmd.name.toLowerCase() === rootQuery ||
+        (focusedValue.indexOf(' ') === -1 && (
+          cmd.name.toLowerCase().includes(focusedValue) ||
+          (cmd.description && cmd.description.toLowerCase().includes(focusedValue)) ||
+          (cmd.category && cmd.category.toLowerCase().includes(focusedValue))
+        ))
       );
     }
 

@@ -33,13 +33,13 @@ Helix helps you run a Discord server: moderate it, welcome new members, verify t
 
 ## ✨ Features
 
-- **Moderation** — bans, kicks, timeouts, mutes, purges, warnings with escalation (warn → timeout/kick/ban), and live moderation actions from the dashboard.
+- **Moderation** — bans, kicks, timeouts, mutes, purges, warnings with aliases, configurable DM templates, escalation (warn → timeout/kick/ban), and live moderation actions from the dashboard.
 - **Audit logging** — 31 event types across moderation, members, messages, voice, server changes, and AutoMod, with per-event channels and ignore lists.
 - **Verification** — button-based gate with a customizable embed; grants a role on verify.
 - **Reaction roles** — self-assignable role menus with labels, emoji, per-menu limits, and pause/resume.
 - **Welcoming** — welcome/farewell messages with placeholders, auto-role on join, and image cards.
 - **Economy** — wallet & bank, shop, inventory & equipment, item effects, auctions, leaderboards, and RPG-style stats.
-- **AutoMod** — Discord native AutoMod rule management plus custom keyword blocklists.
+- **AutoMod** — Discord native AutoMod rules plus custom invite/link, caps, emoji, spam, repeat, spoiler, attachment, and zalgo filters with per-filter delete, warn, timeout, kick, or ban actions.
 - **Social feeds** — automatic Reddit feeds per channel (Twitch/YouTube/TikTok/X/Instagram/RSS planned).
 - **Fun & utility** — emotion roleplay commands, canvas image effects, pet pics, polls placeholders, 8-ball, memes, and more.
 - **Dashboard** — per-server web panel for every setting above, with live Discord-style previews.
@@ -47,9 +47,9 @@ Helix helps you run a Discord server: moderate it, welcome new members, verify t
 
 ## Modules
 
-All modules can be toggled per server from `/configmodule` or the dashboard. Default state in brackets.
+Module defaults below come from the module catalog in `src/config/modules.ts`. Existing guild records may have older values; `/configmodule` and the dashboard show the stored value for a server.
 
-| Module | What it covers | Default |
+| Module | What it covers | Catalog default |
 |---|---|:---:|
 | General | Info commands, help, ping, profiles | ✅ on |
 | Moderation | Ban/kick/timeout/mute/purge/warn, AutoMod | ✅ on |
@@ -61,8 +61,8 @@ All modules can be toggled per server from `/configmodule` or the dashboard. Def
 | Fun | 8-ball, memes, games, emotion, image, pets | ✅ on |
 | Utility | Misc helpers (password, uuid, color…) | ✅ on |
 | Developer | Owner-only diagnostics & data tools | ✅ on |
-| Music | Voice playback | ✅ on (not yet implemented) |
-| Leveling | XP, ranks, role rewards | ❌ off (in development) |
+| Music | Voice playback | ✅ on |
+| Leveling | XP, ranks, role rewards | ❌ off |
 
 ## Version Legend
 
@@ -103,7 +103,25 @@ All modules can be toggled per server from `/configmodule` or the dashboard. Def
 - 🌐 **[Website](https://helix.angellabs.xyz/)**
 - ➕ **[Add Helix to your server](https://discord.com/oauth2/authorize?client_id=723697439638290482&scope=bot&permissions=481684598)**
 - 💬 **[Support server](https://discord.gg/GapmaCt)** — help, suggestions, and status updates
-- 📖 **In-bot help** — `/help` lists every command; the dashboard documents each settings page inline
+- 📖 **In-bot help** — `/help` lists commands available to the current member; use `/help command:<name>` for a specific root or grouped command
+
+## Server configuration commands
+
+These commands and the dashboard write to the same per-guild configuration, but they do not expose the same controls:
+
+| Command | What it does | Permission |
+|---|---|---|
+| `/setup` | Stateful, restart-safe setup wizard for roles, channels, prefix, and module states, with `start`, `status`, `finish`, and `cancel`; `legacy` preserves the one-shot form. It stores verification settings but does not post the verification button. | `Manage Guild` |
+| `/help` | Lists commands the member can use. `command:config role admin` and other grouped paths are accepted. | None |
+| `/config` | Sets roles, log channels, prefix, module states, or disabled commands through subcommands. | Slash registration: `Administrator`; runtime accepts `Manage Channels`, `Manage Roles`, `Ban Members`, `Kick Members`, or `Moderate Members` for most subcommands. The administrator role is owner-only. |
+| `/settings` | Displays the current server configuration; it does not change settings. | `Manage Guild` |
+| `/configmodule` | Enables or disables one module. | `Administrator` |
+| `/togglecommand` | Enables or disables one non-critical command for the server. | `Manage Guild` |
+| `/setup-verification` | Configures and enables verification, validates the selected role/channel, and posts the verification message. | `Manage Guild` and moderator access |
+
+`/setup` is restart-safe: `start` creates the wizard, each step command saves its changes before advancing, and `status`, `finish`, or `cancel` manages the flow. The starter or server owner can continue it; the server owner alone can assign the administrator role. `/setup legacy` preserves the old one-shot form. The dashboard exposes the broader guild configuration API, including warning aliases/DM templates, AutoMod actions, per-event logging channels, and other settings that are not part of `/setup`; dashboard changes are persisted independently of the command form but share the same guild record.
+
+The repository's `bun run typecheck` and `bun run build` provide compile-time validation. `bun run test` is a repository structure/static-validation script, not a live Discord, MongoDB, or permission integration test; it currently reports pre-existing false-positive errors for helper files that do not export command classes. Command registration, database writes, role hierarchy, and permission behavior still require testing in a Discord server.
 
 ## Development
 
@@ -111,7 +129,7 @@ Requires [Bun](https://bun.sh/) ≥ 1.3.14 and a MongoDB database.
 
 ```bash
 bun install          # install bot dependencies
-cp src/example.env .env  # then fill in DISCORD_TOKEN, MONGO_URI, ...
+cp src/example.env src/.env  # then fill in DISCORD_TOKEN, MONGO_URI, ...
 bun run build        # typecheck + compile to dist/
 bun run start        # run the bot
 ```

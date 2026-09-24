@@ -2,12 +2,13 @@
 	import { onMount } from 'svelte';
 	import { guildEntry, saveGuildConfig } from '../../lib/session.svelte';
 	import { api } from '../../lib/api';
-	import type { WarningEntry } from '../../lib/types';
+	import type { WarnSettings, WarningEntry } from '../../lib/types';
 	import PageHeader from '../../components/PageHeader.svelte';
 	import SearchPicker from '../../components/SearchPicker.svelte';
 	import TextInput from '../../components/TextInput.svelte';
 	import TextArea from '../../components/TextArea.svelte';
 	import SaveBar from '../../components/SaveBar.svelte';
+	import Toggle from '../../components/Toggle.svelte';
 
 	let { guildId }: { guildId: string } = $props();
 	const entry = $derived(guildEntry(guildId));
@@ -20,6 +21,9 @@
 
 	let thresholds = $state<Threshold[]>([]);
 	let modChannelId = $state('');
+	let reasonAliasesText = $state('{}');
+	let dmEnabled = $state(false);
+	let dmTemplate = $state('');
 	let baseline = $state('');
 	let saving = $state(false);
 	let saveError = $state<string | null>(null);
@@ -42,14 +46,27 @@
 	let actErr = $state<string | null>(null);
 
 	function syncFromCache(): void {
-		const ws = (entry.config?.warnSettings ?? {}) as { thresholds?: Threshold[]; modChannelId?: string };
+		const ws = (entry.config?.warnSettings ?? {}) as WarnSettings;
 		thresholds = Array.isArray(ws.thresholds) ? ws.thresholds.map((t) => ({ ...t })) : [];
 		modChannelId = typeof ws.modChannelId === 'string' ? ws.modChannelId : '';
+		reasonAliasesText = JSON.stringify(ws.reasonAliases ?? {}, null, 2);
+		dmEnabled = ws.dmEnabled === true;
+		dmTemplate = typeof ws.dmTemplate === 'string' ? ws.dmTemplate : '';
 		baseline = snapshot();
 	}
 
 	function snapshot(): string {
-		return JSON.stringify({ thresholds, modChannelId });
+		return JSON.stringify({ thresholds, modChannelId, reasonAliasesText, dmEnabled, dmTemplate });
+	}
+
+	function aliasEntries(): Array<[string, string]> {
+		try {
+			const parsed = JSON.parse(reasonAliasesText) as unknown;
+			if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return [];
+			return Object.entries(parsed).filter((entry): entry is [string, string] => typeof entry[1] === 'string');
+		} catch {
+			return [];
+		}
 	}
 
 	$effect(() => {
@@ -63,8 +80,16 @@
 		saving = true;
 		saveError = null;
 		try {
+			const aliases = JSON.parse(reasonAliasesText) as unknown;
+			if (!aliases || typeof aliases !== 'object' || Array.isArray(aliases)) throw new Error('Reason aliases must be a JSON object.');
 			await saveGuildConfig(guildId, {
-				warnSettings: { thresholds, modChannelId: modChannelId === '' ? null : modChannelId }
+				warnSettings: {
+					thresholds,
+					modChannelId: modChannelId === '' ? null : modChannelId,
+					reasonAliases: aliases as Record<string, string>,
+					dmEnabled,
+					dmTemplate: dmTemplate === '' ? null : dmTemplate
+				}
 			});
 			baseline = snapshot();
 			saved = true;
@@ -186,6 +211,17 @@
 	<div style="margin-top: 14px; max-width: 560px;">
 		<SearchPicker label="Moderation notices channel" bind:value={modChannelId} options={channelOptions} />
 	</div>
+	<div class="grid-2" style="margin-top: 14px;">
+		<Toggle title="DM warning recipients" description="Send a warning notification when enabled." checked={dmEnabled} onchange={(v) => { dmEnabled = v; saved = false; }} />
+		<TextArea label="Warning DM template" bind:value={dmTemplate} rows={4} maxlength={1000} placeholder={'Reason: {reason} · Case: {case}'} />
+	</div>
+	<TextArea label="Reason aliases (JSON object)" bind:value={reasonAliasesText} rows={5} maxlength={12000} hint={'Map short names to the full warning reason, for example {"spam":"Repeated spam"}.'} />
+	{#if aliasEntries().length > 0}
+		<details style="margin-top: 8px;">
+			<summary>Configured aliases</summary>
+			<ul>{#each aliasEntries() as [alias, reason] (alias)}<li><strong>{alias}</strong>: {reason}</li>{/each}</ul>
+		</details>
+	{/if}
 </div>
 
 <SaveBar {dirty} {saving} error={saveError} {saved} onsave={() => void save()} onreset={syncFromCache} />

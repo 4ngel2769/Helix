@@ -2,6 +2,7 @@ import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { PermissionFlagsBits, EmbedBuilder, Role, MessageFlags } from 'discord.js';
 import { Guild } from '../../models/Guild';
+import { clearGuildAutomation } from '../../lib/utils/guildAutomationCache';
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { AdministrationModule } from '../../modules/Administration';
 
@@ -42,7 +43,14 @@ export class SetAdminRoleCommand extends HybridModuleCommand<AdministrationModul
             return interaction.reply({ content: 'âŒ This command can only be used in a server.', flags: MessageFlags.Ephemeral });
         }
 
+        if (interaction.guild.ownerId !== interaction.user.id) {
+            return interaction.reply({ content: 'Only the server owner can set the admin role.', flags: MessageFlags.Ephemeral });
+        }
+
         const role = interaction.options.getRole('role') as Role | null;
+        if (role && (role.id === interaction.guild.roles.everyone.id || role.managed)) {
+            return interaction.reply({ content: 'The @everyone and managed integration roles cannot be assigned here.', flags: MessageFlags.Ephemeral });
+        }
 
         try {
             let guildData = await Guild.findOne({ guildId: interaction.guild.id });
@@ -57,6 +65,7 @@ export class SetAdminRoleCommand extends HybridModuleCommand<AdministrationModul
                 // Clear admin role
                 guildData.adminRoleId = undefined;
                 await guildData.save();
+                clearGuildAutomation(interaction.guild.id);
 
                 const embed = new EmbedBuilder()
                     .setColor('#49e358')
@@ -70,6 +79,7 @@ export class SetAdminRoleCommand extends HybridModuleCommand<AdministrationModul
             // Set admin role
             guildData.adminRoleId = role.id;
             await guildData.save();
+            clearGuildAutomation(interaction.guild.id);
 
             const embed = new EmbedBuilder()
                 .setColor('#49e358')

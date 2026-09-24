@@ -25,13 +25,13 @@ export function paginateItems<T>(items: T[], pageSize: number): T[][] {
 
 export function createHelpPaginationButtons(currentPage: number, totalPages: number): [ButtonBuilder, ButtonBuilder] {
     const previousButton = new ButtonBuilder()
-        .setCustomId('previous')
+        .setCustomId('helix-help-previous')
         .setLabel('Previous')
         .setStyle(ButtonStyle.Primary)
         .setDisabled(currentPage === 0);
 
     const nextButton = new ButtonBuilder()
-        .setCustomId('next')
+        .setCustomId('helix-help-next')
         .setLabel('Next')
         .setStyle(ButtonStyle.Primary)
         .setDisabled(currentPage === totalPages - 1);

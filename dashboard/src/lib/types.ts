@@ -46,6 +46,18 @@ export interface GuildDetail {
 	roles?: GuildRole[];
 }
 
+export type AutomodAction = 'delete' | 'delete_warn' | 'delete_timeout' | 'delete_kick' | 'delete_ban';
+
+export type AutomodFilter = 'invites' | 'links' | 'caps' | 'emoji' | 'spam' | 'repeat' | 'spoilers' | 'attachments' | 'zalgo';
+
+export interface WarnSettings {
+	thresholds: Array<{ count: number; action: 'kick' | 'ban' | 'timeout'; duration?: number }>;
+	modChannelId?: string | null;
+	reasonAliases?: Record<string, string>;
+	dmEnabled?: boolean;
+	dmTemplate?: string | null;
+}
+
 export interface ModuleEntry {
 	key: string;
 	name: string;
@@ -63,6 +75,12 @@ export interface WarningEntry {
 	moderatorTag?: string;
 	timestamp?: string;
 	active: boolean;
+	source?: string;
+	rule?: string;
+	channelId?: string;
+	message?: string;
+	clearedAt?: string;
+	clearedBy?: string;
 }
 
 export interface ReactionRoleMenu {

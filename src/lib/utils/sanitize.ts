@@ -88,6 +88,30 @@ export function cleanWarnSettings(update: Record<string, unknown>): string | nul
 	if ('modChannelId' in v && v.modChannelId !== null && (typeof v.modChannelId !== 'string' || !/^\d{16,22}$/.test(v.modChannelId))) {
 		return 'warnSettings.modChannelId must be null or a Discord id';
 	}
+	if ('reasonAliases' in v) {
+		const aliases = v.reasonAliases;
+		if (aliases === null || typeof aliases !== 'object' || Array.isArray(aliases)) return 'warnSettings.reasonAliases must be an object';
+		const entries = Object.entries(aliases);
+		if (entries.length > 50) return 'warnSettings.reasonAliases allows max 50 entries';
+		const clean: Record<string, string> = {};
+		for (const [key, value] of entries) {
+			const alias = sanitizeText(key, 32);
+			const reason = sanitizeText(value, 1000);
+			if (!alias || !reason) return 'warnSettings.reasonAliases entries must be non-empty text';
+			clean[alias] = reason;
+		}
+		v.reasonAliases = clean;
+	}
+	if ('dmEnabled' in v && typeof v.dmEnabled !== 'boolean') return 'warnSettings.dmEnabled must be a boolean';
+	if ('dmTemplate' in v) {
+		if (v.dmTemplate === null) {
+			v.dmTemplate = null;
+		} else {
+			const template = sanitizeText(v.dmTemplate, 1000);
+			if (!template) return 'warnSettings.dmTemplate must be null or text up to 1000 chars';
+			v.dmTemplate = template;
+		}
+	}
 	return null;
 }
 
@@ -164,7 +188,8 @@ export function cleanLeveling(update: Record<string, unknown>): string | null {
 	return null;
 }
 
-const AUTOMOD_ACTIONS = ['delete', 'delete_warn', 'delete_timeout'] as const;
+const AUTOMOD_ACTIONS = ['delete', 'delete_warn', 'delete_timeout', 'delete_kick', 'delete_ban'] as const;
+const AUTOMOD_FILTERS = ['invites', 'links', 'caps', 'emoji', 'spam', 'repeat', 'spoilers', 'attachments', 'zalgo'] as const;
 
 /** Validate + clean the Helix custom automod settings object in place. Returns an error string or null. */
 export function cleanAutomodSettings(update: Record<string, unknown>): string | null {
@@ -174,7 +199,7 @@ export function cleanAutomodSettings(update: Record<string, unknown>): string | 
 	for (const key of ['blockInvites', 'blockLinks', 'zalgo'] as const) {
 		if (key in v && typeof v[key] !== 'boolean') return `automodSettings.${key} must be a boolean`;
 	}
-	for (const [key, fields] of [['caps', ['minLength', 5, 500, 'percent', 10, 100]], ['emoji', ['max', 1, 100]], ['spam', ['count', 2, 20, 'intervalSeconds', 2, 120]]] as const) {
+	for (const [key, fields] of [['caps', ['minLength', 5, 500, 'percent', 10, 100]], ['emoji', ['max', 1, 100]], ['spam', ['count', 2, 20, 'intervalSeconds', 2, 120]], ['repeatText', ['count', 2, 20, 'intervalSeconds', 2, 300]], ['spoilers', []], ['attachments', ['max', 0, 10]]] as const) {
 		if (!(key in v)) continue;
 		const sub = v[key] as Record<string, unknown> | null;
 		if (sub === null || typeof sub !== 'object' || Array.isArray(sub)) return `automodSettings.${key} must be an object`;
@@ -197,7 +222,15 @@ export function cleanAutomodSettings(update: Record<string, unknown>): string | 
 		v[key] = arr;
 	}
 	if ('action' in v && (typeof v.action !== 'string' || !(AUTOMOD_ACTIONS as readonly string[]).includes(v.action))) {
-		return 'automodSettings.action must be delete, delete_warn or delete_timeout';
+		return 'automodSettings.action must be delete, delete_warn, delete_timeout, delete_kick or delete_ban';
+	}
+	if ('actions' in v) {
+		const actions = v.actions as Record<string, unknown> | null;
+		if (actions === null || typeof actions !== 'object' || Array.isArray(actions)) return 'automodSettings.actions must be an object';
+		for (const [key, value] of Object.entries(actions)) {
+			if (!(AUTOMOD_FILTERS as readonly string[]).includes(key)) return `automodSettings.actions.${key} is not a supported filter`;
+			if (typeof value !== 'string' || !(AUTOMOD_ACTIONS as readonly string[]).includes(value)) return `automodSettings.actions.${key} must be delete, delete_warn, delete_timeout, delete_kick or delete_ban`;
+		}
 	}
 	if ('timeoutSeconds' in v) {
 		const n = intInRange(v.timeoutSeconds, 10, 2419200);

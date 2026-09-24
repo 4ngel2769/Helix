@@ -3,7 +3,8 @@ import { ApplyOptions } from '@sapphire/decorators';
 import type { ApiRequest, ApiResponse } from '@sapphire/plugin-api';
 import type { RouteOptions } from '@sapphire/plugin-api';
 import { User } from '../../models/User';
-import { isSnowflake, readJsonBody, readQueryParam, readString, requireAuth, requireManageableGuild } from '../../lib/utils/apiAuth';
+import { ModerationService } from '../../lib/services/ModerationService';
+import { getTokenUserId, isSnowflake, readJsonBody, readQueryParam, readString, requireAuth, requireManageableGuild } from '../../lib/utils/apiAuth';
 import { sanitizeText } from '../../lib/utils/sanitize';
 
 /**
@@ -53,22 +54,17 @@ export class ApiGuildWarningsRoute extends Route {
 				return response.status(400).json({ error: 'userId (snowflake) and reason (1-1000 chars) are required' });
 			}
 			try {
-				const moderator = this.container.client.user?.username ?? 'API';
-				const warning = {
+				const moderatorId = await getTokenUserId(auth.token);
+				if (!moderatorId) return response.status(401).json({ error: 'Unable to resolve dashboard user' });
+				const result = await ModerationService.createWarning({
 					guildId,
+					userId: targetUserId,
 					reason,
-					moderatorId: 'api',
-					moderatorTag: moderator,
-					timestamp: new Date(),
-					active: true
-				};
-				const user = await User.findOneAndUpdate(
-					{ userId: targetUserId },
-					{ $push: { warnings: warning }, $setOnInsert: { username: targetUserId, discriminator: '0' } },
-					{ upsert: true, returnDocument: 'after' }
-				).lean();
-				const created = user?.warnings?.[user.warnings.length - 1];
-				return response.status(201).json({ guildId, warning: created ? { ...created, userId: targetUserId } : warning });
+					moderatorId,
+					moderatorTag: `Dashboard ${moderatorId}`,
+					source: 'api'
+				});
+				return response.status(201).json({ guildId, warning: { ...result.warning, userId: targetUserId }, activeCount: result.activeCount, escalation: result.escalation });
 			} catch {
 				return response.status(500).json({ error: 'Failed to create warning' });
 			}
@@ -81,11 +77,10 @@ export class ApiGuildWarningsRoute extends Route {
 			return response.status(400).json({ error: 'warningId and userId (snowflake) query params are required' });
 		}
 		try {
-			const result = await User.updateOne(
-				{ userId, warnings: { $elemMatch: { _id: warningId, guildId } } },
-				{ $set: { 'warnings.$.active': false } }
-			);
-			if (result.modifiedCount === 0) return response.status(404).json({ error: 'Warning not found' });
+			const moderatorId = await getTokenUserId(auth.token);
+			if (!moderatorId) return response.status(401).json({ error: 'Unable to resolve dashboard user' });
+			const cleared = await ModerationService.clearWarning(guildId, userId, warningId, moderatorId);
+			if (!cleared) return response.status(404).json({ error: 'Warning not found' });
 			return response.json({ guildId, cleared: warningId });
 		} catch {
 			return response.status(500).json({ error: 'Failed to clear warning' });

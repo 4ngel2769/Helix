@@ -22,7 +22,7 @@ function isHelpPaginationCommand(command: unknown): command is HelpPaginationCom
 })
 export class HelpButtonHandler extends InteractionHandler {
     public override parse(interaction: ButtonInteraction) {
-        const helpButtons = ['previous', 'next', 'help-home'];
+        const helpButtons = ['helix-help-previous', 'helix-help-next', 'helix-help-home'];
         
         if (!helpButtons.includes(interaction.customId)) return this.none();
         return this.some();
@@ -43,7 +43,7 @@ export class HelpButtonHandler extends InteractionHandler {
         const helpCommand = this.container.stores.get('commands').get('help');
         if (isHelpPaginationCommand(helpCommand)) {
             try {
-                if (interaction.customId === 'help-home') {
+                if (interaction.customId === 'helix-help-home') {
                     await helpCommand.handleHomeButton(interaction);
                 } else {
                     await helpCommand.handlePaginationButton(interaction);

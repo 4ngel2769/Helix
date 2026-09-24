@@ -3,6 +3,9 @@ import { Guild, type LevelingSettings } from '../../models/Guild';
 export interface GuildAutomation {
 	leveling: LevelingSettings;
 	automodSettings: Record<string, unknown>;
+	adminRoleId?: string;
+	modRoleId?: string;
+	moderationModuleOn: boolean;
 	levelingModuleOn: boolean;
 }
 
@@ -27,13 +30,17 @@ export async function getGuildAutomation(guildId: string): Promise<GuildAutomati
 	try {
 		const doc = await Guild.findOne(
 			{ guildId },
-			{ leveling: 1, automodSettings: 1, modules: 1 }
+			{ leveling: 1, automodSettings: 1, modules: 1, adminRoleId: 1, modRoleId: 1 }
 		).lean();
 		if (!doc) return null;
+		const modules = doc.modules as Record<string, boolean> | undefined;
 		const value: GuildAutomation = {
 			leveling: (doc.leveling ?? {}) as LevelingSettings,
 			automodSettings: (doc.automodSettings ?? {}) as Record<string, unknown>,
-			levelingModuleOn: (doc.modules as Record<string, boolean> | undefined)?.leveling !== false
+			adminRoleId: doc.adminRoleId,
+			modRoleId: doc.modRoleId,
+			moderationModuleOn: modules?.moderation !== false,
+			levelingModuleOn: modules?.leveling !== false
 		};
 		cache.set(guildId, { value, expiresAt: Date.now() + TTL_MS });
 		return value;

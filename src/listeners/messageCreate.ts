@@ -41,10 +41,12 @@ export class UserEvent extends Listener<typeof Events.MessageCreate> {
         if (!auto) return;
 
         // 1. Helix custom filters first — handled messages earn no XP.
-        try {
-            if (await handleCustomAutomod(message, auto.automodSettings)) return;
-        } catch {
-            // fall through to leveling — automod must never break chat
+        if (auto.moderationModuleOn) {
+            try {
+                if (await handleCustomAutomod(message, auto.automodSettings, { adminRoleId: auto.adminRoleId, modRoleId: auto.modRoleId })) return;
+            } catch {
+                // fall through to leveling — automod must never break chat
+            }
         }
 
         // 2. Leveling / XP — single gate: the Leveling module toggle

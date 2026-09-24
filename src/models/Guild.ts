@@ -63,11 +63,24 @@ export interface CustomAutomodSettings {
 	caps?: { enabled?: boolean; minLength?: number; percent?: number };
 	emoji?: { enabled?: boolean; max?: number };
 	spam?: { enabled?: boolean; count?: number; intervalSeconds?: number };
+	repeatText?: { enabled?: boolean; count?: number; intervalSeconds?: number };
+	spoilers?: { enabled?: boolean };
+	attachments?: { enabled?: boolean; max?: number };
 	zalgo?: boolean;
 	ignoredChannels?: string[];
 	ignoredRoles?: string[];
-	action?: 'delete' | 'delete_warn' | 'delete_timeout';
+	action?: AutomodAction;
+	actions?: Partial<Record<AutomodFilter, AutomodAction>>;
 	timeoutSeconds?: number;
+}
+
+export type AutomodAction = 'delete' | 'delete_warn' | 'delete_timeout' | 'delete_kick' | 'delete_ban';
+export type AutomodFilter = 'invites' | 'links' | 'caps' | 'emoji' | 'spam' | 'repeat' | 'spoilers' | 'attachments' | 'zalgo';
+
+export interface SetupWizard {
+	startedBy: string;
+	step: 'roles' | 'channels' | 'prefix' | 'modules' | 'finish';
+	updatedAt: Date;
 }
 
 // Legacy module flags for backward compatibility
@@ -180,7 +193,11 @@ export interface IGuild extends Document, LegacyModuleFlags, VerificationSetting
 	warnSettings?: {
 		thresholds: Array<{ count: number; action: 'kick' | 'ban' | 'timeout'; duration?: number }>;
 		modChannelId?: string;
+		reasonAliases?: Record<string, string>;
+		dmEnabled?: boolean;
+		dmTemplate?: string;
 	};
+	setupWizard?: SetupWizard;
 }
 
 const guildSchema = new Schema<IGuild>({
@@ -304,7 +321,16 @@ const guildSchema = new Schema<IGuild>({
 				duration: { type: Number, default: null }
 			}
 		],
-		modChannelId: { type: String, default: null }
+		modChannelId: { type: String, default: null },
+		reasonAliases: { type: Schema.Types.Mixed, default: {} },
+		dmEnabled: { type: Boolean, default: false },
+		dmTemplate: { type: String, default: null }
+	},
+
+	setupWizard: {
+		startedBy: { type: String, required: true },
+		step: { type: String, enum: ['roles', 'channels', 'prefix', 'modules', 'finish'], required: true },
+		updatedAt: { type: Date, default: Date.now }
 	},
 
 	// AutoMod keywords

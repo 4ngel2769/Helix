@@ -180,11 +180,15 @@ export class ConfigCommand extends HybridCommand {
 			}
 
 			const role = interaction.options.getRole('role');
+			if (role && (role.id === interaction.guild?.roles.everyone.id || role.managed)) {
+				return ErrorHandler.sendCommandError(interaction, 'The @everyone and managed integration roles cannot be assigned here.');
+			}
 			if (subcommand === 'admin') guildData.adminRoleId = role?.id;
 			if (subcommand === 'mod') guildData.modRoleId = role?.id;
 			if (subcommand === 'mute') guildData.muteRoleId = role?.id;
 			if (subcommand === 'auto') guildData.autoroleId = role?.id;
 			await guildData.save();
+			if (subcommand === 'admin' || subcommand === 'mod' || subcommand === 'mute') clearGuildAutomation(guildId);
 
 			return interaction.reply({
 				content: role ? `The ${subcommand} role has been set to ${role}.` : `The ${subcommand} role has been cleared.`,
