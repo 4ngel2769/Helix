@@ -11,7 +11,7 @@ import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
 @ApplyOptions<Command.Options>({
     name: 'settings',
     description: 'View comprehensive server settings',
-    aliases: ['config', 'conf'],
+    aliases: ['conf'],
     preconditions: ['GuildOnly']
 })
 export class SettingsCommand extends HybridModuleCommand<AdministrationModule> {

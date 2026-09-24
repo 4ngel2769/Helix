@@ -335,40 +335,52 @@ export class HelpCommand extends ModuleCommand<GeneralModule> {
       description += `\n**Required Permissions:** ${permNames.join(', ')}\n`;
     }
 
-    const hasSubcommandOptions = command.options?.options &&
-      Array.isArray(command.options.options) &&
-      command.options.options.some((opt) => opt.type === 1);
+		const hasSubcommandOptions = command.options?.options &&
+			Array.isArray(command.options.options) &&
+			command.options.options.some((opt) => opt.type === 1 || opt.type === 2);
 
-    if (hasSubcommandOptions) {
-      description += '\n**Subcommands:**\n';
+		if (hasSubcommandOptions) {
+			description += '\n**Subcommands:**\n';
 
-      const appCommand = this.container.client.application?.commands.cache.find(c => c.name === command.name);
+			const appCommand = this.container.client.application?.commands.cache.find(c => c.name === command.name);
 
-      if (appCommand && commandId) {
-        const subcommands = appCommand.options
-          .filter(opt => opt.type === 1)
-          .map(opt => `</${command.name} ${opt.name}:${commandId}> - ${opt.description}`);
+			if (appCommand && commandId) {
+				const subcommands = appCommand.options
+					.filter(opt => opt.type === 1 || opt.type === 2)
+					.map(opt => {
+						if (opt.type === 2) {
+							const children = (opt.options ?? []).map(child => child.name).join(', ');
+							return `**${opt.name}** (${children}) - ${opt.description}`;
+						}
+						return `</${command.name} ${opt.name}:${commandId}> - ${opt.description}`;
+					});
 
-        if (subcommands.length > 0) {
-          description += subcommands.join('\n');
-        } else {
-          description += '*No subcommands found in application command data*';
-        }
-      } else {
-        const cmdOptions = command.options?.options;
-        const subcommandOptions = Array.isArray(cmdOptions)
-          ? cmdOptions.filter((opt) => opt.type === 1)
-          : [];
+				if (subcommands.length > 0) {
+					description += subcommands.join('\n');
+				} else {
+					description += '*No subcommands found in application command data*';
+				}
+			} else {
+				const cmdOptions = command.options?.options;
+				const subcommandOptions = Array.isArray(cmdOptions)
+					? cmdOptions.filter((opt) => opt.type === 1 || opt.type === 2)
+					: [];
 
-        if (subcommandOptions && subcommandOptions.length > 0) {
-          description += subcommandOptions
-            .map((opt) => `\`/${command.name} ${opt.name}\` - ${opt.description || 'No description'}`)
-            .join('\n');
-        } else {
-          description += '*Use the command to see available subcommands*';
-        }
-      }
-    } else {
+				if (subcommandOptions && subcommandOptions.length > 0) {
+					description += subcommandOptions
+						.map((opt) => {
+							if (opt.type === 2) {
+								const children = (opt.options ?? []).map((child: any) => child.name).join(', ');
+								return `**/${command.name} ${opt.name}** (${children}) - ${opt.description || 'No description'}`;
+							}
+							return `\`/${command.name} ${opt.name}\` - ${opt.description || 'No description'}`;
+						})
+						.join('\n');
+				} else {
+					description += '*Use the command to see available subcommands*';
+				}
+			}
+		} else {
       const cmdOptions = command.options?.options;
       if (cmdOptions && Array.isArray(cmdOptions) && cmdOptions.length > 0) {
         description += '\n**Options:**\n';

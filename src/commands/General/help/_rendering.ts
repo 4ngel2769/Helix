@@ -130,19 +130,26 @@ export function generateCommandEmbed(
           .join(', ')
       : '';
 
-    const subcommands = Array.isArray(cmd.options?.options)
-      ? cmd.options.options
-          .filter((opt: any) => opt.type === 1)
-          .map((opt: any) => opt.name)
-          .slice(0, 4)
-          .join(', ')
-      : '';
+			const subcommands = Array.isArray(cmd.options?.options)
+				? cmd.options.options
+						.filter((opt: any) => opt.type === 1)
+						.map((opt: any) => opt.name)
+						.slice(0, 4)
+						.join(', ')
+				: '';
+			const groups = Array.isArray(cmd.options?.options)
+				? cmd.options.options
+						.filter((opt: any) => opt.type === 2)
+						.map((opt: any) => opt.name)
+						.join(', ')
+				: '';
 
-    const parts = [`**${mention}**`, `— ${description}`];
-    if (options) parts.push(`(${options})`);
-    if (subcommands) parts.push(`*(subcommands: ${subcommands})*`);
+			const parts = [`**${mention}**`, `— ${description}`];
+			if (options) parts.push(`(${options})`);
+			if (subcommands) parts.push(`*(subcommands: ${subcommands})*`);
+			if (groups) parts.push(`*(groups: ${groups})*`);
 
-    return parts.join(' ');
+			return parts.join(' ');
   });
 
   return new EmbedBuilder()

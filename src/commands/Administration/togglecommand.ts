@@ -4,7 +4,7 @@ import { PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
 import { Guild } from '../../models/Guild';
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { AdministrationModule } from '../../modules/Administration';
-import { clearDisabledCommandsCache } from '../../lib/utils/disabledCommandsCache';
+import { clearDisabledCommandsCache, CRITICAL_COMMANDS } from '../../lib/utils/disabledCommandsCache';
 
 import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
 
@@ -55,11 +55,7 @@ export class ToggleCommandCommand extends HybridModuleCommand<AdministrationModu
         // Get all command names
         const commands = this.container.stores.get('commands');
         const commandNames = Array.from(commands.values())
-            .filter(cmd => {
-                // Don't allow disabling critical commands
-                const criticalCommands = ['settings', 'togglecommand', 'configmodule', 'help'];
-                return !criticalCommands.includes(cmd.name);
-            })
+            .filter(cmd => !CRITICAL_COMMANDS.has(cmd.name.toLowerCase()))
             .map(cmd => cmd.name)
             .filter(name => name.toLowerCase().includes(focusedValue.toLowerCase()))
             .slice(0, 25); // Discord limit
@@ -88,8 +84,7 @@ export class ToggleCommandCommand extends HybridModuleCommand<AdministrationModu
             }
 
             // Prevent disabling critical commands
-            const criticalCommands = ['settings', 'togglecommand', 'configmodule', 'help'];
-            if (criticalCommands.includes(commandName)) {
+            if (action === 'disable' && CRITICAL_COMMANDS.has(commandName)) {
                 return interaction.reply({ 
                     content: `âŒ Cannot disable critical command \`${commandName}\`.`, 
                     flags: MessageFlags.Ephemeral 

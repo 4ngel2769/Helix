@@ -21,7 +21,7 @@ function prune(): void {
 }
 
 /** Commands that can never be disabled (recovery + help must always work). */
-export const CRITICAL_COMMANDS = new Set(['settings', 'togglecommand', 'configmodule', 'help', 'prefix']);
+export const CRITICAL_COMMANDS = new Set(['settings', 'togglecommand', 'configmodule', 'config', 'help', 'prefix']);
 
 export function clearDisabledCommandsCache(guildId: string): void {
 	cache.delete(guildId);
