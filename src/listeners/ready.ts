@@ -1,7 +1,7 @@
 // Import from packages
 import { ApplyOptions } from '@sapphire/decorators';
 import { Listener } from '@sapphire/framework';
-import type { StoreRegistryValue } from '@sapphire/pieces';
+import type { StoreRegistryValue } from '@sapphire/framework';
 import { stripIndents } from 'common-tags';
 import {
 	blue,

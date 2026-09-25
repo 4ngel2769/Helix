@@ -1,9 +1,25 @@
 import { stripIndent } from 'common-tags';
 import type { ColorResolvable } from 'discord.js';
+import { LogLevel } from '@sapphire/framework';
 import * as pkgJson from '../package.json';
 
 const isProduction = process.env.NODE_ENV === 'production';
 const sessionSecret = process.env.SESSION_SECRET;
+
+const LOG_LEVELS: Record<string, LogLevel> = {
+	trace: LogLevel.Trace,
+	debug: LogLevel.Debug,
+	info: LogLevel.Info,
+	warn: LogLevel.Warn,
+	error: LogLevel.Error,
+	fatal: LogLevel.Fatal,
+	silent: LogLevel.None
+};
+
+/** Unknown or missing LOG_LEVEL falls back to Info rather than becoming NaN. */
+function logLevelFromEnv(value: string | undefined): LogLevel {
+	return LOG_LEVELS[(value ?? '').toLowerCase()] ?? LogLevel.Info;
+}
 
 if (isProduction && !sessionSecret) {
 	throw new Error('SESSION_SECRET environment variable is required in production.');
@@ -33,6 +49,9 @@ export const config = {
 		mongoUri: process.env.MONGO || process.env.MONGO_URI || '',
 		version: pkgJson.version,
 		defaultPrefix: process.env.PREFIX || 'x',
+		// MIRRORS src/config.ts — the Dockerfile copies this file to src/config.ts,
+		// so any field added there must be added here or `tsc` fails on the server.
+		logLevel: logLevelFromEnv(process.env.LOG_LEVEL),
 	},
 	secrets: {
 		apiNinjas: process.env.API_NINJAS_KEY || '',
