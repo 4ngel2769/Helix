@@ -10,7 +10,8 @@ import type { QueryFilter } from 'mongoose';
 import config from '../../config';
 
 @ApplyOptions<Command.Options>({
-    name: 'shop',
+    cooldownDelay: 3000,
+    cooldownLimit: 3,    name: 'shop',
     description: 'Browse and buy items from the shop'
 })
 export class ShopCommand extends ModuleCommand<EconomyModule> {

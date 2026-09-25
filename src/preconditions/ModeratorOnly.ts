@@ -1,6 +1,6 @@
 import { Precondition } from '@sapphire/framework';
 import { PermissionFlagsBits, type Message, type ChatInputCommandInteraction, type GuildMember } from 'discord.js';
-import { Guild } from '../models/Guild';
+import { getGuildAutomation } from '../lib/utils/guildAutomationCache';
 
 export class ModeratorOnlyPrecondition extends Precondition {
 	public override async messageRun(message: Message) {
@@ -15,9 +15,10 @@ export class ModeratorOnlyPrecondition extends Precondition {
 	private async checkMember(member: GuildMember | null | undefined, guildId: string | null) {
 		if (member?.permissions.has(PermissionFlagsBits.ModerateMembers)) return this.ok();
 		if (member && guildId) {
-			const guildData = await Guild.findOne({ guildId }, { adminRoleId: 1, modRoleId: 1 }).lean().catch(() => null);
-			if (guildData?.adminRoleId && member.roles.cache.has(guildData.adminRoleId)) return this.ok();
-			if (guildData?.modRoleId && member.roles.cache.has(guildData.modRoleId)) return this.ok();
+			// Cached: this runs on every invocation of every ModeratorOnly command.
+			const automation = await getGuildAutomation(guildId).catch(() => null);
+			if (automation?.adminRoleId && member.roles.cache.has(automation.adminRoleId)) return this.ok();
+			if (automation?.modRoleId && member.roles.cache.has(automation.modRoleId)) return this.ok();
 		}
 		return this.error({ message: 'Only moderators can use this command!' });
 	}

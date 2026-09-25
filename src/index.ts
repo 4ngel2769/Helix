@@ -30,6 +30,7 @@ const hmrOptions = {
     enabled: process.env.NODE_ENV !== 'production'
 };
 const defaultPrefix = config.bot.defaultPrefix || 'x';
+const casualPrefix = /^(hey +)?bot[,! ]/i;
 
 const client = new SapphireClient({
     intents: [
@@ -48,6 +49,13 @@ const client = new SapphireClient({
     partials: [Partials.Channel, Partials.Message, Partials.Reaction, Partials.GuildMember, Partials.User],
     defaultPrefix: defaultPrefix,
     fetchPrefix: async (message) => {
+        // "hey bot, ban @user" style. Resolved here rather than via the
+        // `regexPrefix` client option: `regexPrefix` short-circuits this whole
+        // callback in CorePreMessageParser, which silently disabled per-guild
+        // prefixes for every message matching it.
+        const casual = message.content.match(casualPrefix);
+        if (casual) return casual[0];
+
         // If in DMs, use default prefix
         if (!message.guild) return defaultPrefix;
 
@@ -65,10 +73,12 @@ const client = new SapphireClient({
             return getGuildPrefixFromCache(message.guild.id) || defaultPrefix;
         }
     },
-    regexPrefix: /^(hey +)?bot[,! ]/i,
     caseInsensitiveCommands: true,
     caseInsensitivePrefixes: true,
     loadMessageCommandListeners: true,
+    logger: {
+        level: config.bot.logLevel,
+    },
     modules: {
         enabled: true,
     },

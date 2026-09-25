@@ -1,7 +1,7 @@
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { ModerationModule } from '../../modules/Moderation';
 import { ApplyOptions } from '@sapphire/decorators';
-import { Command } from '@sapphire/framework';
+import { Command, container } from '@sapphire/framework';
 import { EmbedBuilder, GuildMember, PermissionFlagsBits, ColorResolvable, MessageFlags } from 'discord.js';
 import config from '../../config';
 import { getReply } from '../../lib/utils/replies';
@@ -15,6 +15,8 @@ import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
 	name: 'ban',
 	module: 'Moderation',
 	description: 'Ban a member from the server',
+	requiredUserPermissions: ['BanMembers'],
+	requiredClientPermissions: ['BanMembers'],
 	enabled: true
 })
 export class BanCommand extends HybridModuleCommand<ModerationModule> {
@@ -22,6 +24,8 @@ export class BanCommand extends HybridModuleCommand<ModerationModule> {
 		super(context, {
 			...options,
 			description: 'Ban a member from the server',
+			requiredUserPermissions: ['BanMembers'],
+			requiredClientPermissions: ['BanMembers'],
 			enabled: true
 		});
 	}
@@ -102,6 +106,7 @@ export class BanCommand extends HybridModuleCommand<ModerationModule> {
 
 			return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 		} catch (error) {
+			container.logger.error('ban failed:', error);
 			return interaction.reply({
 				content: 'There was an error while banning the member.',
 				flags: MessageFlags.Ephemeral

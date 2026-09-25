@@ -1,6 +1,6 @@
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { ApplyOptions } from '@sapphire/decorators';
-import { Command } from '@sapphire/framework';
+import { Command, container } from '@sapphire/framework';
 import { ModerationModule } from '../../modules/Moderation';
 import {
     EmbedBuilder,
@@ -19,6 +19,8 @@ import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
     name: 'timeout',
     module: 'Moderation',
     description: 'Timeout a member in the server',
+    requiredUserPermissions: ['ModerateMembers'],
+    requiredClientPermissions: ['ModerateMembers'],
     enabled: true
 })
 export class TimeoutCommand extends HybridModuleCommand<ModerationModule> {
@@ -27,6 +29,8 @@ export class TimeoutCommand extends HybridModuleCommand<ModerationModule> {
             ...options,
             module: 'Moderation',
             description: 'Timeout a member in the server',
+            requiredUserPermissions: ['ModerateMembers'],
+            requiredClientPermissions: ['ModerateMembers'],
             enabled: true
         });
     }
@@ -118,8 +122,9 @@ export class TimeoutCommand extends HybridModuleCommand<ModerationModule> {
                 });
 
             return interaction.reply({ embeds: [embed] });
-        } catch (error) {
-            return interaction.reply({
+		} catch (error) {
+			container.logger.error('timeout failed:', error);
+			return interaction.reply({
                 content: 'There was an error while timing out the member.',
                 flags: MessageFlags.Ephemeral
             });

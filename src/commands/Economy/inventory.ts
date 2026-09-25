@@ -14,7 +14,8 @@ import {
 } from '../../lib/utils/inventoryDisplay';
 
 @ApplyOptions<Command.Options>({
-    name: 'inventory',
+    cooldownDelay: 3000,
+    cooldownLimit: 3,    name: 'inventory',
     description: 'View your or another user\'s inventory',
     aliases: ['inv', 'bag']
 })

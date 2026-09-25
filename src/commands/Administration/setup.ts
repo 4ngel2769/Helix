@@ -1,7 +1,7 @@
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
 import { ChannelType, MessageFlags, PermissionFlagsBits } from 'discord.js';
-import { getAllModuleKeys, getModuleConfig } from '../../config/modules';
+import { getAllModuleKeys, getModuleConfig, moduleOptionName } from '../../config/modules';
 import { HybridCommand } from '../../lib/structures/HybridCommand';
 import { clearGuildAutomation } from '../../lib/utils/guildAutomationCache';
 import { setGuildPrefixInCache } from '../../lib/utils/prefixCache';
@@ -51,7 +51,7 @@ export class SetupCommand extends HybridCommand {
 						const moduleName = getModuleConfig(moduleKey)?.name ?? moduleKey;
 						subcommand.addStringOption((option) =>
 							option
-								.setName(moduleKey)
+								.setName(moduleOptionName(moduleKey))
 								.setDescription(`${moduleName}: leave unchanged, enable, or disable`)
 								.setRequired(false)
 								.addChoices(
@@ -80,7 +80,7 @@ export class SetupCommand extends HybridCommand {
 						const moduleName = getModuleConfig(moduleKey)?.name ?? moduleKey;
 						subcommand.addStringOption((option) =>
 							option
-								.setName(moduleKey)
+								.setName(moduleOptionName(moduleKey))
 								.setDescription(`${moduleName}: leave unchanged, enable, or disable`)
 								.setRequired(false)
 								.addChoices(
@@ -209,7 +209,7 @@ export class SetupCommand extends HybridCommand {
 		guildData.modules ??= {};
 		let changed = false;
 		for (const key of getAllModuleKeys()) {
-			const action = interaction.options.getString(key);
+			const action = interaction.options.getString(moduleOptionName(key));
 			if (action === 'enable' || action === 'disable') {
 				guildData.modules[key] = action === 'enable';
 				changed = true;
@@ -230,7 +230,7 @@ export class SetupCommand extends HybridCommand {
 		const prefix = interaction.options.getString('prefix');
 		const verificationChannel = interaction.options.getChannel('verification-channel', false, [ChannelType.GuildText]);
 		const verificationRole = interaction.options.getRole('verification-role');
-		const moduleActions = getAllModuleKeys().map((key) => [key, interaction.options.getString(key)] as const);
+		const moduleActions = getAllModuleKeys().map((key) => [key, interaction.options.getString(moduleOptionName(key))] as const);
 		if (!adminRole && !modRole && !muteRole && !logChannel && !prefix && !verificationChannel && !verificationRole && moduleActions.every(([, action]) => !action)) return this.reply(interaction, 'Provide at least one setting to update.');
 		if (prefix?.includes(' ')) return this.reply(interaction, 'The prefix cannot contain spaces.');
 		if (adminRole && interaction.guild?.ownerId !== interaction.user.id) return this.reply(interaction, 'Only the server owner can configure the administrator role.');

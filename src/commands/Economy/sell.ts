@@ -7,7 +7,8 @@ import config from '../../config';
 import { ShopService } from '../../lib/services/economy/ShopService';
 
 @ApplyOptions<Command.Options>({
-    name: 'sell',
+    cooldownDelay: 2500,
+    cooldownLimit: 3,    name: 'sell',
     description: 'Sell items from your inventory',
     aliases: ['s']
 })

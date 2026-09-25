@@ -8,7 +8,7 @@ import {
 import { type Command } from '@sapphire/framework';
 import { container } from '@sapphire/framework';
 import type { IsEnabledContext, ModuleError, Modules, ModuleCommandUnion } from '@kbotdev/plugin-modules';
-import { Result } from '@sapphire/result';
+import type { Result } from '@sapphire/framework';
 
 interface ExtendedModule {
   name: string;

@@ -63,14 +63,22 @@ export class AnimalCommand extends HybridModuleCommand<FunModule> {
 	public override registerApplicationCommands(registry: Command.Registry) {
 		registry.registerChatInputCommand((builder) => {
 			const root = builder.setName(this.name).setDescription(this.description);
-			const reddit = root.addSubcommandGroup((group) => group.setName('reddit').setDescription('Get random animal images'));
-			for (const animal of redditAnimals) {
-				reddit.addSubcommand((subcommand) => subcommand.setName(animal.animal).setDescription(`Get a random ${animal.animal} image`));
-			}
-			const pets = root.addSubcommandGroup((group) => group.setName('pets').setDescription('Get random pet images'));
-			for (const animal of petAnimals) {
-				pets.addSubcommand((subcommand) => subcommand.setName(animal).setDescription(`Get a random ${animal} image`));
-			}
+			// NOTE: `addSubcommandGroup` returns the PARENT, not the group, and the
+			// callback must RETURN the group. Add subcommands to the builder handed in.
+			root.addSubcommandGroup((reddit) => {
+				reddit.setName('reddit').setDescription('Get random animal images');
+				for (const animal of redditAnimals) {
+					reddit.addSubcommand((subcommand) => subcommand.setName(animal.animal).setDescription(`Get a random ${animal.animal} image`));
+				}
+				return reddit;
+			});
+			root.addSubcommandGroup((pets) => {
+				pets.setName('pets').setDescription('Get random pet images');
+				for (const animal of petAnimals) {
+					pets.addSubcommand((subcommand) => subcommand.setName(animal).setDescription(`Get a random ${animal} image`));
+				}
+				return pets;
+			});
 			root.addSubcommand((subcommand) => subcommand.setName('help').setDescription('Show the animal command help'));
 		});
 	}

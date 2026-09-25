@@ -119,3 +119,18 @@ export function getModuleConfig(key: string): ModuleConfig | undefined {
 export function getAllModuleKeys(): string[] {
     return Object.keys(moduleConfigs);
 }
+
+/**
+ * Discord option/subcommand names must match /^[\p{Ll}\p{Lm}\p{Lo}\p{N}_-]+$/ —
+ * lowercase only. `reactionRoles` is a legal module key but `setName('reactionRoles')`
+ * throws inside @discordjs/builders, which silently drops the whole command from
+ * registration. Always use this instead of the raw key for option names, on the
+ * write side AND the `getString()` read side.
+ *
+ * ponytail: the persisted key stays `reactionRoles` so existing guild.modules
+ * docs and the dashboard API need no migration. Renaming the key to
+ * `reactionroles` is the alternative, but it breaks stored state.
+ */
+export function moduleOptionName(key: string): string {
+    return key.toLowerCase();
+}

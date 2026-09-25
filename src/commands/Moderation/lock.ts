@@ -6,16 +6,7 @@ import { ChannelType, MessageFlags, PermissionFlagsBits } from 'discord.js';
 import { ChannelLockService } from '../../lib/services/ChannelLockService';
 
 import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
-
-/** "10m", "1h", "30s" -> ms. Returns 0 for anything unparseable. */
-export function parseDuration(input: string | null): number {
-	if (!input) return 0;
-	const match = input.trim().match(/^(\d+)\s*(s|sec|secs|m|min|mins|h|hr|hrs)?$/i);
-	if (!match) return 0;
-	const n = parseInt(match[1]!, 10);
-	const unit = (match[2] ?? 'm').toLowerCase();
-	return unit.startsWith('s') ? n * 1000 : unit.startsWith('h') ? n * 3_600_000 : n * 60_000;
-}
+import { parseDuration } from '../../lib/utils/duration';
 
 @ApplyOptions<Command.Options>({ name: 'lock', description: 'Lock a channel', preconditions: ['GuildOnly'] })
 export class LockCommand extends HybridModuleCommand<ModerationModule> {

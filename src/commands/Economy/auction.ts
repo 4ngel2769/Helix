@@ -9,7 +9,9 @@ import { AuctionService } from '../../lib/services/AuctionService';
 @ApplyOptions<Command.Options>({
     name: 'auction',
     description: 'Auction system - create, bid, or view auctions',
-    aliases: ['auc']
+    aliases: ['auc'],
+    cooldownDelay: 3000,
+    cooldownLimit: 3
 })
 export class AuctionCommand extends ModuleCommand<EconomyModule> {
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {

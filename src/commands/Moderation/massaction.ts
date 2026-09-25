@@ -7,20 +7,14 @@ import { ChannelLockService } from '../../lib/services/ChannelLockService';
 import { sendLog, suppressNext } from '../../lib/logging/logService';
 
 import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+import { parseDuration } from '../../lib/utils/duration';
 
 const SLOWMODE_PRESETS: Record<string, number> = { off: 0, '5s': 5, '10s': 10, '30s': 30, '1m': 60, '5m': 300, '15m': 900 };
 
-/** "10m", "1h", "30s" -> ms. Returns 0 for anything unparseable. */
-function parseDuration(input: string | null): number {
-	if (!input) return 0;
-	const match = input.trim().match(/^(\d+)\s*(s|sec|secs|m|min|mins|h|hr|hrs)?$/i);
-	if (!match) return 0;
-	const n = parseInt(match[1]!, 10);
-	const unit = (match[2] ?? 'm').toLowerCase();
-	return (unit.startsWith('s') ? n * 1000 : unit.startsWith('h') ? n * 3_600_000 : n * 60_000);
-}
-
-@ApplyOptions<Command.Options>({ name: 'massaction', description: 'Server-wide moderation actions.', preconditions: ['GuildOnly'] })
+@ApplyOptions<Command.Options>({ name: 'massaction', description: 'Server-wide moderation actions.', preconditions: ['GuildOnly'],
+ cooldownDelay: 10000,
+ cooldownLimit: 2
+})
 export class MassActionCommand extends HybridModuleCommand<ModerationModule> {
 	public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
 		super(context, { ...options, module: 'Moderation', description: 'Server-wide moderation actions.' });

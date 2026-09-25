@@ -12,7 +12,9 @@ import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
     name: 'settings',
     description: 'View comprehensive server settings',
     aliases: ['conf'],
-    preconditions: ['GuildOnly']
+    preconditions: ['GuildOnly'],
+    requiredUserPermissions: ['ManageGuild'],
+    requiredClientPermissions: ['ManageGuild'],
 })
 export class SettingsCommand extends HybridModuleCommand<AdministrationModule> {
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {

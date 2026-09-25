@@ -38,28 +38,6 @@ export class ErrorHandler {
         return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
     }
 
-    // Channel type error
-    static async sendChannelTypeError(interaction: RepliableInteraction, requiredType: string) {
-        const embed = new EmbedBuilder()
-            .setColor(config.bot.embedColor.err as ColorResolvable)
-            .setTitle('❌ Invalid Channel')
-            .setDescription(`This command can only be used in a ${requiredType} channel.`)
-            .setFooter({ text: 'Please try again in the correct channel type.' });
-
-        return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
-    }
-
-    // Module disabled error
-    static async sendModuleDisabledError(interaction: RepliableInteraction, moduleName: string) {
-        const embed = new EmbedBuilder()
-            .setColor(config.bot.embedColor.err as ColorResolvable)
-            .setTitle('❌ Module Disabled')
-            .setDescription(`The ${moduleName} module is currently disabled in this server.`)
-            .setFooter({ text: 'Contact a server administrator to enable it.' });
-
-        return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
-    }
-
     // Generic command error
     static async sendCommandError(interaction: RepliableInteraction, error: string) {
         const embed = new EmbedBuilder()

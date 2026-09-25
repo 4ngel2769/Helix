@@ -12,7 +12,9 @@ import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
     name: 'setmodrole',
     description: 'Set the moderator role for your server',
     aliases: ['setmr', 'smr'],
-    preconditions: ['GuildOnly']
+    preconditions: ['GuildOnly'],
+    requiredUserPermissions: ['ManageGuild'],
+    requiredClientPermissions: ['ManageGuild'],
 })
 export class SetModRoleCommand extends HybridModuleCommand<AdministrationModule> {
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {

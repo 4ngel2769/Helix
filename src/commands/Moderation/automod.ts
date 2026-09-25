@@ -45,7 +45,9 @@ import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
 @ApplyOptions<Command.Options>({
     name: 'automod',
     description: 'Manage Discord AutoMod rules',
-    preconditions: ['GuildOnly', 'ModeratorOnly']
+    preconditions: ['GuildOnly', 'ModeratorOnly'],
+    cooldownDelay: 5000,
+    cooldownLimit: 2,
 })
 export class AutoModCommand extends HybridModuleCommand<ModerationModule> {
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {

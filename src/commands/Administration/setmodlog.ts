@@ -11,7 +11,9 @@ import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
     name: 'setmodlog',
     description: 'Set the moderation log channel',
     aliases: ['setml', 'sml'],
-    preconditions: ['GuildOnly']
+    preconditions: ['GuildOnly'],
+    requiredUserPermissions: ['ManageGuild'],
+    requiredClientPermissions: ['ManageGuild'],
 })
 export class SetModLogCommand extends HybridModuleCommand<AdministrationModule> {
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {

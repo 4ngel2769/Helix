@@ -11,7 +11,9 @@ import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
     name: 'setmemberlog',
     description: 'Set the member join/leave log channel',
     aliases: ['setmeml', 'smeml'],
-    preconditions: ['GuildOnly']
+    preconditions: ['GuildOnly'],
+    requiredUserPermissions: ['ManageGuild'],
+    requiredClientPermissions: ['ManageGuild'],
 })
 export class SetMemberLogCommand extends HybridModuleCommand<AdministrationModule> {
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {

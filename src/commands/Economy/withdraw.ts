@@ -8,7 +8,8 @@ import { UserService } from '../../lib/services/economy/UserService';
 import { MoneyService } from '../../lib/services/economy/MoneyService';
 
 @ApplyOptions<Command.Options>({
-    name: 'withdraw',
+    cooldownDelay: 4000,
+    cooldownLimit: 3,    name: 'withdraw',
     description: 'Withdraw money from your bank to your wallet',
     aliases: ['with', 'w']
 })

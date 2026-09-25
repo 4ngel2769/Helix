@@ -12,7 +12,9 @@ import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
     name: 'togglecommand',
     description: 'Enable or disable a specific command',
     aliases: ['togglec', 'togc', 'tc'],
-    preconditions: ['GuildOnly']
+    preconditions: ['GuildOnly'],
+    requiredUserPermissions: ['ManageGuild'],
+    requiredClientPermissions: ['ManageGuild'],
 })
 export class ToggleCommandCommand extends HybridModuleCommand<AdministrationModule> {
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {

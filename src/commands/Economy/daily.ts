@@ -7,9 +7,15 @@ import config from '../../config';
 import { UserService } from '../../lib/services/economy/UserService';
 import { MoneyService } from '../../lib/services/economy/MoneyService';
 import { DiamondService } from '../../lib/services/economy/DiamondService';
+import { User } from '../../models/User';
+
+function claimedLastDaily(value: Date | null | undefined): Date {
+	return value instanceof Date ? value : new Date(0);
+}
 
 @ApplyOptions<Command.Options>({
-    name: 'daily',
+    cooldownDelay: 5000,
+    cooldownLimit: 2,    name: 'daily',
     description: 'Claim your daily coins and rewards',
     aliases: ['day']
 })
@@ -183,9 +189,37 @@ export class DailyCommand extends ModuleCommand<EconomyModule> {
                 }
             }
 
+            // Atomically claim the 12h slot BEFORE paying anything. The read-only
+            // check above is not enough: two concurrent invocations both pass it
+            // and both pay out. One conditional update wins, the other bails.
+            const cutoff = new Date(now.getTime() - 12 * 60 * 60 * 1000);
+            const claimed = await User.findOneAndUpdate(
+                {
+                    userId,
+                    $or: [
+                        { 'economy.lastDaily': { $lt: cutoff } },
+                        { 'economy.lastDaily': null },
+                        { 'economy.lastDaily': { $exists: false } }
+                    ]
+                },
+                { $set: { 'economy.lastDaily': now } },
+                { new: false }
+            ).lean();
+
+            if (!claimed) {
+                const last = claimedLastDaily(user.economy.lastDaily);
+                const nextDailyTime = new Date(last.getTime() + 12 * 60 * 60 * 1000);
+                const hoursLeft = Math.max(0, Math.ceil((nextDailyTime.getTime() - now.getTime()) / (1000 * 60 * 60)));
+                const minutesLeft = Math.max(0, Math.ceil(((nextDailyTime.getTime() - now.getTime()) % (1000 * 60 * 60)) / (1000 * 60)));
+                return {
+                    success: false,
+                    message: `You've already claimed your daily reward! Come back in **${hoursLeft}h ${minutesLeft}m**.`,
+                    nextDailyTime
+                };
+            }
+
             // Calculate rewards
-            const baseReward = 100;
-            const streakBonus = this.calculateStreakBonus(newStreak);
+            const baseReward = 100;            const streakBonus = this.calculateStreakBonus(newStreak);
             const levelBonus = Math.floor(user.economy.level * 10);
             const randomBonus = Math.floor(Math.random() * 50); // 0-49 bonus coins
             
@@ -248,8 +282,7 @@ export class DailyCommand extends ModuleCommand<EconomyModule> {
                 user.economy.level = newLevel;
             }
 
-            // Update daily data
-            user.economy.lastDaily = now;
+            // Update daily data (lastDaily already claimed atomically above)
             user.economy.dailyStreak = newStreak;
 
             await user.save();

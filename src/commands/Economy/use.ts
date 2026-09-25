@@ -16,7 +16,8 @@ interface UseItemResult {
 }
 
 @ApplyOptions<Command.Options>({
-    name: 'use',
+    cooldownDelay: 2500,
+    cooldownLimit: 3,    name: 'use',
     description: 'Use an item from your inventory',
     aliases: ['consume', 'activate']
 })

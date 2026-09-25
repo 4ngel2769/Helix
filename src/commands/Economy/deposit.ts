@@ -8,7 +8,8 @@ import { UserService } from '../../lib/services/economy/UserService';
 import { MoneyService } from '../../lib/services/economy/MoneyService';
 
 @ApplyOptions<Command.Options>({
-    name: 'deposit',
+    cooldownDelay: 4000,
+    cooldownLimit: 3,    name: 'deposit',
     description: 'Deposit money from your wallet to your bank',
     aliases: ['dep', 'd']
 })

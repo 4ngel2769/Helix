@@ -12,7 +12,9 @@ import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
     name: 'setprefix',
     description: 'Set the command prefix for your server',
     aliases: ['setp', 'sp'],
-    preconditions: ['GuildOnly']
+    preconditions: ['GuildOnly'],
+    requiredUserPermissions: ['ManageGuild'],
+    requiredClientPermissions: ['ManageGuild'],
 })
 export class SetPrefixCommand extends HybridModuleCommand<AdministrationModule> {
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {

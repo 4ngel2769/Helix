@@ -19,7 +19,9 @@ type JobsAction = 'board' | 'apply' | 'resign' | 'career';
 @ApplyOptions<Command.Options>({
     name: 'jobs',
     description: 'Browse the job market and manage your career',
-    aliases: ['jobmarket', 'careers', 'career']
+    aliases: ['jobmarket', 'careers', 'career'],
+    cooldownDelay: 5000,
+    cooldownLimit: 3
 })
 export class JobsCommand extends ModuleCommand<EconomyModule> {
     public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {

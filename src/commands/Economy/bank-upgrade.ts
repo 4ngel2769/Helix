@@ -18,7 +18,8 @@ interface UpgradeTier {
 import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
 
 @ApplyOptions<Command.Options>({
-    name: 'bank-upgrade',
+    cooldownDelay: 10000,
+    cooldownLimit: 2,    name: 'bank-upgrade',
     description: 'Upgrade your bank storage capacity',
     aliases: ['bank-up', 'upgrade-bank']
 })

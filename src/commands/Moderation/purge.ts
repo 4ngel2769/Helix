@@ -9,7 +9,9 @@ import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
 @ApplyOptions<Command.Options>({
   name: 'purge',
   description: 'Bulk delete messages',
-  preconditions: ['GuildOnly']
+  preconditions: ['GuildOnly'],
+  cooldownDelay: 10000,
+  cooldownLimit: 2,
 })
 export class PurgeCommand extends HybridModuleCommand<ModerationModule> {
   public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {

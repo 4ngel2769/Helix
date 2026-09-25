@@ -12,7 +12,8 @@ import config from '../../config';
 import { JobService } from '../../lib/services/economy/JobService';
 
 @ApplyOptions<Command.Options>({
-    name: 'work',
+    cooldownDelay: 60000,
+    cooldownLimit: 3,    name: 'work',
     description: 'Work a shift at your job to earn coins and XP',
     aliases: ['job', 'shift']
 })

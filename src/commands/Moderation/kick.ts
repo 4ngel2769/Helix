@@ -1,6 +1,6 @@
 import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { ApplyOptions } from '@sapphire/decorators';
-import { Command } from '@sapphire/framework';
+import { Command, container } from '@sapphire/framework';
 import { ModerationModule } from '../../modules/Moderation';
 import {
     EmbedBuilder,
@@ -19,6 +19,8 @@ import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
     name: 'kick',
     module: 'Moderation',
     description: 'Kick a member from the server',
+    requiredUserPermissions: ['KickMembers'],
+    requiredClientPermissions: ['KickMembers'],
     enabled: true
 })
 export class KickCommand extends HybridModuleCommand<ModerationModule> {
@@ -27,6 +29,8 @@ export class KickCommand extends HybridModuleCommand<ModerationModule> {
             ...options,
             module: 'Moderation',
             description: 'Kick a member from the server',
+            requiredUserPermissions: ['KickMembers'],
+            requiredClientPermissions: ['KickMembers'],
             enabled: true
         });
     }
@@ -104,8 +108,9 @@ export class KickCommand extends HybridModuleCommand<ModerationModule> {
                 });
 
             return interaction.reply({ embeds: [embed] });
-        } catch (error) {
-            return interaction.reply({
+		} catch (error) {
+			container.logger.error('kick failed:', error);
+			return interaction.reply({
                 content: 'There was an error while kicking the member.',
                 flags: MessageFlags.Ephemeral
             });
