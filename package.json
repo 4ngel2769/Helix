@@ -67,7 +67,7 @@
     "delete-module": "bun scripts/delete-module.js",
     "remove:module": "bun scripts/delete-module.js",
     "test": "bun scripts/test-all.js",
-    "check:registration": "bun scripts/check-registration.js",
+    "check:registration": "bun scripts/check-registration.js && node scripts/check-registration.js",
     "validate": "bun scripts/validate.js",
     "dashboard:install": "bun install --cwd dashboard",
     "dashboard:dev": "bun run --cwd dashboard dev",
