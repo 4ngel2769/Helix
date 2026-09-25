@@ -2,12 +2,10 @@ import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { LevelingModule } from '../../modules/Leveling';
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
-import { EmbedBuilder, MessageFlags, type ColorResolvable } from 'discord.js';
-import { GuildXp } from '../../models/GuildXp';
-import { levelForXp, progressBar, progressToNext } from '../../lib/utils/leveling';
-import config from '../../config';
+import { MessageFlags } from 'discord.js';
 
 import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
+import { fetchRank, rankPayload } from '../../lib/utils/levelingEmbeds';
 
 @ApplyOptions<Command.Options>({
 	name: 'rank',
@@ -44,21 +42,7 @@ export class RankCommand extends HybridModuleCommand<LevelingModule> {
 			return interaction.reply({ content: 'Rank only works inside a server.', flags: MessageFlags.Ephemeral });
 		}
 		try {
-			const doc = await GuildXp.findOne({ guildId: interaction.guildId, userId: target.id }).lean();
-			const xp = doc?.xp ?? 0;
-			const { level, into, needed } = progressToNext(xp);
-			const rank = (await GuildXp.countDocuments({ guildId: interaction.guildId, xp: { $gt: xp } })) + 1;
-			const embed = new EmbedBuilder()
-				.setColor(config.bot.embedColor.default as ColorResolvable)
-				.setTitle(`${target.username}'s rank`)
-				.setThumbnail(target.displayAvatarURL())
-				.addFields(
-					{ name: 'Level', value: String(level), inline: true },
-					{ name: 'Server rank', value: `#${rank}`, inline: true },
-					{ name: 'Progress', value: `${progressBar(into, needed)} ${into}/${needed} XP`, inline: false }
-				)
-				.setFooter({ text: `${xp.toLocaleString('en-US')} total XP` });
-			return interaction.reply({ embeds: [embed] });
+			return interaction.reply(await rankPayload(interaction.guild, await fetchRank(interaction.guildId, target)));
 		} catch (error) {
 			this.container.logger.error('Error fetching rank:', error);
 			return interaction.reply({ content: 'Could not load rank right now.', flags: MessageFlags.Ephemeral });

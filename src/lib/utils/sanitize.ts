@@ -184,6 +184,11 @@ export function cleanLeveling(update: Record<string, unknown>): string | null {
 			if (typeof rec.roleId !== 'string' || !/^\d{16,22}$/.test(rec.roleId)) return 'leveling.roleRewards[].roleId must be a Discord id';
 		}
 	}
+	if ('voiceXpPerMinute' in v) {
+		const n = intInRange(v.voiceXpPerMinute, 0, 1000);
+		if (n === null) return 'leveling.voiceXpPerMinute must be an integer 0-1000';
+		v.voiceXpPerMinute = n;
+	}
 	if ('stackRewards' in v && typeof v.stackRewards !== 'boolean') return 'leveling.stackRewards must be a boolean';
 	return null;
 }

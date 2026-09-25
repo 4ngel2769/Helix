@@ -140,6 +140,8 @@ export interface LevelingSettings {
 	ignoredRoles?: string[];
 	roleRewards?: LevelRoleReward[];
 	stackRewards?: boolean;
+	/** XP per full minute spent in a voice channel. 0 or undefined disables voice XP. */
+	voiceXpPerMinute?: number;
 }
 
 export interface IGuild extends Document, LegacyModuleFlags, VerificationSettings {

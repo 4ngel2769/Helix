@@ -62,7 +62,7 @@ Module defaults below come from the module catalog in `src/config/modules.ts`. E
 | Utility | Misc helpers (password, uuid, color…) | ✅ on |
 | Developer | Owner-only diagnostics & data tools | ✅ on |
 | Music | Voice playback | ✅ on |
-| Leveling | XP, ranks, role rewards | ❌ off |
+| Leveling | XP, ranks, role rewards, voice XP, rank cards | ❌ off |
 
 ## Version Legend
 
@@ -120,6 +120,8 @@ These commands and the dashboard write to the same per-guild configuration, but 
 | `/setup-verification` | Configures and enables verification, validates the selected role/channel, and posts the verification message. | `Manage Guild` and moderator access |
 
 `/setup` is restart-safe: `start` creates the wizard, each step command saves its changes before advancing, and `status`, `finish`, or `cancel` manages the flow. The starter or server owner can continue it; the server owner alone can assign the administrator role. `/setup legacy` preserves the old one-shot form. The dashboard exposes the broader guild configuration API, including warning aliases/DM templates, AutoMod actions, per-event logging channels, and other settings that are not part of `/setup`; dashboard changes are persisted independently of the command form but share the same guild record.
+
+Leveling: `/level rank` and `/rank` render a canvas rank card (embed fallback if the card fails), `/level leaderboard` shows the top 10, and `/level give-xp` / `/level remove-xp` need **Manage Server**. Voice XP is opt-in via the dashboard Leveling page (`voiceXpPerMinute`, 0 = off); un-accrued minutes are lost if the bot restarts mid-session. The same dashboard page lists the server's XP leaderboard.
 
 The repository's `bun run typecheck` and `bun run build` provide compile-time validation. `bun run test` is a repository structure/static-validation script, not a live Discord, MongoDB, or permission integration test; it currently reports pre-existing false-positive errors for helper files that do not export command classes. Command registration, database writes, role hierarchy, and permission behavior still require testing in a Discord server.
 

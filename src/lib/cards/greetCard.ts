@@ -74,7 +74,7 @@ export interface GreetCardSubject {
 	userTag: string;
 }
 
-function fitFont(ctx: { font: string; measureText: (t: string) => { width: number } }, text: string, maxWidth: number, start: number): number {
+export function fitFont(ctx: { font: string; measureText: (t: string) => { width: number } }, text: string, maxWidth: number, start: number): number {
 	let size = start;
 	ctx.font = `${size}px sans-serif`;
 	while (size > 12 && ctx.measureText(text).width > maxWidth) {

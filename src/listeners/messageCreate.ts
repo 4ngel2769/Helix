@@ -1,23 +1,8 @@
 import { Events, Listener } from '@sapphire/framework';
 import type { Message } from 'discord.js';
 import { getGuildAutomation } from '../lib/utils/guildAutomationCache';
-import { awardXp, renderLevelUpMessage } from '../lib/utils/leveling';
+import { announceLevelUp, awardXp, syncRoleRewards } from '../lib/utils/leveling';
 import { handleCustomAutomod } from '../lib/utils/customAutomod';
-import type { LevelingSettings } from '../models/Guild';
-
-const DEFAULT_LEVEL_MESSAGE = '🎉 {user} reached level {level}!';
-
-async function applyRoleRewards(message: Message, level: number, lv: LevelingSettings): Promise<void> {
-	const rewards = (lv.roleRewards ?? []).filter((r) => r.level <= level);
-	if (rewards.length === 0 || !message.member) return;
-	const earned = lv.stackRewards
-		? rewards
-		: [rewards.reduce((a, b) => (b.level > a.level ? b : a))];
-	for (const reward of earned) {
-		if (message.member.roles.cache.has(reward.roleId)) continue;
-		await message.member.roles.add(reward.roleId, `Level ${level} reward`).catch(() => null);
-	}
-}
 
 export class UserEvent extends Listener<typeof Events.MessageCreate> {
     public constructor(context: Listener.Context, options: Listener.Options) {
@@ -65,18 +50,13 @@ export class UserEvent extends Listener<typeof Events.MessageCreate> {
         if (!res?.leveledUp) return;
 
         try {
-            await applyRoleRewards(message, res.level, lv);
+			await syncRoleRewards(message.member, res.level, lv);
         } catch {
             // rewards are best-effort
         }
 
         try {
-            const template = lv.levelUpMessage?.trim() || DEFAULT_LEVEL_MESSAGE;
-            const text = renderLevelUpMessage(template, message.author.username, `<@${message.author.id}>`, res.level, res.xp);
-            const channel = lv.levelUpChannelId
-                ? await message.guild.channels.fetch(lv.levelUpChannelId).catch(() => null)
-                : message.channel;
-            if (channel && channel.isSendable()) await channel.send(text);
+            await announceLevelUp(message.guild, message.author, res.level, res.xp, lv, { channel: message.channel });
         } catch {
             // announcing must never break chat
         }

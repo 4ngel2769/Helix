@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { guildEntry, saveGuildConfig } from '../../lib/session.svelte';
+	import { api } from '../../lib/api';
 	import PageHeader from '../../components/PageHeader.svelte';
 	import SearchPicker from '../../components/SearchPicker.svelte';
 	import TextInput from '../../components/TextInput.svelte';
@@ -18,6 +19,7 @@
 	let xpMin = $state(15);
 	let xpMax = $state(25);
 	let cooldown = $state(60);
+	let voiceXp = $state(0);
 	let levelUpChannel = $state('');
 	let levelUpMessage = $state('');
 	let stackRewards = $state(false);
@@ -32,6 +34,35 @@
 	let saving = $state(false);
 	let error = $state<string | null>(null);
 	let saved = $state(false);
+
+	interface LbEntry {
+		rank: number;
+		userId: string;
+		xp: number;
+		level: number;
+		into: number;
+		needed: number;
+	}
+	let lb = $state<LbEntry[]>([]);
+	let lbError = $state<string | null>(null);
+	let lbLoading = $state(false);
+
+	async function loadLeaderboard(): Promise<void> {
+		lbLoading = true;
+		lbError = null;
+		try {
+			const data = await api<{ entries: LbEntry[] }>(`/guilds/${guildId}/leaderboard`, { query: { limit: 25 } });
+			lb = data.entries ?? [];
+		} catch (e) {
+			lbError = e instanceof Error ? e.message : 'Could not load the leaderboard';
+		} finally {
+			lbLoading = false;
+		}
+	}
+
+	$effect(() => {
+		if (guildId) void loadLeaderboard();
+	});
 
 	function num(v: unknown, fallback: number): number {
 		return typeof v === 'number' && Number.isFinite(v) ? v : fallback;
@@ -57,6 +88,7 @@
 		xpMin = num(lv.xpMin, 15);
 		xpMax = num(lv.xpMax, 25);
 		cooldown = num(lv.cooldownSeconds, 60);
+		voiceXp = num(lv.voiceXpPerMinute, 0);
 		levelUpChannel = str(lv.levelUpChannelId);
 		levelUpMessage = str(lv.levelUpMessage);
 		stackRewards = lv.stackRewards === true;
@@ -71,7 +103,7 @@
 	}
 
 	function snapshot(): string {
-		return JSON.stringify({ xpMin, xpMax, cooldown, levelUpChannel, levelUpMessage, stackRewards, ignoredChannels, ignoredRoles, rewards });
+		return JSON.stringify({ xpMin, xpMax, cooldown, voiceXp, levelUpChannel, levelUpMessage, stackRewards, ignoredChannels, ignoredRoles, rewards });
 	}
 
 	$effect(() => {
@@ -106,6 +138,7 @@
 					xpMin,
 					xpMax,
 					cooldownSeconds: cooldown,
+				voiceXpPerMinute: voiceXp,
 					levelUpChannelId: levelUpChannel === '' ? null : levelUpChannel,
 					levelUpMessage: levelUpMessage.trim() === '' ? null : levelUpMessage,
 					ignoredChannels,
@@ -131,6 +164,7 @@
 		<div class="field"><label for="lv-min">Min XP per message</label><input id="lv-min" type="number" min={1} max={1000} bind:value={xpMin} oninput={() => (saved = false)} /></div>
 		<div class="field"><label for="lv-max">Max XP per message</label><input id="lv-max" type="number" min={1} max={1000} bind:value={xpMax} oninput={() => (saved = false)} /></div>
 		<div class="field"><label for="lv-cool">Cooldown (seconds)</label><input id="lv-cool" type="number" min={0} max={3600} bind:value={cooldown} oninput={() => (saved = false)} /></div>
+		<div class="field"><label for="lv-voice">Voice XP per minute</label><input id="lv-voice" type="number" min={0} max={1000} bind:value={voiceXp} oninput={() => (saved = false)} /></div>
 	</div>
 	<div class="grid-2" style="margin-top: 12px;">
 		<SearchPicker label="Level-up channel" value={levelUpChannel} options={channelOptions} noneLabel="Same channel" onchange={(v) => { levelUpChannel = v; saved = false; }} />
@@ -185,6 +219,34 @@
 	</div>
 </div>
 
+<div class="card">
+	<h3>Leaderboard</h3>
+	{#if lbLoading}
+		<p class="hint">Loading…</p>
+	{:else if lbError}
+		<p class="hint">{lbError}</p>
+	{:else if lb.length === 0}
+		<p class="hint">Nobody has earned XP here yet.</p>
+	{:else}
+		<table class="lb">
+			<thead>
+				<tr><th>#</th><th>Member</th><th>Level</th><th>XP</th><th>Progress</th></tr>
+			</thead>
+			<tbody>
+				{#each lb as row (row.userId)}
+					<tr>
+						<td>{row.rank}</td>
+						<td><a href={`https://discord.com/users/${row.userId}`} target="_blank" rel="noreferrer">{row.userId}</a></td>
+						<td>{row.level}</td>
+						<td>{row.xp.toLocaleString('en-US')}</td>
+						<td>{Math.round((row.into / Math.max(1, row.needed)) * 100)}%</td>
+					</tr>
+				{/each}
+			</tbody>
+		</table>
+	{/if}
+</div>
+
 <SaveBar {dirty} {saving} {error} {saved} onsave={() => void save()} onreset={syncFromCache} />
 
 <style>
@@ -196,4 +258,7 @@
 	.link { background: none; border: none; color: var(--accent, #3b66ff); cursor: pointer; padding: 0; }
 	.check-list { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; margin: 0.75rem 0; }
 	.check-item { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+	.lb { width: 100%; border-collapse: collapse; font-size: 0.92em; }
+	.lb th, .lb td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border, rgba(127, 127, 127, 0.25)); }
+	.lb a { color: inherit; }
 </style>
