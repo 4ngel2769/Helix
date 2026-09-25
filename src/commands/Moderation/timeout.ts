@@ -2,15 +2,10 @@ import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command, container } from '@sapphire/framework';
 import { ModerationModule } from '../../modules/Moderation';
-import {
-    EmbedBuilder,
-    GuildMember,
-    PermissionFlagsBits,
-    ColorResolvable,
-    MessageFlags
-} from 'discord.js';
-import config from '../../config';
-import { getReply } from '../../lib/utils/replies';
+import { GuildMember, PermissionFlagsBits, MessageFlags } from 'discord.js';
+import { helixEmbed, brandColor } from '../../lib/embeds/build';
+import { getGuildStrings } from '../../lib/i18n/guildStrings';
+import { t } from '../../lib/i18n';
 import { sendLog, suppressNext } from '../../lib/logging/logService';
 
 import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
@@ -72,33 +67,44 @@ export class TimeoutCommand extends HybridModuleCommand<ModerationModule> {
 
     public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
         const target = interaction.options.getMember('target') as GuildMember;
+        const strings = await getGuildStrings(interaction.guildId);
         const duration = interaction.options.getNumber('duration', true);
-        const reason = interaction.options.getString('reason') || 'No reason provided';
+        const reason = interaction.options.getString('reason') || t('common.noReason', strings);
 
         if (!target) {
-            return interaction.reply({ content: 'Unable to find that member.', flags: MessageFlags.Ephemeral });
+            return interaction.reply({ content: t('error.user.notFound', strings), flags: MessageFlags.Ephemeral });
         }
 
         if (!target.moderatable) {
-            return interaction.reply({ content: 'I cannot timeout that member.', flags: MessageFlags.Ephemeral });
+            return interaction.reply({ content: t('error.bot.cannotTimeout', strings), flags: MessageFlags.Ephemeral });
         }
 
+        // A per-invocation custom message still wins verbatim (legacy `$user` /
+        // `$mod` / `$duration` syntax); otherwise the localized catalog speaks.
         const customMessage = interaction.options.getString('message');
-        
-        // Handle custom message with variable replacement
-        let messageText: string;
-        if (customMessage) {
-            messageText = customMessage
+        const customText = customMessage
+            ? customMessage
                 .replace(/\$user/g, target.user.tag)
                 .replace(/\$mod/g, interaction.user.tag)
-                .replace(/\$duration/g, duration.toString());
-        } else {
-            messageText = getReply('timeout', { 
-                user: target.user.tag, 
-                mod: interaction.user.tag,
-                duration: duration.toString()
-            });
-        }
+                .replace(/\$duration/g, duration.toString())
+            : undefined;
+
+        const vars = {
+            'user.id': target.id,
+            'user.mention': `<@${target.id}>`,
+            'user.name': target.displayName,
+            'user.tag': target.user.username,
+            'target.id': target.id,
+            'target.mention': `<@${target.id}>`,
+            'target.name': target.displayName,
+            'target.tag': target.user.username,
+            'mod.id': interaction.user.id,
+            'mod.mention': `<@${interaction.user.id}>`,
+            'mod.name': interaction.user.username,
+            'mod.tag': interaction.user.username,
+            reason,
+            duration: `${duration}m`
+        };
 
         try {
             await target.timeout(duration * 60 * 1000, reason);
@@ -106,28 +112,28 @@ export class TimeoutCommand extends HybridModuleCommand<ModerationModule> {
             if (interaction.guild) {
                 suppressNext(interaction.guild.id, 'mod.timeout', target.id);
                 void sendLog(interaction.guild, 'mod.timeout', {
-                    description: `**${target.user.tag}** (<@${target.id}>) was timed out for **${duration} minute(s)** by **${interaction.user.tag}** (<@${interaction.user.id}>).`,
-                    fields: [{ name: 'Reason', value: reason.slice(0, 1024) }],
+                    description: t('mod.timeout.description', strings, vars),
+                    fields: [{ name: t('mod.timeout.field.reason', strings), value: reason.slice(0, 1024) }],
                     actorId: interaction.user.id,
                     targetId: target.id,
                     isBot: target.user.bot
                 });
             }
 
-            const embed = new EmbedBuilder()
-                .setColor(config.bot.embedColor.default as ColorResolvable)
-                .setDescription(messageText)
-                .setFooter({
-                    text: `Mod: ${interaction.user.tag} Â· ${new Date().toLocaleString()}`
-                });
-
-            return interaction.reply({ embeds: [embed] });
+            return interaction.reply({
+                embeds: [
+                    await helixEmbed(interaction.guildId, {
+                        key: 'mod.timeout',
+                        color: brandColor(interaction.guildId, 'warn'),
+                        description: customText,
+                        vars,
+                        fields: [{ nameKey: 'mod.timeout.field.reason', value: reason }]
+                    })
+                ]
+            });
 		} catch (error) {
 			container.logger.error('timeout failed:', error);
-			return interaction.reply({
-                content: 'There was an error while timing out the member.',
-                flags: MessageFlags.Ephemeral
-            });
+			return interaction.reply({ content: t('mod.timeout.failed', strings), flags: MessageFlags.Ephemeral });
         }
     }
 }

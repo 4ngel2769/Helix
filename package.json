@@ -30,8 +30,7 @@
     "discord.js": "^14.27.0",
     "express-rate-limit": "^8.7.0",
     "mongodb": "^7.6.0",
-    "mongoose": "^9.10.2",
-    "yaml": "^2.9.1"
+    "mongoose": "^9.10.2"
   },
   "devDependencies": {
     "@keyv/mongo": "^3.1.0",
@@ -70,7 +69,8 @@
     "test": "bun scripts/test-all.js",
     "check:deps": "bun scripts/check-deps.js",
     "check:registration": "bun scripts/check-registration.js && node scripts/check-registration.js",
-    "check": "bun run check:deps && bun run check:registration",
+    "check:i18n": "bun scripts/check-i18n.js",
+    "check": "bun run check:deps && bun run check:registration && bun run check:i18n",
     "validate": "bun scripts/validate.js",
     "dashboard:install": "bun install --cwd dashboard",
     "dashboard:dev": "bun run --cwd dashboard dev",

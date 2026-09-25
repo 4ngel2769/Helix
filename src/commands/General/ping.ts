@@ -2,15 +2,13 @@ import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { GeneralModule } from '../../modules/General'; 
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
-import { send } from '@sapphire/plugin-editable-commands';
 import {
 	ApplicationCommandType,
 	type Message,
-	// MessageFlags,
 	EmbedBuilder,
-	ColorResolvable
+	ColorResolvable,
+	Routes
 } from 'discord.js';
-import { getDefReply } from '../../lib/utils';
 import mongoose from 'mongoose';
 import config from '../../config';
 
@@ -73,131 +71,84 @@ export class UserCommand extends ModuleCommand<GeneralModule> {
 
 	// Message command
 	public override async messageRun(message: Message) {
-		if (message.guild) {
-			let defReply = await getDefReply('welcome');
-			return send(message, `${defReply}`);
-		} else {
-			return send(message, `DM command`);
+		// The prefix path has no slash options, so it always reports the shard
+		// this connection is on. (It used to reply with the `welcome` reply
+		// string here, which made `!ping` answer "Welcome to the party".)
+		await message.reply({ content: 'Measuring latency...' });
+		return message.edit({ embeds: [this.pingEmbed(await this.measure())] });
+	}
+
+	private async measure() {
+		// A real REST round-trip is the only honest way to read REST latency —
+		// timing an `editReply` just measures the deferred-reply flush.
+		const apiStart = Date.now();
+		await this.container.client.rest.get(Routes.oauth2CurrentAuthorization()).catch(() => null);
+		const apiLatency = Date.now() - apiStart;
+
+		const dbStart = Date.now();
+		try {
+			await mongoose.connection.db?.admin().ping();
+		} catch {
+			// Database unreachable is reported as ~0ms rather than failing the reply.
 		}
+		const dbLatency = Date.now() - dbStart;
+
+		let wsLatency = this.container.client.ws.ping;
+		const shard = this.container.client.shard;
+		const shardId = shard?.ids[0] ?? 0;
+		if (shard && shard.count > 1) {
+			try {
+				const [result] = await shard.broadcastEval(
+					(client) => ({ id: client.shard?.ids[0] ?? 0, ping: client.ws.ping }),
+					{ context: { shardId } }
+				);
+				if (result) wsLatency = result.ping;
+			} catch {
+				// Fall back to this connection's own ping.
+			}
+		}
+		return { apiLatency, dbLatency, wsLatency, shardId, shards: shard?.count ?? 1 };
+	}
+
+	private pingEmbed(m: { apiLatency: number; dbLatency: number; wsLatency: number; shardId: number; shards: number }) {
+		const embed = new EmbedBuilder()
+			.setColor(config.bot.embedColor.default as ColorResolvable)
+			.setTitle('🏓 Pong!')
+			.setDescription('Latency information')
+			.addFields(
+				{ name: '⚡ Event Latency', value: `\`[${m.apiLatency}ms]\``, inline: true },
+				{ name: '🌐 Discord API Latency', value: `\`[${Math.round(m.wsLatency)}ms]\``, inline: true },
+				{ name: '💾 Database Latency', value: `\`[${m.dbLatency}ms]\``, inline: true }
+			)
+			.setFooter({ text: `Shard: ${m.shardId}${m.shards > 1 ? ` / ${m.shards - 1}` : ''}` })
+			.setTimestamp();
+
+		if (m.shards > 1) {
+			embed.addFields({
+				name: '🔢 Available Shards',
+				value: Array.from({ length: m.shards }, (_, i) => `• Shard #${i}`).join('\n'),
+				inline: false
+			});
+		}
+		return embed;
 	}
 
 	// slash command
 	public override async chatInputRun(interaction: ModuleCommand.ChatInputCommandInteraction) {
-		await interaction.deferReply({
-			// flags: MessageFlags.Ephemeral
-		});
-		
-		// Get selected shard or current shard
+		await interaction.deferReply();
+
 		const selectedShardId = interaction.options.getInteger('shard');
-		const currentShardId = this.container.client.shard?.ids[0] ?? 0;
-		const shardId = selectedShardId !== null ? selectedShardId : currentShardId;
-		
-		// Measure Discord API latency
-		const apiStartTime = Date.now();
-		await interaction.editReply({ content: 'Measuring latency...' });
-		const apiLatency = Date.now() - apiStartTime;
-		
-		// Measure database latency
-		const dbStartTime = Date.now();
-		try {
-			await mongoose.connection.db?.admin().ping();
-		} catch (error) {
-			// If database ping fails, continue without it
-		}
-		const dbLatency = Date.now() - dbStartTime;
-		
-		// Get WebSocket latency for the selected shard
-		let wsLatency = 0;
-		if (this.container.client.shard) {
-			// If using shards, get the latency for the selected shard
-			try {
-				const shardPingResults = await this.container.client.shard.broadcastEval(
-					(client) => {
-						return { 
-							id: client.shard?.ids[0] ?? 0,
-							ping: client.ws.ping
-						};
-					},
-					{ context: { shardId } }
-				);
-				
-				if (shardPingResults && shardPingResults.length > 0) {
-					wsLatency = shardPingResults[0].ping;
-				}
-			} catch (error) {
-				// If eval fails, use current client's ping
-				wsLatency = this.container.client.ws.ping;
-			}
-		} else {
-			// If not using shards, just use the current client's ping
-			wsLatency = this.container.client.ws.ping;
-		}
-		
-		// Create embed with all latency information
-		const embed = new EmbedBuilder()
-			.setColor(config.bot.embedColor.default as ColorResolvable)
-			.setTitle('🏓 Pong!')
-			.setDescription(`Latency information${selectedShardId !== null ? ` for Shard #${shardId}` : ''}`)
-			.addFields(
-				{ name: '⚡ Event Latency', value: `\`[${apiLatency}ms]\``, inline: true },
-				{ name: '🌐 Discord API Latency', value: `\`[${Math.round(wsLatency)}ms]\``, inline: true },
-				{ name: '💾 Database Latency', value: `\`[${dbLatency}ms]\``, inline: true }
-			)
-			.setFooter({ text: `Shard: ${shardId}${this.container.client.shard ? ` / ${this.container.client.shard.count}` : ''}` })
-			.setTimestamp();
-		
-		// If using shards, add information about available shards
-		if (this.container.client.shard && this.container.client.shard.count > 1) {
-			let shardInfo = '';
-			for (let i = 0; i < this.container.client.shard.count; i++) {
-				shardInfo += `• Shard #${i}${i === currentShardId ? ' (current)' : ''}\n`;
-			}
-			
-			embed.addFields({
-				name: '🔢 Available Shards',
-				value: shardInfo,
-				inline: false
-			});
-		}
-		
+		const m = await this.measure();
+		const embed = this.pingEmbed(m);
+		if (selectedShardId !== null) embed.setDescription(`Latency information for Shard #${selectedShardId}`);
+
 		return interaction.editReply({ content: null, embeds: [embed] });
 	}
 
 	// context menu command
 	public override async contextMenuRun(interaction: ModuleCommand.ContextMenuCommandInteraction) {
 		await interaction.deferReply();
-		
-		// Measure Discord API latency
-		const apiStartTime = Date.now();
 		await interaction.editReply({ content: 'Measuring latency...' });
-		const apiLatency = Date.now() - apiStartTime;
-		
-		// Measure database latency
-		const dbStartTime = Date.now();
-		try {
-			const db = mongoose.connection.db;
-			if (db) await db.admin().ping();
-		} catch (error) {
-			// If database ping fails, continue without it
-		}
-		const dbLatency = Date.now() - dbStartTime;
-		
-		// Get current shard
-		const currentShardId = this.container.client.shard?.ids[0] ?? 0;
-		
-		// Create embed with all latency information
-		const embed = new EmbedBuilder()
-			.setColor(config.bot.embedColor.default as ColorResolvable)
-			.setTitle('🏓 Pong!')
-			.setDescription('Latency information')
-			.addFields(
-				{ name: '⚡ Event Latency', value: `\`[${apiLatency}ms]\``, inline: true },
-				{ name: '🌐 Discord API Latency', value: `\`[${Math.round(this.container.client.ws.ping)}ms]\``, inline: true },
-				{ name: '💾 Database Latency', value: `\`[${dbLatency}ms]\``, inline: true }
-			)
-			.setFooter({ text: `Shard: ${currentShardId}${this.container.client.shard ? ` / ${this.container.client.shard.count}` : ''}` })
-			.setTimestamp();
-		
-		return interaction.editReply({ content: null, embeds: [embed] });
+		return interaction.editReply({ content: null, embeds: [this.pingEmbed(await this.measure())] });
 	}
 }

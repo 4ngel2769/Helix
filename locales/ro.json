@@ -1,0 +1,60 @@
+{
+	"meta.name": "Romanian",
+	"meta.nativeName": "Română",
+
+	"common.noReason": "Nu a fost specificat un motiv",
+	"common.unknownError": "Ceva nu a mers bine. Încearcă din nou mai târziu.",
+	"common.saved": "Salvat.",
+	"common.cancelled": "Anulat.",
+	"common.none": "Niciunul",
+	"common.yes": "Da",
+	"common.no": "Nu",
+	"common.loading": "Se încarcă...",
+	"common.supportServer": "serverul de suport",
+
+	"error.guild.only": "Această comandă poate fi folosită doar într-un server.",
+	"error.mod.only": "Doar moderatorii pot folosi această comandă.",
+	"error.mod.hintRole": "Ai nevoie de rolul **{{role.name}}** sau de permisiunea **Manage Server**.",
+	"error.mod.hintPermission": "Ai nevoie de permisiunea **{{permission}}**.",
+	"error.owner.only": "Această comandă este restricționată dezvoltatorilor botului.",
+	"error.user.banned": "Ești interzis să folosești Helix.",
+	"error.guild.banned": "Helix este interzis pe acest server.",
+	"error.guild.disabled": "Helix este dezactivat pe acest server. Pentru mai multe informații, contactează {{supportServer.name}} ({{supportServer.invite}}).",
+	"error.command.disabled": "Comanda `{{command}}` este dezactivată pe acest server.",
+	"error.unknownCommand": "Comandă `{{command}}` necunoscută. Încearcă `{{prefix}}help`.",
+	"error.cooldown": "Mai încet — încearcă din nou în {{duration}}.",
+	"error.user.notFound": "Nu am găsit acel membru.",
+	"error.bot.cannotBan": "Nu pot bana acel membru.",
+	"error.bot.cannotKick": "Nu pot da afară acel membru.",
+	"error.bot.cannotTimeout": "Nu pot pune acel membru în timeout.",
+	"error.bot.missingPermissions": "Îmi lipsește permisiunea **{{permission}}** pe acest server.",
+
+	"greeting.welcome": "Bine ai venit {{user.mention}} pe **{{server.name}}**! Ești membrul nr. {{server.ordinal}}.",
+	"greeting.welcomeSimple": "Bine ai venit în echipă, {{user.mention}}!",
+	"greeting.farewell": "**{{user.name}}** a părăsit {{server.name}}.",
+	"greeting.farewellSimple": "La revedere, {{user.tag}}. Sperăm să te revedem!",
+	"greeting.ban": "**{{target.tag}}** a fost interzis de **{{mod.tag}}**.",
+
+	"mod.ban.title": "🔨 Membru interzis",
+	"mod.ban.description": "**{{target.tag}}** (<@{{target.id}}>) a fost interzis de **{{mod.tag}}**.",
+	"mod.ban.field.reason": "Motiv",
+	"mod.ban.failed": "A apărut o eroare la interzicerea membrului.",
+
+	"mod.kick.title": "👢 Membru dat afară",
+	"mod.kick.description": "**{{target.tag}}** (<@{{target.id}}>) a fost dat afară de **{{mod.tag}}**.",
+	"mod.kick.field.reason": "Motiv",
+	"mod.kick.failed": "A apărut o eroare la darea afară a membrului.",
+
+	"mod.timeout.title": "🔇 Membru în timeout",
+	"mod.timeout.description": "**{{target.tag}}** (<@{{target.id}}>) a fost pus în timeout de **{{mod.tag}}** pentru **{{duration}}**.",
+	"mod.timeout.field.reason": "Motiv",
+	"mod.timeout.failed": "A apărut o eroare la punerea membrului în timeout.",
+
+	"ping.title": "🏓 Pong!",
+	"ping.description": "Informații despre latență",
+	"ping.measuring": "Se măsoară latența...",
+
+	"economy.balance.title": "💰 Sold",
+	"economy.balance.field.wallet": "💸 Portofel",
+	"economy.balance.field.bank": "🏦 Bancă"
+}

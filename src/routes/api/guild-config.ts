@@ -8,6 +8,8 @@ import { clearGuildPrefixCache, setGuildPrefixInCache } from '../../lib/utils/pr
 import { clearDisabledCommandsCache } from '../../lib/utils/disabledCommandsCache';
 import { LOG_EVENT_KEYS } from '../../lib/logging/logEvents';
 import { isPremiumActive } from '../../lib/utils/premium';
+import { isLocale, LOCALE_CODES } from '../../lib/i18n';
+import { clearGuildStrings } from '../../lib/i18n/guildStrings';
 import {
 	cleanAutomodKeywords,
 	cleanAutomodSettings,
@@ -170,6 +172,12 @@ function validateConfigUpdate(update: Record<string, unknown>, isPremium: boolea
 			if (err) return err;
 		}
 	}
+	// i18n: the server's language for every bot-authored message. Validated
+	// against the shipped catalog so the dashboard cannot set a locale that
+	// silently falls back to English.
+	if ('locale' in update && !isLocale(update.locale)) {
+		return `locale must be one of ${LOCALE_CODES.join(', ')}`;
+	}
 	return null;
 }
 
@@ -242,6 +250,7 @@ export class ApiGuildConfigRoute extends Route {
 			}
 			if ('disabledCommands' in update) clearDisabledCommandsCache(guildId);
 			if ('leveling' in update || 'automodSettings' in update || 'modules' in update || 'adminRoleId' in update || 'modRoleId' in update || 'muteRoleId' in update) clearGuildAutomation(guildId);
+		if ('locale' in update || 'activeKitId' in update) clearGuildStrings(guildId);
 			return response.json({ guildId, updated: Object.keys(update), config: publicConfig(data) });
 		} catch {
 			return response.status(500).json({ error: 'Failed to update guild config' });

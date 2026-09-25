@@ -1,0 +1,60 @@
+{
+	"meta.name": "French",
+	"meta.nativeName": "Français",
+
+	"common.noReason": "Aucune raison fournie",
+	"common.unknownError": "Une erreur est survenue. Veuillez réessayer plus tard.",
+	"common.saved": "Enregistré.",
+	"common.cancelled": "Annulé.",
+	"common.none": "Aucun",
+	"common.yes": "Oui",
+	"common.no": "Non",
+	"common.loading": "Chargement...",
+	"common.supportServer": "le serveur de support",
+
+	"error.guild.only": "Cette commande ne peut être utilisée que dans un serveur.",
+	"error.mod.only": "Seuls les modérateurs peuvent utiliser cette commande.",
+	"error.mod.hintRole": "Vous devez avoir le rôle **{{role.name}}** ou la permission **Gérer le serveur**.",
+	"error.mod.hintPermission": "Vous devez avoir la permission **{{permission}}**.",
+	"error.owner.only": "Cette commande est réservée aux développeurs du bot.",
+	"error.user.banned": "Vous êtes banni de l'utilisation de Helix.",
+	"error.guild.banned": "Helix est banni de ce serveur.",
+	"error.guild.disabled": "Helix est désactivé dans ce serveur. Pour en savoir plus, contactez {{supportServer.name}} ({{supportServer.invite}}).",
+	"error.command.disabled": "La commande `{{command}}` est désactivée dans ce serveur.",
+	"error.unknownCommand": "Commande `{{command}}` inconnue. Essayez `{{prefix}}help`.",
+	"error.cooldown": "Doucement — réessayez dans {{duration}}.",
+	"error.user.notFound": "Membre introuvable.",
+	"error.bot.cannotBan": "Je ne peux pas bannir ce membre.",
+	"error.bot.cannotKick": "Je ne peux pas exclure ce membre.",
+	"error.bot.cannotTimeout": "Je ne peux pas mettre ce membre en timeout.",
+	"error.bot.missingPermissions": "Il me manque la permission **{{permission}}** dans ce serveur.",
+
+	"greeting.welcome": "Bienvenue {{user.mention}} sur **{{server.name}}** ! Vous êtes le membre n°{{server.ordinal}}.",
+	"greeting.welcomeSimple": "Bienvenue parmi nous, {{user.mention}} !",
+	"greeting.farewell": "**{{user.name}}** a quitté {{server.name}}.",
+	"greeting.farewellSimple": "Au revoir, {{user.tag}}. On espère vous revoir !",
+	"greeting.ban": "**{{target.tag}}** a été banni par **{{mod.tag}}**.",
+
+	"mod.ban.title": "🔨 Membre banni",
+	"mod.ban.description": "**{{target.tag}}** (<@{{target.id}}>) a été banni par **{{mod.tag}}**.",
+	"mod.ban.field.reason": "Raison",
+	"mod.ban.failed": "Une erreur est survenue lors du bannissement.",
+
+	"mod.kick.title": "👢 Membre exclu",
+	"mod.kick.description": "**{{target.tag}}** (<@{{target.id}}>) a été exclu par **{{mod.tag}}**.",
+	"mod.kick.field.reason": "Raison",
+	"mod.kick.failed": "Une erreur est survenue lors de l'exclusion.",
+
+	"mod.timeout.title": "🔇 Membre mis en timeout",
+	"mod.timeout.description": "**{{target.tag}}** (<@{{target.id}}>) a été mis en timeout par **{{mod.tag}}** pour **{{duration}}**.",
+	"mod.timeout.field.reason": "Raison",
+	"mod.timeout.failed": "Une erreur est survenue lors du timeout.",
+
+	"ping.title": "🏓 Pong !",
+	"ping.description": "Informations de latence",
+	"ping.measuring": "Mesure de la latence...",
+
+	"economy.balance.title": "💰 Solde",
+	"economy.balance.field.wallet": "💸 Portefeuille",
+	"economy.balance.field.bank": "🏦 Banque"
+}

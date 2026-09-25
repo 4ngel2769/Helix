@@ -4,13 +4,19 @@ import type { ApiRequest, ApiResponse } from '@sapphire/plugin-api';
 import type { RouteOptions } from '@sapphire/plugin-api';
 import { CustomMessage } from '../../models/customMessages';
 import { isSnowflake, readJsonBody, requireAuth, requireManageableGuild } from '../../lib/utils/apiAuth';
-import { sanitizeText } from '../../lib/utils/sanitize';
-
-const KEY_PATTERN = /^[a-z0-9-]{1,64}$/;
+import { clearGuildStrings } from '../../lib/i18n/guildStrings';
+import { KEYS, PLACEHOLDER_DOC } from '../../lib/i18n';
+import { validateMessages } from '../../lib/kits/validation';
 
 /**
- * Custom per-guild messages (welcome/farewell variants, command replies...).
- * GET returns all; PATCH merges the provided keys.
+ * Per-guild message overrides — the highest-priority layer of the resolution
+ * chain (above the active kit, above the locale catalog).
+ *
+ * This used to accept any `[a-z0-9-]{1,64}` key and any text up to 2000 chars,
+ * and it was WRITE-ONLY: the dashboard could save here and no command ever read
+ * the result. It now goes through the same validator as shared kits, so a
+ * moderator typing `@everyone` into this box is stopped by the same rules that
+ * stop an untrusted shared kit, and `getGuildStrings` is what finally reads it.
  */
 @ApplyOptions<RouteOptions>({
 	name: 'api-guild-messages',
@@ -30,38 +36,36 @@ export class ApiGuildMessagesRoute extends Route {
 
 		if (request.method === 'GET') {
 			const doc = await CustomMessage.findOne({ guildId }).lean();
-			return response.json({ guildId, messages: doc?.messages ?? {} });
+			return response.json({
+				guildId,
+				messages: doc?.messages ?? {},
+				// The editor needs to know what it is allowed to send, otherwise
+				// the placeholder hint and the validator drift apart.
+				availableKeys: [...KEYS],
+				placeholders: PLACEHOLDER_DOC
+			});
 		}
 
 		const body = await readJsonBody<Record<string, unknown>>(request);
-		if (!body.messages || typeof body.messages !== 'object' || Array.isArray(body.messages)) {
-			return response.status(400).json({ error: 'Body must be { messages: { <key>: <text> } }' });
-		}
-		const entries = Object.entries(body.messages as Record<string, unknown>);
-		if (entries.length === 0 || entries.length > 50) {
-			return response.status(400).json({ error: 'Provide between 1 and 50 messages per request' });
-		}
-		for (const [key, value] of entries) {
-			if (!KEY_PATTERN.test(key)) {
-				return response.status(400).json({ error: `Message key "${key.slice(0, 32)}" must match [a-z0-9-]{1,64}` });
-			}
-			const clean = sanitizeText(value, 2000);
-			if (clean === null || clean.length === 0) {
-				return response.status(400).json({ error: `Message "${key}" must be text of 1-2000 chars` });
-			}
-			(body.messages as Record<string, string>)[key] = clean;
-		}
+		const parsed = validateMessages(body.messages);
+		if (!parsed.ok) return response.status(400).json({ error: 'Invalid messages', errors: parsed.errors });
+
+		// An empty string deletes the override (falls back to the kit/locale).
+		const removals = Object.entries(body.messages as Record<string, unknown>)
+			.filter(([, value]) => value === null || value === undefined || value === '')
+			.map(([key]) => key);
+		const setOps: Record<string, string> = {};
+		for (const [key, value] of Object.entries(parsed.messages)) setOps[`messages.${key}`] = value;
 
 		try {
-			const setOps: Record<string, string> = {};
-			for (const [key] of entries) {
-				setOps[`messages.${key}`] = (body.messages as Record<string, string>)[key]!;
-			}
-			const doc = await CustomMessage.findOneAndUpdate({ guildId }, { $set: setOps }, { upsert: true, returnDocument: 'after' }).lean();
-			return response.json({ guildId, updated: entries.map(([k]) => k), messages: doc?.messages ?? {} });
+			const unsetOps: Record<string, ''> = {};
+			for (const key of removals) unsetOps[`messages.${key}`] = '';
+			await CustomMessage.findOneAndUpdate({ guildId }, { $set: setOps, $unset: unsetOps }, { upsert: true });
+			clearGuildStrings(guildId);
+			const doc = await CustomMessage.findOne({ guildId }).lean();
+			return response.json({ guildId, updated: Object.keys(parsed.messages), removed: removals, messages: doc?.messages ?? {} });
 		} catch {
 			return response.status(500).json({ error: 'Failed to update custom messages' });
 		}
 	}
 }
-

@@ -4,6 +4,7 @@ import { container } from '@sapphire/framework';
 import config from '../../config';
 import { Guild } from '../../models/Guild';
 import { CustomMessage } from '../../models/customMessages';
+import { MessageKit } from '../../models/MessageKit';
 
 // Add this type declaration to extend the Container interface
 declare module '@sapphire/framework' {
@@ -71,7 +72,7 @@ export async function ensureCollectionsExist(): Promise<string[]> {
 		}
 
 		// Define required models and their initialization functions
-		const requiredModels = [Guild, CustomMessage];
+		const requiredModels = [Guild, CustomMessage, MessageKit];
 
 		// Create a test document for each model that doesn't exist
 		for (const model of requiredModels) {

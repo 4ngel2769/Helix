@@ -1,7 +1,26 @@
 {
+    "modules" : {
+        "general" : "⚙️",
+        "moderation" : "🛡️",
+        "administration" : "🗂️",
+        "fun" : "🎲",
+        "welcoming" : "👋",
+        "verification" : "✅",
+        "utility" : "🔧",
+        "music" : "🎵",
+        "leveling" : "📈",
+        "developer" : "🛠️",
+        "reactionroles" : "🎭",
+        "economy" : "💸"
+    },
     "emojis" : {
         "general" : {
-            "" : ""
+            "invite" : "📨",
+            "support" : "🛟",
+            "website" : "🌐",
+            "botinfo" : "🤖",
+            "ping" : "🏓",
+            "help" : "❓"
         },
         "util" : {
             "rules" : "<:blurple_rules:899907179430166528>",
@@ -36,7 +55,15 @@
     
         },
         "economy" : {
-
+            "coin" : "🪙",
+            "wallet" : "💸",
+            "bank" : "🏦",
+            "diamond" : "💎",
+            "shop" : "🛒",
+            "streak" : "🔥",
+            "inventory" : "🎒",
+            "auction" : "🔨",
+            "level" : "📊"
         },
         "special" : {
             "partner" : "<:partner:899907131757695016>",

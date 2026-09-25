@@ -147,7 +147,6 @@ async function proxyToBot(req: Request, path: string): Promise<Response> {
 		return new Response(buf, { status: upstream.status, headers: outHeaders });
 	}
 	const text = await upstream.text().catch(() => '');
-	console.log(`[dashboard] ${req.method} ${path} -> ${upstream.status} (${Date.now() - started}ms)`);
 	return new Response(text, { status: upstream.status, headers: outHeaders });
 }
 

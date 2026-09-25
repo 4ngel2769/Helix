@@ -196,6 +196,12 @@ export interface IGuild extends Document, LegacyModuleFlags, VerificationSetting
 	banMessage?: string;
 	joinDmMessage?: string;
 	systemChannelId?: string;
+	/** Language for every bot-authored message in this server. Guild-wide on
+	 *  purpose: Discord's per-user locale is deliberately ignored so output is
+	 *  predictable for the moderators who set it. */
+	locale?: string;
+	/** Kit id of the active MessageKit, if any (see src/lib/kits/). */
+	activeKitId?: string | null;
 	lockedChannels?: LockedChannel[];
 	modules: ModuleSettings;
 	automodKeywords?: AutoModKeywords;
@@ -253,6 +259,9 @@ const guildSchema = new Schema<IGuild>({
 	banReason: { type: String, default: null },
 	welcomeCard: { type: Schema.Types.Mixed, default: {} },
 	farewellCard: { type: Schema.Types.Mixed, default: {} },
+	// i18n: guild-wide locale + the one active message kit.
+	locale: { type: String, default: 'en', maxlength: 8 },
+	activeKitId: { type: String, default: null, index: true },
 
 	// Welcome / Farewell
 	welcomeChannelId: { type: String, default: null },

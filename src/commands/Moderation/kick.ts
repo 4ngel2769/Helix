@@ -2,15 +2,10 @@ import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command, container } from '@sapphire/framework';
 import { ModerationModule } from '../../modules/Moderation';
-import {
-    EmbedBuilder,
-    GuildMember,
-    PermissionFlagsBits,
-    ColorResolvable,
-    MessageFlags
-} from 'discord.js';
-import config from '../../config';
-import { getReply } from '../../lib/utils/replies';
+import { GuildMember, PermissionFlagsBits, MessageFlags } from 'discord.js';
+import { helixEmbed, brandColor } from '../../lib/embeds/build';
+import { getGuildStrings } from '../../lib/i18n/guildStrings';
+import { t } from '../../lib/i18n';
 import { sendLog, suppressNext } from '../../lib/logging/logService';
 
 import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
@@ -64,27 +59,39 @@ export class KickCommand extends HybridModuleCommand<ModerationModule> {
 
     public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
         const target = interaction.options.getMember('target') as GuildMember;
-        const reason = interaction.options.getString('reason') || 'No reason provided';
+        const strings = await getGuildStrings(interaction.guildId);
+        const reason = interaction.options.getString('reason') || t('common.noReason', strings);
 
         if (!target) {
-            return interaction.reply({ content: 'Unable to find that member.', flags: MessageFlags.Ephemeral });
+            return interaction.reply({ content: t('error.user.notFound', strings), flags: MessageFlags.Ephemeral });
         }
 
         if (!target.kickable) {
-            return interaction.reply({ content: 'I cannot kick that member.', flags: MessageFlags.Ephemeral });
+            return interaction.reply({ content: t('error.bot.cannotKick', strings), flags: MessageFlags.Ephemeral });
         }
 
+        // A per-invocation custom message still wins verbatim (legacy `$user` /
+        // `$mod` syntax); otherwise the localized catalog speaks.
         const customMessage = interaction.options.getString('message');
-        
-        // Handle custom message with variable replacement
-        let messageText: string;
-        if (customMessage) {
-            messageText = customMessage
-                .replace(/\$user/g, target.user.tag)
-                .replace(/\$mod/g, interaction.user.tag);
-        } else {
-            messageText = getReply('kick', { user: target.user.tag, mod: interaction.user.tag });
-        }
+        const customText = customMessage
+            ? customMessage.replace(/\$user/g, target.user.tag).replace(/\$mod/g, interaction.user.tag)
+            : undefined;
+
+        const vars = {
+            'user.id': target.id,
+            'user.mention': `<@${target.id}>`,
+            'user.name': target.displayName,
+            'user.tag': target.user.username,
+            'target.id': target.id,
+            'target.mention': `<@${target.id}>`,
+            'target.name': target.displayName,
+            'target.tag': target.user.username,
+            'mod.id': interaction.user.id,
+            'mod.mention': `<@${interaction.user.id}>`,
+            'mod.name': interaction.user.username,
+            'mod.tag': interaction.user.username,
+            reason
+        };
 
         try {
             await target.kick(reason);
@@ -92,28 +99,28 @@ export class KickCommand extends HybridModuleCommand<ModerationModule> {
             if (interaction.guild) {
                 suppressNext(interaction.guild.id, 'member.leave', target.id);
                 void sendLog(interaction.guild, 'mod.kick', {
-                    description: `**${target.user.tag}** (<@${target.id}>) was kicked by **${interaction.user.tag}** (<@${interaction.user.id}>).`,
-                    fields: [{ name: 'Reason', value: reason.slice(0, 1024) }],
+                    description: t('mod.kick.description', strings, vars),
+                    fields: [{ name: t('mod.kick.field.reason', strings), value: reason.slice(0, 1024) }],
                     actorId: interaction.user.id,
                     targetId: target.id,
                     isBot: target.user.bot
                 });
             }
 
-            const embed = new EmbedBuilder()
-                .setColor(config.bot.embedColor.default as ColorResolvable)
-                .setDescription(messageText)
-                .setFooter({
-                    text: `Mod: ${interaction.user.tag} Â· ${new Date().toLocaleString()}`
-                });
-
-            return interaction.reply({ embeds: [embed] });
+            return interaction.reply({
+                embeds: [
+                    await helixEmbed(interaction.guildId, {
+                        key: 'mod.kick',
+                        color: brandColor(interaction.guildId, 'err'),
+                        description: customText,
+                        vars,
+                        fields: [{ nameKey: 'mod.kick.field.reason', value: reason }]
+                    })
+                ]
+            });
 		} catch (error) {
 			container.logger.error('kick failed:', error);
-			return interaction.reply({
-                content: 'There was an error while kicking the member.',
-                flags: MessageFlags.Ephemeral
-            });
+			return interaction.reply({ content: t('mod.kick.failed', strings), flags: MessageFlags.Ephemeral });
         }
     }
 }

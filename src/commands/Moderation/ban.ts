@@ -2,10 +2,11 @@ import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { ModerationModule } from '../../modules/Moderation';
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command, container } from '@sapphire/framework';
-import { EmbedBuilder, GuildMember, PermissionFlagsBits, ColorResolvable, MessageFlags } from 'discord.js';
-import config from '../../config';
-import { getReply } from '../../lib/utils/replies';
+import { GuildMember, PermissionFlagsBits, MessageFlags } from 'discord.js';
 import { renderMessageTemplate } from '../../lib/utils/messagePlaceholders';
+import { helixEmbed, brandColor } from '../../lib/embeds/build';
+import { getGuildStrings } from '../../lib/i18n/guildStrings';
+import { t } from '../../lib/i18n';
 import { Guild } from '../../models/Guild';
 import { sendLog, suppressNext } from '../../lib/logging/logService';
 
@@ -52,24 +53,42 @@ export class BanCommand extends HybridModuleCommand<ModerationModule> {
 
 	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
 		const target = interaction.options.getMember('target') as GuildMember;
-		const reason = interaction.options.getString('reason') || 'No reason provided';
+		const strings = await getGuildStrings(interaction.guildId);
+		const reason = interaction.options.getString('reason') || t('common.noReason', strings);
 		const days = interaction.options.getNumber('days') || 0;
 
 		if (!target) {
-			return interaction.reply({ content: 'Unable to find that member.', flags: MessageFlags.Ephemeral });
+			return interaction.reply({ content: t('error.user.notFound', strings), flags: MessageFlags.Ephemeral });
 		}
 
 		if (!target.bannable) {
-			return interaction.reply({ content: 'I cannot ban that member.', flags: MessageFlags.Ephemeral });
+			return interaction.reply({ content: t('error.bot.cannotBan', strings), flags: MessageFlags.Ephemeral });
 		}
 
 		const customMessage = interaction.options.getString('message');
+		const vars = {
+			'user.id': target.id,
+			'user.mention': `<@${target.id}>`,
+			'user.name': target.displayName,
+			'user.tag': target.user.username,
+			'target.id': target.id,
+			'target.mention': `<@${target.id}>`,
+			'target.name': target.displayName,
+			'target.tag': target.user.username,
+			'mod.id': interaction.user.id,
+			'mod.mention': `<@${interaction.user.id}>`,
+			'mod.name': interaction.member instanceof GuildMember ? interaction.member.displayName : interaction.user.username,
+			'mod.tag': interaction.user.username,
+			reason
+		};
 
 		try {
 			const guildData = interaction.guildId ? await Guild.findOne({ guildId: interaction.guildId }).lean() : null;
-			let messageText: string;
+			// A guild-authored `banMessage` (or the per-invocation option) still
+			// wins verbatim; otherwise the localized catalog speaks.
+			let customText: string | null = null;
 			if (guildData?.banMessage) {
-				messageText = renderMessageTemplate(guildData.banMessage, {
+				customText = renderMessageTemplate(guildData.banMessage, {
 					userMention: `<@${target.id}>`,
 					userName: target.displayName,
 					userTag: target.user.username,
@@ -78,9 +97,8 @@ export class BanCommand extends HybridModuleCommand<ModerationModule> {
 					serverMembers: interaction.guild?.memberCount ?? 0
 				});
 			} else if (customMessage) {
-				messageText = customMessage.replace(/\$user/g, target.user.tag).replace(/\$mod/g, interaction.user.tag);
-			} else {
-				messageText = getReply('ban', { user: target.user.tag, mod: interaction.user.tag });
+				// Legacy per-invocation override: still `$user` / `$mod`.
+				customText = customMessage.replace(/\$user/g, target.user.tag).replace(/\$mod/g, interaction.user.tag);
 			}
 
 			await target.ban({ deleteMessageDays: days, reason });
@@ -89,28 +107,32 @@ export class BanCommand extends HybridModuleCommand<ModerationModule> {
 				suppressNext(interaction.guild.id, 'mod.ban', target.id);
 				suppressNext(interaction.guild.id, 'member.leave', target.id);
 				void sendLog(interaction.guild, 'mod.ban', {
-					description: `**${target.user.tag}** (<@${target.id}>) was banned by **${interaction.user.tag}** (<@${interaction.user.id}>).`,
-					fields: [{ name: 'Reason', value: reason.slice(0, 1024) }],
+					description: t('mod.ban.description', strings, vars),
+					fields: [{ name: t('mod.ban.field.reason', strings), value: reason.slice(0, 1024) }],
 					actorId: interaction.user.id,
 					targetId: target.id,
 					isBot: target.user.bot
 				});
 			}
 
-			const embed = new EmbedBuilder()
-				.setColor(config.bot.embedColor.default as ColorResolvable)
-				.setDescription(messageText)
-				.setFooter({
-					text: `Mod: ${interaction.user.tag} Â· ${new Date().toLocaleString()}`
-				});
-
-			return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
-		} catch (error) {
-			container.logger.error('ban failed:', error);
 			return interaction.reply({
-				content: 'There was an error while banning the member.',
+				embeds: [
+					await helixEmbed(interaction.guildId, {
+						key: 'mod.ban',
+						color: brandColor(interaction.guildId, 'err'),
+						description: customText ?? undefined,
+						vars,
+						fields: [
+							{ nameKey: 'mod.ban.field.reason', value: reason },
+							{ nameKey: 'mod.ban.field.days', value: String(days) }
+						]
+					})
+				],
 				flags: MessageFlags.Ephemeral
 			});
+		} catch (error) {
+			container.logger.error('ban failed:', error);
+			return interaction.reply({ content: t('mod.ban.failed', strings), flags: MessageFlags.Ephemeral });
 		}
 	}
 }

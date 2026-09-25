@@ -1,4 +1,5 @@
 import { EmojiIdentifierResolvable } from 'discord.js';
+import { emoji } from '../lib/embeds/format';
 
 export interface ModuleConfig {
     name: string;
@@ -12,73 +13,80 @@ export interface ModuleConfig {
 export type ModuleKey = keyof typeof moduleConfigs;
 
 // The main configuration object for all modules
+//
+// `emoji` used to be bare snowflakes ("899907091634978867") with a "replace with
+// your own" comment. Those are not valid `EmojiIdentifierResolvable` — Discord
+// expects `<:name:id>` — so every one of them rendered as a row of literal
+// digits. They are unicode now, which always renders, and `moduleEmoji()` is the
+// override point: drop a `modules.<key>` entry into src/emojimap.json to swap in
+// a Helix custom emoji without touching this file.
 export const moduleConfigs = {
     general: {
         name: 'General',
         description: 'Basic commands for everyone',
-        emoji: '⚙️', 
+        emoji: '⚙️',
         defaultEnabled: true
     },
     moderation: {
-        name: 'Moderation', 
+        name: 'Moderation',
         description: 'Tools to moderate your server',
-        emoji: '899907091634978867', // Custom emoji ID for "moderation" (replace with your own)
+        emoji: '🛡️',
         defaultEnabled: true,
         requiredPermissions: [] as bigint[] // Fix by specifying as bigint[]
     },
     administration: {
         name: 'Administration',
         description: 'Server and bot administration commands',
-        emoji: '891086266442068028', // Custom emoji ID for "administration" (replace with your own)
+        emoji: '🗂️',
         defaultEnabled: true,
         requiredPermissions: [] as bigint[] // Fix by specifying as bigint[]
     },
     fun: {
         name: 'Fun',
         description: 'Fun commands to liven up your server',
-        emoji: '793067264814874654', // Custom emoji ID for "fun" (replace with your own)
+        emoji: '🎲',
         defaultEnabled: true
     },
     welcoming: {
         name: 'Welcoming',
         description: 'Welcome new members to your server',
-        emoji: '969713121893687296', // Custom emoji ID for "welcoming" (replace with your own)
+        emoji: '👋',
         defaultEnabled: true
     },
     verification: {
         name: 'Verification',
         description: 'Verify new members before they can access your server',
-        emoji: '899908737467297812', // Custom emoji ID for "verification" (replace with your own)
+        emoji: '✅',
         defaultEnabled: true
     },
     utility: {
         name: 'Utility',
         description: 'Helpful utility commands',
-        emoji: '899908737698000976', // Custom emoji ID for "utility" (replace with your own)
+        emoji: '🔧',
         defaultEnabled: true
     },
     music: {
         name: 'Music',
         description: 'Play music in voice channels',
-        emoji: '901302164004171787', // Custom emoji ID for "music" (replace with your own)
+        emoji: '🎵',
         defaultEnabled: true
     },
     leveling: {
         name: 'Leveling',
         description: 'XP and level tracking system',
-        emoji: '466042779273920514', // Custom emoji ID for "leveling" (replace with your own)
+        emoji: '📈',
         defaultEnabled: false
     },
     developer: {
         name: 'Developer',
         description: 'Commands for bot developers',
-        emoji: '753658623065850036', // Custom emoji ID for "developer" (replace with your own)
+        emoji: '🛠️',
         defaultEnabled: true
     },
     reactionRoles: {
         name: 'Reaction Roles',
         description: 'Assign roles based on reactions',
-        emoji: '1362832272251814019', // Custom emoji ID for "reaction roles" (replace with your own)
+        emoji: '🎭',
         defaultEnabled: true
     },
     economy: {
@@ -101,6 +109,16 @@ export function isValidEmoji(emoji: string): boolean {
     // Unicode emoji detection is complex, this is a simplified check
     // Most emoji are 1-2 characters in JS strings
     return emoji.length <= 2 || /\p{Emoji}/u.test(emoji);
+}
+
+/**
+ * Module emoji, resolved through src/emojimap.json so `modules.<key>` in the
+ * map overrides the unicode default without a code change. A brand profile can
+ * later sit in front of this for per-server custom emoji.
+ */
+export function moduleEmoji(key: string): string {
+    const fallback = getModuleConfig(key)?.emoji ?? '•';
+    return emoji(`modules.${key.toLowerCase()}`, String(fallback));
 }
 
 /**

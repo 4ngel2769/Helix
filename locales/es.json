@@ -1,0 +1,60 @@
+{
+	"meta.name": "Spanish",
+	"meta.nativeName": "Español",
+
+	"common.noReason": "No se proporcionó ningún motivo",
+	"common.unknownError": "Algo salió mal. Inténtalo de nuevo más tarde.",
+	"common.saved": "Guardado.",
+	"common.cancelled": "Cancelado.",
+	"common.none": "Ninguno",
+	"common.yes": "Sí",
+	"common.no": "No",
+	"common.loading": "Cargando...",
+	"common.supportServer": "el servidor de soporte",
+
+	"error.guild.only": "Este comando solo se puede usar en un servidor.",
+	"error.mod.only": "Solo los moderadores pueden usar este comando.",
+	"error.mod.hintRole": "Necesitas el rol **{{role.name}}** o el permiso **Gestionar servidor**.",
+	"error.mod.hintPermission": "Necesitas el permiso **{{permission}}**.",
+	"error.owner.only": "Este comando está restringido a los desarrolladores del bot.",
+	"error.user.banned": "Estás vetado de usar Helix.",
+	"error.guild.banned": "Helix está vetado en este servidor.",
+	"error.guild.disabled": "Helix está desactivado en este servidor. Para más información, contacta con {{supportServer.name}} ({{supportServer.invite}}).",
+	"error.command.disabled": "El comando `{{command}}` está desactivado en este servidor.",
+	"error.unknownCommand": "Comando `{{command}}` desconocido. Prueba con `{{prefix}}help`.",
+	"error.cooldown": "Más despacio — inténtalo de nuevo en {{duration}}.",
+	"error.user.notFound": "No se encontró a ese miembro.",
+	"error.bot.cannotBan": "No puedo vetar a ese miembro.",
+	"error.bot.cannotKick": "No puedo expulsar a ese miembro.",
+	"error.bot.cannotTimeout": "No puedo poner en timeout a ese miembro.",
+	"error.bot.missingPermissions": "Me falta el permiso **{{permission}}** en este servidor.",
+
+	"greeting.welcome": "¡Bienvenido {{user.mention}} a **{{server.name}}**! Eres el miembro n.º {{server.ordinal}}.",
+	"greeting.welcomeSimple": "¡Bienvenido al grupo, {{user.mention}}!",
+	"greeting.farewell": "**{{user.name}}** ha salido de {{server.name}}.",
+	"greeting.farewellSimple": "Adiós, {{user.tag}}. ¡Esperamos verte de nuevo!",
+	"greeting.ban": "**{{target.tag}}** ha sido vetado por **{{mod.tag}}**.",
+
+	"mod.ban.title": "🔨 Miembro vetado",
+	"mod.ban.description": "**{{target.tag}}** (<@{{target.id}}>) fue vetado por **{{mod.tag}}**.",
+	"mod.ban.field.reason": "Motivo",
+	"mod.ban.failed": "Hubo un error al vetar al miembro.",
+
+	"mod.kick.title": "👢 Miembro expulsado",
+	"mod.kick.description": "**{{target.tag}}** (<@{{target.id}}>) fue expulsado por **{{mod.tag}}**.",
+	"mod.kick.field.reason": "Motivo",
+	"mod.kick.failed": "Hubo un error al expulsar al miembro.",
+
+	"mod.timeout.title": "🔇 Miembro en timeout",
+	"mod.timeout.description": "**{{target.tag}}** (<@{{target.id}}>) fue puesto en timeout por **{{mod.tag}}** durante **{{duration}}**.",
+	"mod.timeout.field.reason": "Motivo",
+	"mod.timeout.failed": "Hubo un error al poner al miembro en timeout.",
+
+	"ping.title": "🏓 ¡Pong!",
+	"ping.description": "Información de latencia",
+	"ping.measuring": "Midiendo la latencia...",
+
+	"economy.balance.title": "💰 Saldo",
+	"economy.balance.field.wallet": "💸 Cartera",
+	"economy.balance.field.bank": "🏦 Banco"
+}

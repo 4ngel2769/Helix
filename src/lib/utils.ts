@@ -2,9 +2,6 @@ import type { ChatInputCommandSuccessPayload, Command, ContextMenuCommandSuccess
 import { container } from '@sapphire/framework';
 import { cyan, greenBright } from 'colorette';
 import type { APIUser, User } from 'discord.js';
-import { promises as fs } from 'fs';
-import path from 'path';
-import YAML from 'yaml';
 
 /**
  * Picks a random item from an array
@@ -59,26 +56,3 @@ function getGuildInfo(guild: import('discord.js').Guild | null) {
 	return `${guild.name}[${cyan(guild.id)}]`;
 }
 
-interface Replies {
-	[key: string]: string;
-}
-
-let cachedReplies: Replies | null = null;
-
-async function readYamlFile<T>(filePath: string): Promise<T> {
-	const replyContent = await fs.readFile(filePath, 'utf-8');
-	return YAML.parse(replyContent) as T;
-}
-
-async function loadReply(filePath?: string): Promise<Replies> {
-	if (!cachedReplies) {
-		const resolvedPath = filePath || path.join(__dirname, '../../defaultreplies.yaml');
-		cachedReplies = await readYamlFile<Replies>(resolvedPath);
-	}
-	return cachedReplies;
-}
-
-export async function getDefReply(key: string, filePath?: string): Promise<string | undefined> {
-	const replies = await loadReply(filePath);
-	return replies[key];
-}
