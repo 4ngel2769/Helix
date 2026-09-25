@@ -91,7 +91,7 @@ const client = new SapphireClient({
 });
 
 if ((client as any).api?.server) {
-    (client as any).api.server.use(rateLimit({ windowMs: 60000, max: 30, standardHeaders: true, legacyHeaders: false }));
+    (client as any).api.server.use(rateLimit({ windowMs: 60000, limit: 30, standardHeaders: true, legacyHeaders: false }));
 }
 
 const main = async () => {
