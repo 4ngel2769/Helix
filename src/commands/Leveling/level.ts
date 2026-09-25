@@ -111,7 +111,7 @@ export class LevelCommand extends HybridModuleCommand<LevelingModule> {
 
 			// Reward roles follow the member's level in both directions.
 			let rolesChanged = 0;
-			const member = interaction.guild?.members.get(target.id);
+			const member = interaction.guild?.members.cache.get(target.id);
 			const lv = (await getGuildAutomation(interaction.guildId).catch(() => null))?.leveling;
 			if (member && lv?.roleRewards?.length) {
 				rolesChanged = (await syncRoleRewards(member, res.level, lv).catch(() => [])).length;
