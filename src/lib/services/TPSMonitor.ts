@@ -1,17 +1,6 @@
 import { monitorEventLoopDelay } from 'perf_hooks';
 import type { SapphireClient } from '@sapphire/framework';
 
-export interface PerformanceMetrics {
-	eventRate: number;
-	messageRate: number;
-	interactionRate: number;
-	averageEventLoopLatencyMs: number;
-	maxEventLoopLatencyMs: number;
-	p95EventLoopLatencyMs: number;
-	memoryUsage: NodeJS.MemoryUsage;
-	uptimeSeconds: number;
-}
-
 export class PerformanceMonitor {
 	private static instance: PerformanceMonitor | null = null;
 	private readonly summaryIntervalMs = 1000;

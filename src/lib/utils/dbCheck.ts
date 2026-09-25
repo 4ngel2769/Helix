@@ -55,29 +55,6 @@ export async function initializeDatabase(): Promise<boolean> {
 }
 
 /**
- * Checks the MongoDB connection status
- * @returns Promise<boolean> True if connected, false otherwise
- */
-export async function checkDatabaseConnection(): Promise<boolean> {
-	// Check if mongoose is connected
-	const isConnected = mongoose.connection.readyState === 1;
-
-	if (!isConnected) {
-		container.logger.error('MongoDB is not connected! Connection state:', mongoose.connection.readyState);
-
-		// Try to reconnect if not connected
-		try {
-			return await initializeDatabase();
-		} catch (error) {
-			container.logger.error('Failed to reconnect to MongoDB:', error);
-			return false;
-		}
-	}
-
-	return true;
-}
-
-/**
  * Ensures required collections exist in the database
  * @returns Promise<string[]> List of verified collections
  */

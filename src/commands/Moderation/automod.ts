@@ -680,19 +680,18 @@ export class AutoModCommand extends HybridModuleCommand<ModerationModule> {
 
     // For autocomplete on rule IDs
     public override async autocompleteRun(interaction: Command.AutocompleteInteraction) {
-        if (interaction.commandName === 'automod' && interaction.options.getSubcommand() === 'delete') {
-            try {
-                const rules = await interaction.guild!.autoModerationRules.fetch();
-                const choices = rules.map(rule => ({
-                    name: `${rule.name} (${rule.id})`,
-                    value: rule.id
-                }));
-                
-                return interaction.respond(choices);
-            } catch (error) {
-                this.container.logger.error('Error in autocomplete:', error);
-                return interaction.respond([]);
-            }
+        if (interaction.commandName !== 'automod' || interaction.options.getSubcommand() !== 'delete') return;
+        try {
+            const rules = await interaction.guild!.autoModerationRules.fetch();
+            const choices = rules.map(rule => ({
+                name: `${rule.name} (${rule.id})`,
+                value: rule.id
+            }));
+
+            return interaction.respond(choices);
+        } catch (error) {
+            this.container.logger.error('Error in autocomplete:', error);
+            return interaction.respond([]);
         }
     }
 

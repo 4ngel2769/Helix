@@ -222,13 +222,6 @@ export function readString(body: Record<string, unknown>, key: string, maxLength
 }
 
 /** Optional variant — undefined when absent, null when present-but-invalid. */
-export function readOptionalString(body: Record<string, unknown>, key: string, maxLength = 2000): string | undefined | null {
-	if (!(key in body) || body[key] === undefined || body[key] === null) return undefined;
-	const value = body[key];
-	if (typeof value !== 'string' || value.length > maxLength) return null;
-	return value;
-}
-
 /** Validate an array-of-strings field (e.g. disabledCommands). */
 export function readStringArray(body: Record<string, unknown>, key: string, maxItems = 500, maxItemLength = 64): string[] | null {
 	const value = body[key];

@@ -115,8 +115,6 @@ export async function sendLog(guild: Guild, eventKey: string, payload: LogPayloa
 	}
 }
 
-export const LogFormat = { mention };
-
 // --- Command/event dedupe -------------------------------------------------
 // Commands log rich entries (actor + reason) themselves, then suppress the
 // matching event echo (ban/timeout/kick also fire Discord events).

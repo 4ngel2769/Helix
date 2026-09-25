@@ -29,9 +29,6 @@ export const CARD_BACKGROUNDS: CardBackground[] = [
 	{ key: 'card4', label: 'Card 4', premium: true, file: 'card4.png', base: '#3b0764', accent: '#e879f9', stops: [{ at: 0, color: '#3b0764' }, { at: 1, color: '#a21caf' }] }
 ];
 
-export const FREE_BACKGROUNDS = CARD_BACKGROUNDS.filter((b) => !b.premium);
-export const PREMIUM_BACKGROUNDS = CARD_BACKGROUNDS.filter((b) => b.premium);
-
 export function getBackground(key: string): CardBackground {
 	return CARD_BACKGROUNDS.find((b) => b.key === key) ?? CARD_BACKGROUNDS[0]!;
 }

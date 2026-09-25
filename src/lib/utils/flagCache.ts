@@ -16,10 +16,6 @@ const MAX_CACHED_USERS = 10_000;
  * Map lookup. Entries are filled on first miss and refreshed explicitly by
  * the dev API after each toggle — no TTL polling, no extra latency.
  */
-export function peekGuildFlags(guildId: string): GuildFlags | null {
-	return guilds.get(guildId) ?? null;
-}
-
 export async function loadGuildFlags(guildId: string): Promise<GuildFlags> {
 	const hit = guilds.get(guildId);
 	if (hit) return hit;
