@@ -12,6 +12,8 @@
  * Character classes use the RegExp constructor so this file stays pure ASCII.
  */
 
+import { isValidScopeKey } from './scopedRules';
+
 const CONTROLS = new RegExp('[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F-\\u009F]', 'g');
 const INVISIBLE = new RegExp('[\\u200B\\u00AD\\u2060\\uFEFF\\u202A-\\u202E\\u2066-\\u2069]', 'g');
 
@@ -64,30 +66,47 @@ export function cleanAutomodKeywords(update: Record<string, unknown>): string | 
 
 const WARN_ACTIONS = ['kick', 'ban', 'timeout'] as const;
 
-/** Validate warnSettings shape. Returns an error string or null. */
-export function cleanWarnSettings(update: Record<string, unknown>): string | null {
-	const v = update.warnSettings as Record<string, unknown> | null;
-	if (v === null || typeof v !== 'object' || Array.isArray(v)) return 'warnSettings must be an object';
+/** Validate the tunables a warn override may change. */
+function cleanWarnBody(v: Record<string, unknown>, path: string): string | null {
 	if ('thresholds' in v) {
 		const t = v.thresholds;
-		if (!Array.isArray(t) || t.length > 20) return 'warnSettings.thresholds must be an array of max 20';
+		if (!Array.isArray(t) || t.length > 20) return `${path}.thresholds must be an array of max 20`;
 		for (const entry of t) {
-			if (typeof entry !== 'object' || entry === null) return 'warnSettings.thresholds entries must be objects';
+			if (typeof entry !== 'object' || entry === null) return `${path}.thresholds entries must be objects`;
 			const rec = entry as Record<string, unknown>;
 			if (!Number.isInteger(rec.count) || (rec.count as number) < 1 || (rec.count as number) > 99) {
-				return 'warnSettings.thresholds[].count must be an integer 1-99';
+				return `${path}.thresholds[].count must be an integer 1-99`;
 			}
 			if (typeof rec.action !== 'string' || !(WARN_ACTIONS as readonly string[]).includes(rec.action)) {
-				return 'warnSettings.thresholds[].action must be kick, ban or timeout';
+				return `${path}.thresholds[].action must be kick, ban or timeout`;
 			}
 			if (rec.duration !== undefined && rec.duration !== null && (!Number.isInteger(rec.duration) || (rec.duration as number) < 1 || (rec.duration as number) > 40320)) {
-				return 'warnSettings.thresholds[].duration must be 1-40320 minutes';
+				return `${path}.thresholds[].duration must be 1-40320 minutes`;
 			}
 		}
 	}
 	if ('modChannelId' in v && v.modChannelId !== null && (typeof v.modChannelId !== 'string' || !/^\d{16,22}$/.test(v.modChannelId))) {
-		return 'warnSettings.modChannelId must be null or a Discord id';
+		return `${path}.modChannelId must be null or a Discord id`;
 	}
+	if ('dmEnabled' in v && typeof v.dmEnabled !== 'boolean') return `${path}.dmEnabled must be a boolean`;
+	if ('dmTemplate' in v) {
+		if (v.dmTemplate === null) {
+			v.dmTemplate = null;
+		} else {
+			const template = sanitizeText(v.dmTemplate, 1000);
+			if (!template) return `${path}.dmTemplate must be null or text up to 1000 chars`;
+			v.dmTemplate = template;
+		}
+	}
+	return null;
+}
+
+/** Validate warnSettings shape. Returns an error string or null. */
+export function cleanWarnSettings(update: Record<string, unknown>): string | null {
+	const v = update.warnSettings as Record<string, unknown> | null;
+	if (v === null || typeof v !== 'object' || Array.isArray(v)) return 'warnSettings must be an object';
+	const err = cleanWarnBody(v, 'warnSettings');
+	if (err) return err;
 	if ('reasonAliases' in v) {
 		const aliases = v.reasonAliases;
 		if (aliases === null || typeof aliases !== 'object' || Array.isArray(aliases)) return 'warnSettings.reasonAliases must be an object';
@@ -102,16 +121,7 @@ export function cleanWarnSettings(update: Record<string, unknown>): string | nul
 		}
 		v.reasonAliases = clean;
 	}
-	if ('dmEnabled' in v && typeof v.dmEnabled !== 'boolean') return 'warnSettings.dmEnabled must be a boolean';
-	if ('dmTemplate' in v) {
-		if (v.dmTemplate === null) {
-			v.dmTemplate = null;
-		} else {
-			const template = sanitizeText(v.dmTemplate, 1000);
-			if (!template) return 'warnSettings.dmTemplate must be null or text up to 1000 chars';
-			v.dmTemplate = template;
-		}
-	}
+	if ('overrides' in v) return cleanScopeMap(v.overrides, 'warnSettings.overrides', 200, cleanWarnBody);
 	return null;
 }
 
@@ -196,19 +206,17 @@ export function cleanLeveling(update: Record<string, unknown>): string | null {
 const AUTOMOD_ACTIONS = ['delete', 'delete_warn', 'delete_timeout', 'delete_kick', 'delete_ban'] as const;
 const AUTOMOD_FILTERS = ['invites', 'links', 'caps', 'emoji', 'spam', 'repeat', 'spoilers', 'attachments', 'zalgo'] as const;
 
-/** Validate + clean the Helix custom automod settings object in place. Returns an error string or null. */
-export function cleanAutomodSettings(update: Record<string, unknown>): string | null {
-	const v = update.automodSettings as Record<string, unknown> | null;
-	if (v === null || typeof v !== 'object' || Array.isArray(v)) return 'automodSettings must be an object';
-	if ('enabled' in v && typeof v.enabled !== 'boolean') return 'automodSettings.enabled must be a boolean';
+/** Validate the automod tuning fields of a settings object (root or one override). */
+function cleanAutomodBody(v: Record<string, unknown>, path: string): string | null {
+	if ('enabled' in v && typeof v.enabled !== 'boolean') return `${path}.enabled must be a boolean`;
 	for (const key of ['blockInvites', 'blockLinks', 'zalgo'] as const) {
-		if (key in v && typeof v[key] !== 'boolean') return `automodSettings.${key} must be a boolean`;
+		if (key in v && typeof v[key] !== 'boolean') return `${path}.${key} must be a boolean`;
 	}
 	for (const [key, fields] of [['caps', ['minLength', 5, 500, 'percent', 10, 100]], ['emoji', ['max', 1, 100]], ['spam', ['count', 2, 20, 'intervalSeconds', 2, 120]], ['repeatText', ['count', 2, 20, 'intervalSeconds', 2, 300]], ['spoilers', []], ['attachments', ['max', 0, 10]]] as const) {
 		if (!(key in v)) continue;
 		const sub = v[key] as Record<string, unknown> | null;
-		if (sub === null || typeof sub !== 'object' || Array.isArray(sub)) return `automodSettings.${key} must be an object`;
-		if ('enabled' in sub && typeof sub.enabled !== 'boolean') return `automodSettings.${key}.enabled must be a boolean`;
+		if (sub === null || typeof sub !== 'object' || Array.isArray(sub)) return `${path}.${key} must be an object`;
+		if ('enabled' in sub && typeof sub.enabled !== 'boolean') return `${path}.${key}.enabled must be a boolean`;
 		const nums = fields as unknown as Array<string | number>;
 		for (let i = 0; i < nums.length; i += 3) {
 			const field = nums[i] as string;
@@ -216,31 +224,60 @@ export function cleanAutomodSettings(update: Record<string, unknown>): string | 
 			const max = nums[i + 2] as number;
 			if (!(field in sub)) continue;
 			const n = intInRange(sub[field], min, max);
-			if (n === null) return `automodSettings.${key}.${field} must be an integer ${min}-${max}`;
+			if (n === null) return `${path}.${key}.${field} must be an integer ${min}-${max}`;
 			sub[field] = n;
 		}
 	}
 	for (const key of ['ignoredChannels', 'ignoredRoles'] as const) {
 		if (!(key in v)) continue;
 		const arr = snowflakeArray(v[key], 200);
-		if (!arr) return `automodSettings.${key} must be an array of up to 200 Discord ids`;
+		if (!arr) return `${path}.${key} must be an array of up to 200 Discord ids`;
 		v[key] = arr;
 	}
 	if ('action' in v && (typeof v.action !== 'string' || !(AUTOMOD_ACTIONS as readonly string[]).includes(v.action))) {
-		return 'automodSettings.action must be delete, delete_warn, delete_timeout, delete_kick or delete_ban';
+		return `${path}.action must be ${AUTOMOD_ACTIONS.join(', ')}`;
 	}
 	if ('actions' in v) {
 		const actions = v.actions as Record<string, unknown> | null;
-		if (actions === null || typeof actions !== 'object' || Array.isArray(actions)) return 'automodSettings.actions must be an object';
+		if (actions === null || typeof actions !== 'object' || Array.isArray(actions)) return `${path}.actions must be an object`;
 		for (const [key, value] of Object.entries(actions)) {
-			if (!(AUTOMOD_FILTERS as readonly string[]).includes(key)) return `automodSettings.actions.${key} is not a supported filter`;
-			if (typeof value !== 'string' || !(AUTOMOD_ACTIONS as readonly string[]).includes(value)) return `automodSettings.actions.${key} must be delete, delete_warn, delete_timeout, delete_kick or delete_ban`;
+			if (!(AUTOMOD_FILTERS as readonly string[]).includes(key)) return `${path}.actions.${key} is not a supported filter`;
+			if (typeof value !== 'string' || !(AUTOMOD_ACTIONS as readonly string[]).includes(value)) return `${path}.actions.${key} must be ${AUTOMOD_ACTIONS.join(', ')}`;
 		}
 	}
 	if ('timeoutSeconds' in v) {
 		const n = intInRange(v.timeoutSeconds, 10, 2419200);
-		if (n === null) return 'automodSettings.timeoutSeconds must be an integer 10-2419200';
+		if (n === null) return `${path}.timeoutSeconds must be an integer 10-2419200`;
 		v.timeoutSeconds = n;
 	}
+	return null;
+}
+
+/** Validate a `c:<id>` / `r:<id>` -> { exempt, settings } map. */
+function cleanScopeMap(v: unknown, path: string, max: number, cleanBody: (body: Record<string, unknown>, path: string) => string | null): string | null {
+	if (v === null || typeof v !== 'object' || Array.isArray(v)) return `${path} must be an object`;
+	const entries = Object.entries(v as Record<string, unknown>);
+	if (entries.length > max) return `${path} allows max ${max} entries`;
+	for (const [key, rule] of entries) {
+		if (!isValidScopeKey(key)) return `${path} key "${key}" must be c:<channelId> or r:<roleId>`;
+		if (rule === null || typeof rule !== 'object' || Array.isArray(rule)) return `${path}.${key} must be an object`;
+		const rec = rule as Record<string, unknown>;
+		if ('exempt' in rec && typeof rec.exempt !== 'boolean') return `${path}.${key}.exempt must be a boolean`;
+		if ('settings' in rec) {
+			if (rec.settings === null || typeof rec.settings !== 'object' || Array.isArray(rec.settings)) return `${path}.${key}.settings must be an object`;
+			const err = cleanBody(rec.settings as Record<string, unknown>, `${path}.${key}.settings`);
+			if (err) return err;
+		}
+	}
+	return null;
+}
+
+/** Validate + clean the Helix custom automod settings object in place. Returns an error string or null. */
+export function cleanAutomodSettings(update: Record<string, unknown>): string | null {
+	const v = update.automodSettings as Record<string, unknown> | null;
+	if (v === null || typeof v !== 'object' || Array.isArray(v)) return 'automodSettings must be an object';
+	const err = cleanAutomodBody(v, 'automodSettings');
+	if (err) return err;
+	if ('overrides' in v) return cleanScopeMap(v.overrides, 'automodSettings.overrides', 200, cleanAutomodBody);
 	return null;
 }

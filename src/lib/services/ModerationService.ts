@@ -1,7 +1,10 @@
 import { container } from '@sapphire/framework';
 import { User, type UserWarning } from '../../models/User';
-import { Guild, type IGuild } from '../../models/Guild';
+import { Guild, type IGuild, type WarnRuleSettings } from '../../models/Guild';
 import { sendLog } from '../logging/logService';
+import { resolveScopes } from '../utils/scopedRules';
+
+type WarnThresholds = WarnRuleSettings['thresholds'];
 
 export type WarningSource = 'manual' | 'automod' | 'api' | 'system';
 export type WarningAction = 'timeout' | 'kick' | 'ban';
@@ -32,6 +35,7 @@ export class ModerationService {
 	public static async createWarning(options: CreateWarningOptions): Promise<{ warning: WarningRecord; activeCount: number; escalation?: WarningEscalation }> {
 		const settings = await Guild.findOne({ guildId: options.guildId }, { warnSettings: 1 }).lean() as Pick<IGuild, 'warnSettings'> | null;
 		const reason = this.resolveReason(options.reason, settings?.warnSettings?.reasonAliases);
+		const rules = await this.resolveRules(options.guildId, options.userId, options.channelId, settings?.warnSettings);
 		const warning: UserWarning = {
 			guildId: options.guildId,
 			reason: reason.slice(0, 1000),
@@ -54,9 +58,9 @@ export class ModerationService {
 		}
 		const created = ((user ?? (await User.findOne({ userId: options.userId }, { warnings: 1 })))?.warnings?.at(-1) ?? warning) as WarningRecord;
 		const activeCount = await this.getActiveWarningCount(options.guildId, options.userId);
-		const escalation = await this.applyThreshold(options.guildId, options.userId, activeCount, reason);
-		if (options.dm ?? settings?.warnSettings?.dmEnabled ?? false) {
-			await this.sendWarningDm(options.userId, options.guildId, reason, created, settings?.warnSettings?.dmTemplate);
+		const escalation = await this.applyThreshold(options.guildId, options.userId, activeCount, reason, rules.thresholds);
+		if (options.dm ?? rules.dmEnabled ?? false) {
+			await this.sendWarningDm(options.userId, options.guildId, reason, created, rules.dmTemplate);
 		}
 		const guild = container.client.guilds.cache.get(options.guildId);
 		if (guild) {
@@ -135,11 +139,33 @@ export class ModerationService {
 		await user.send(content).catch(() => null);
 	}
 
-	private static async applyThreshold(guildId: string, userId: string, activeCount: number, reason: string): Promise<WarningEscalation | undefined> {
-		const guildData = await Guild.findOne({ guildId }, { warnSettings: 1 }).lean() as Pick<IGuild, 'warnSettings'> | null;
-		const threshold = (guildData?.warnSettings?.thresholds ?? []).find((entry) => entry.count === activeCount);
+	private static async applyThreshold(guildId: string, userId: string, activeCount: number, reason: string, thresholds?: WarnThresholds): Promise<WarningEscalation | undefined> {
+		const list = thresholds ?? (await Guild.findOne({ guildId }, { warnSettings: 1 }).lean() as Pick<IGuild, 'warnSettings'> | null)?.warnSettings?.thresholds ?? [];
+		const threshold = list.find((entry) => entry.count === activeCount);
 		if (!threshold) return undefined;
 		const applied = await this.applyAction(guildId, userId, threshold.action, `Warning threshold: ${reason}`, (threshold.duration ?? 10) * 60);
 		return applied ? { action: threshold.action, duration: threshold.duration } : undefined;
+	}
+
+	/**
+	 * Guild-wide warn rules with any `c:` / `r:` override for this member and
+	 * channel merged over them. Needs the live member, so it is best-effort:
+	 * an unfetchable member simply uses the guild-wide rules.
+	 */
+	private static async resolveRules(guildId: string, userId: string, channelId: string | undefined, warnSettings: IGuild['warnSettings']): Promise<WarnRuleSettings> {
+		const base: WarnRuleSettings = {
+			thresholds: warnSettings?.thresholds,
+			dmEnabled: warnSettings?.dmEnabled,
+			dmTemplate: warnSettings?.dmTemplate
+		};
+		if (!warnSettings?.overrides) return base;
+		const roleIds: string[] = [];
+		const guild = container.client.guilds.cache.get(guildId);
+		if (guild) {
+			const member = guild.members.cache.get(userId) ?? (await guild.members.fetch(userId).catch(() => null));
+			if (member) roleIds.push(...member.roles.cache.map((role) => role.id));
+		}
+		const { settings } = resolveScopes<WarnRuleSettings>(base, warnSettings.overrides, channelId ?? null, roleIds);
+		return settings;
 	}
 }

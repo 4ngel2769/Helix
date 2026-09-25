@@ -2,125 +2,46 @@ import { ModuleCommand } from '@kbotdev/plugin-modules';
 import { ModerationModule } from '../../modules/Moderation';
 import { ApplyOptions } from '@sapphire/decorators';
 import { Command } from '@sapphire/framework';
-import { 
-    ChannelType, 
-    ColorResolvable, 
-    EmbedBuilder, 
-    GuildMember, 
-    PermissionFlagsBits,
-    TextChannel,
-    MessageFlags
-} from 'discord.js';
-import { Guild } from '../../models/Guild';
-import { ErrorHandler } from '../../lib/structures/ErrorHandler';
-import config from '../../config';
+import { ChannelType, MessageFlags, PermissionFlagsBits } from 'discord.js';
+import { ChannelLockService } from '../../lib/services/ChannelLockService';
 
 import { HybridModuleCommand } from '../../lib/structures/HybridCommand';
 
-@ApplyOptions<Command.Options>({
-    name: 'unlock',
-    description: 'Unlock a channel',
-    preconditions: ['GuildOnly']
-})
+@ApplyOptions<Command.Options>({ name: 'unlock', description: 'Unlock a channel', preconditions: ['GuildOnly'] })
 export class UnlockCommand extends HybridModuleCommand<ModerationModule> {
-    public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
-        super(context, {
-            ...options,
-            module: 'Moderation',
-            description: 'Unlock a channel',
-            enabled: true
-        });
-    }
+	public constructor(context: ModuleCommand.LoaderContext, options: ModuleCommand.Options) {
+		super(context, { ...options, module: 'Moderation', description: 'Unlock a channel', enabled: true });
+	}
 
-    public override registerApplicationCommands(registry: Command.Registry) {
-        registry.registerChatInputCommand((builder) =>
-            builder
-                .setName('unlock')
-                .setDescription('Unlock a channel')
-                .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels)
-                .addChannelOption((option) =>
-                    option
-                        .setName('channel')
-                        .setDescription('The channel to unlock')
-                        .addChannelTypes(ChannelType.GuildText)
-                        .setRequired(true)
-                )
-                .addStringOption((option) =>
-                    option
-                        .setName('reason')
-                        .setDescription('Reason for unlocking the channel')
-                        .setRequired(false)
-                )
-        );
-    }
+	public override registerApplicationCommands(registry: Command.Registry) {
+		registry.registerChatInputCommand((builder) =>
+			builder
+				.setName('unlock')
+				.setDescription('Unlock a channel')
+				.setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels)
+				.addChannelOption((option) => option.setName('channel').setDescription('The channel to unlock').addChannelTypes(ChannelType.GuildText, ChannelType.GuildForum).setRequired(true))
+				.addStringOption((option) => option.setName('reason').setDescription('Reason for unlocking the channel').setRequired(false))
+		);
+	}
 
-    public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
-        const guildId = interaction.guildId!;
-        const guildData = await Guild.findOne({ guildId });
+	public override async chatInputRun(interaction: Command.ChatInputCommandInteraction) {
+		const guild = interaction.guild;
+		if (!guild) return interaction.reply({ content: 'This only works in a server.', flags: MessageFlags.Ephemeral });
+		if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageChannels) || !interaction.memberPermissions?.has(PermissionFlagsBits.ManageRoles)) {
+			return interaction.reply({ content: 'You need Manage Channels and Manage Roles.', flags: MessageFlags.Ephemeral });
+		}
 
-        // Check if user has mod role or required permissions
-        const member = interaction.member;
-        const hasModRole = guildData?.modRoleId && (member as GuildMember)?.roles?.cache.has(guildData.modRoleId);
-        
-        if (!hasModRole && !(member as GuildMember)?.permissions?.has(PermissionFlagsBits.ManageChannels)) {
-            return ErrorHandler.sendModeratorError(interaction);
-        }
-
-        const channel = interaction.options.getChannel('channel', true) as TextChannel;
-        const reason = interaction.options.getString('reason') || 'No reason provided';
-
-        try {
-            // Check if the channel is actually locked
-            const isLocked = guildData?.lockedChannels?.some(lock => lock.channelId === channel.id);
-            
-            // Unlock the channel by removing the permission override
-            await channel.permissionOverwrites.edit(interaction.guild!.roles.everyone, {
-                SendMessages: null // Remove the override
-            });
-
-            // Create embed for notification
-            const embed = new EmbedBuilder()
-                .setColor(config.bot.embedColor.success as ColorResolvable)
-                .setTitle('ðŸ”“ Channel Unlocked')
-                .setDescription(`This channel has been unlocked by ${interaction.user}`)
-                .addFields({ name: 'Reason', value: reason });
-
-            // Send notification in the channel
-            await channel.send({ embeds: [embed] });
-
-            // If the channel was in the database, remove it
-            if (isLocked) {
-                await this.removeChannelLock(guildId, channel.id);
-            }
-
-            return interaction.reply({
-                content: `Successfully unlocked ${channel}`,
-                flags: MessageFlags.Ephemeral
-            });
-        } catch (error) {
-            this.container.logger.error('Error unlocking channel:', error);
-            return ErrorHandler.sendCommandError(
-                interaction,
-                'Failed to unlock the channel. Please check my permissions and try again.'
-            );
-        }
-    }
-
-    /**
-     * Remove channel lock from database
-     */
-    private async removeChannelLock(guildId: string, channelId: string): Promise<void> {
-        try {
-            const guildData = await Guild.findOne({ guildId });
-            if (!guildData || !guildData.lockedChannels) return;
-            
-            guildData.lockedChannels = guildData.lockedChannels.filter(
-                lock => lock.channelId !== channelId
-            );
-            
-            await guildData.save();
-        } catch (error) {
-            this.container.logger.error('Error removing channel lock from database:', error);
-        }
-    }
+		const channel = interaction.options.getChannel('channel', true);
+		if (!channel || !('permissionOverwrites' in channel)) {
+			return interaction.reply({ content: 'That channel cannot be unlocked.', flags: MessageFlags.Ephemeral });
+		}
+		const reason = interaction.options.getString('reason') ?? 'No reason provided';
+		try {
+			await ChannelLockService.unlock(guild, channel.id);
+			return interaction.reply({ content: `Unlocked ${channel}. Reason: ${reason}`, flags: MessageFlags.Ephemeral });
+		} catch (error) {
+			this.container.logger.error('Error unlocking channel:', error);
+			return interaction.reply({ content: 'Failed to unlock the channel. Check my permissions and try again.', flags: MessageFlags.Ephemeral });
+		}
+	}
 }

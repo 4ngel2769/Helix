@@ -1,5 +1,6 @@
 import { PermissionFlagsBits, type Message } from 'discord.js';
 import type { AutomodAction, AutomodFilter, CustomAutomodSettings } from '../../models/Guild';
+import { resolveScopes } from './scopedRules';
 
 const INVITE_RE = /discord(?:app)?\.(?:com|gg)(?:\/invite)?\/[a-z0-9-]+/i;
 const LINK_RE = /https?:\/\/[^\s]+/i;
@@ -149,9 +150,27 @@ export function checkRepeatText(guildId: string, userId: string, text: string, s
 	return hits.length >= s.repeatCount;
 }
 
+/**
+ * Merge the guild-wide automod settings with any `c:` / `r:` override that
+ * applies to this message. Role overrides win over the channel override so a
+ * role can be stricter than its channel; `exempt` skips enforcement entirely.
+ */
+export function resolveAutomodScopes(
+	raw: Record<string, unknown> | CustomAutomodSettings | null | undefined,
+	channelId: string | null,
+	roleIds: Iterable<string>
+): { settings: NormalizedAutomod; exempt: boolean; scopes: string[] } {
+	const base = (raw ?? {}) as CustomAutomodSettings;
+	const { settings, exempt, scopes } = resolveScopes<CustomAutomodSettings>(base, base.overrides, channelId, roleIds);
+	return { settings: normalizeAutomod(settings as Record<string, unknown>), exempt, scopes };
+}
+
 export async function handleCustomAutomod(message: Message, raw: Record<string, unknown> | undefined, roles: { adminRoleId?: string; modRoleId?: string } = {}): Promise<boolean> {
-	const s = normalizeAutomod(raw);
-	if (!s.enabled || !message.guild || !message.member) return false;
+	if (!message.guild || !message.member) return false;
+	const resolved = resolveAutomodScopes(raw, message.channelId, message.member.roles.cache.map((r) => r.id));
+	if (resolved.exempt) return false;
+	const s = resolved.settings;
+	if (!s.enabled) return false;
 	if (message.member.permissions.has(PermissionFlagsBits.ManageMessages)) return false;
 	if (s.ignoredChannels.includes(message.channelId)) return false;
 	if (s.ignoredRoles.length > 0 && message.member.roles.cache.some((role) => s.ignoredRoles.includes(role.id))) return false;
@@ -191,7 +210,10 @@ export async function handleCustomAutomod(message: Message, raw: Record<string, 
 	const { sendLog } = await import('../logging/logService.js');
 	await sendLog(message.guild, 'automod.action', {
 		description: `Helix filter (${reason}) removed a message by <@${message.author.id}> in <#${message.channelId}>.`,
-		fields: message.content ? [{ name: 'Content', value: message.content.slice(0, 500) }] : [],
+		fields: [
+			...(message.content ? [{ name: 'Content', value: message.content.slice(0, 500) }] : []),
+			...(resolved.scopes.length ? [{ name: 'Scopes', value: resolved.scopes.join(', '), inline: true }] : [])
+		],
 		targetId: message.author.id,
 		contextChannelId: message.channelId,
 		isBot: message.author.bot
@@ -226,4 +248,24 @@ export function __automodSelfCheck(): void {
 	if (checkRepeatText('selfcheck-repeat', 'selfcheck-user', 'same', repeatCfg)) throw new Error('repeat tripped early');
 	if (checkRepeatText('selfcheck-repeat', 'selfcheck-user', 'same', repeatCfg)) throw new Error('repeat tripped early');
 	if (!checkRepeatText('selfcheck-repeat', 'selfcheck-user', 'same', repeatCfg)) throw new Error('repeat did not trip');
+
+	// Per-channel / per-role scoping.
+	const scopedRaw: Record<string, unknown> = {
+		enabled: true,
+		action: 'delete',
+		actions: { invites: 'delete_ban' },
+		overrides: {
+			'c:111111111111111111': { settings: { action: 'delete_warn' } },
+			'r:222222222222222222': { settings: { actions: { invites: 'delete_kick' } } },
+			'r:333333333333333333': { exempt: true }
+		}
+	};
+	const inChannel = resolveAutomodScopes(scopedRaw, '111111111111111111', []);
+	if (inChannel.settings.action !== 'delete_warn' || inChannel.scopes.length !== 1) throw new Error('channel override not applied');
+	const inRole = resolveAutomodScopes(scopedRaw, '111111111111111111', ['222222222222222222']);
+	if (inRole.settings.action !== 'delete_warn' || inRole.settings.actions?.invites !== 'delete_kick') throw new Error('role override did not win');
+	const exempt = resolveAutomodScopes(scopedRaw, '111111111111111111', ['333333333333333333']);
+	if (!exempt.exempt) throw new Error('exempt role was not honoured');
+	const unscoped = resolveAutomodScopes(scopedRaw, '999999999999999999', ['444444444444444444']);
+	if (unscoped.settings.action !== 'delete' || unscoped.scopes.length !== 0) throw new Error('unscoped message picked up an override');
 }

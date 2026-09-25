@@ -74,6 +74,44 @@
 	let ignoreChannelQuery = $state('');
 	let ignoreRoleQuery = $state('');
 
+	// Per-channel / per-role Helix filter overrides (c:<channelId> / r:<roleId>)
+	interface OverrideRule { exempt?: boolean; actions?: Record<string, string> }
+	let overrides = $state<Record<string, OverrideRule>>({});
+	let newScopeKind = $state<'channel' | 'role'>('channel');
+	let newScopeTarget = $state('');
+	let newScopeFilter = $state('invites');
+	let newScopeAction = $state('delete_warn');
+	let newScopeExempt = $state(false);
+	let scopeError = $state<string | null>(null);
+
+	function scopeKey(kind: 'channel' | 'role', id: string): string {
+		return `${kind === 'channel' ? 'c' : 'r'}:${id}`;
+	}
+	function scopeLabel(key: string): string {
+		const id = key.slice(2);
+		return key.startsWith('c:') ? `#${channels.find((c) => c.id === id)?.name ?? id}` : `@${roles.find((r) => r.id === id)?.name ?? id}`;
+	}
+	function scopeSummary(rule: OverrideRule): string {
+		const parts = Object.entries(rule.actions ?? {}).map(([k, v]) => `${k} → ${v}`);
+		if (rule.exempt) parts.unshift('exempt');
+		return parts.length ? parts.join(', ') : 'no changes (inherits guild rules)';
+	}
+	function addOverride(): void {
+		scopeError = null;
+		if (!newScopeTarget) {
+			scopeError = 'Pick a channel or role.';
+			return;
+		}
+		const key = scopeKey(newScopeKind, newScopeTarget);
+		const current = overrides[key] ?? {};
+		overrides = {
+			...overrides,
+			[key]: { exempt: newScopeExempt || current.exempt === true, actions: { ...(current.actions ?? {}), [newScopeFilter]: newScopeAction } }
+		};
+		newScopeTarget = '';
+		newScopeExempt = false;
+	}
+
 	// Discord native rules
 	interface NativeRule { id: string; name: string; trigger: string; enabled: boolean }
 	let nativeRules = $state<NativeRule[]>([]);
@@ -136,12 +174,13 @@
 		timeoutSecs = num(fx.timeoutSeconds, 600);
 		ignoredChannels = Array.isArray(fx.ignoredChannels) ? (fx.ignoredChannels as string[]) : [];
 		ignoredRoles = Array.isArray(fx.ignoredRoles) ? (fx.ignoredRoles as string[]) : [];
+		overrides = typeof fx.overrides === 'object' && fx.overrides !== null && !Array.isArray(fx.overrides) ? (fx.overrides as Record<string, OverrideRule>) : {};
 
 		baseline = snapshot();
 	}
 
 	function snapshot(): string {
-		return JSON.stringify({ values, fxEnabled, blockInvites, blockLinks, zalgo, capsOn, capsMin, capsPct, emojiOn, emojiMax, spamOn, spamCount, spamSecs, repeatOn, repeatCount, repeatSecs, spoilersOn, attachmentsOn, attachmentsMax, action, actions, timeoutSecs, ignoredChannels, ignoredRoles });
+		return JSON.stringify({ values, fxEnabled, blockInvites, blockLinks, zalgo, capsOn, capsMin, capsPct, emojiOn, emojiMax, spamOn, spamCount, spamSecs, repeatOn, repeatCount, repeatSecs, spoilersOn, attachmentsOn, attachmentsMax, action, actions, timeoutSecs, ignoredChannels, ignoredRoles, overrides });
 	}
 
 	$effect(() => {
@@ -175,7 +214,8 @@
 					actions,
 					timeoutSeconds: timeoutSecs,
 					ignoredChannels,
-					ignoredRoles
+					ignoredRoles,
+					overrides
 				}
 			});
 			baseline = snapshot();
@@ -307,6 +347,48 @@
 </div>
 
 <div class="card">
+	<h3>Channel / role rules</h3>
+	<p class="hint">Override the Helix filters for one channel or role — e.g. delete-only in <em>#staff-chat</em>, ban for links in a raid-prone channel, or exempt a trusted role. Role rules win over channel rules; both win over the guild-wide settings above.</p>
+	{#if Object.keys(overrides).length === 0}
+		<p class="hint">No overrides yet.</p>
+	{:else}
+		<div class="override-list">
+			{#each Object.entries(overrides) as [key, rule] (key)}
+				<div class="override-row">
+					<span class="tag">{key.startsWith('c:') ? 'Channel' : 'Role'}</span>
+					<strong>{scopeLabel(key)}</strong>
+					<span class="hint">{scopeSummary(rule)}</span>
+					<button type="button" class="link" onclick={() => { const next = { ...overrides }; delete next[key]; overrides = next; saved = false; }}>Remove</button>
+				</div>
+			{/each}
+		</div>
+	{/if}
+	<div class="scope-form">
+		<select bind:value={newScopeKind} onchange={() => { newScopeTarget = ''; }}>
+			<option value="channel">Channel</option>
+			<option value="role">Role</option>
+		</select>
+		<select bind:value={newScopeTarget}>
+			<option value="">Pick…</option>
+			{#if newScopeKind === 'channel'}
+				{#each channels as c (c.id)}<option value={c.id}>#{c.name}</option>{/each}
+			{:else}
+				{#each roles as r (r.id)}<option value={r.id}>@{r.name}</option>{/each}
+			{/if}
+		</select>
+		<select bind:value={newScopeFilter}>
+			{#each FILTERS as f (f.key)}<option value={f.key}>{f.label}</option>{/each}
+		</select>
+		<select bind:value={newScopeAction}>
+			{#each ACTIONS as a (a.value)}<option value={a.value}>{a.label}</option>{/each}
+		</select>
+		<label class="check-item"><input type="checkbox" bind:checked={newScopeExempt} /> Exempt</label>
+		<button type="button" class="btn btn-ghost btn-sm" onclick={addOverride}>Add / update</button>
+	</div>
+	{#if scopeError}<p class="hint">{scopeError}</p>{/if}
+</div>
+
+<div class="card">
 	<h3>Keyword lists</h3>
 	<p class="hint">Blocked word lists (case-insensitive). Used when installing a Discord preset below — the preset rules are built from these lists plus Helix defaults.</p>
 	<div class="grid-2">
@@ -354,4 +436,7 @@
 	.hint { opacity: 0.7; font-size: 0.9em; }
 	.check-list { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; margin: 0.75rem 0; }
 	.check-item { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+	.override-list { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
+	.override-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+	.scope-form { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
 </style>

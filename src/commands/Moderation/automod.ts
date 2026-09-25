@@ -7,13 +7,16 @@ import {
     EmbedBuilder,
     ColorResolvable,
     MessageFlags,
+    ChannelType,
     AutoModerationRuleEventType,
     AutoModerationRuleTriggerType,
     AutoModerationActionType
 } from 'discord.js';
 import { ErrorHandler } from '../../lib/structures/ErrorHandler';
 import config from '../../config';
-import { Guild } from '../../models/Guild';
+import { Guild, type AutomodAction, type AutomodFilter, type CustomAutomodSettings } from '../../models/Guild';
+import { channelScope, roleScope, scopeTarget } from '../../lib/utils/scopedRules';
+import { clearGuildAutomation } from '../../lib/utils/guildAutomationCache';
 import { 
     loadAutomodFilters,
     addCustomKeywords,
@@ -30,6 +33,7 @@ import {
 
 type KeywordSubcommand = 'list' | 'add' | 'remove' | 'clear';
 type MainSubcommand = 'list' | 'create' | 'delete' | 'install';
+type ScopeSubcommand = 'list' | 'exempt' | 'action' | 'clear';
 
 interface TriggerConfigResult {
     triggerType: AutoModerationRuleTriggerType;
@@ -238,6 +242,64 @@ export class AutoModCommand extends HybridModuleCommand<ModerationModule> {
                                 )
                         )
                 )
+                .addSubcommandGroup((group) =>
+                    group
+                        .setName('scope')
+                        .setDescription('Per-channel / per-role Helix filter rules')
+                        .addSubcommand((sub) => sub.setName('list').setDescription('List every channel/role override'))
+                        .addSubcommand((sub) =>
+                            sub
+                                .setName('exempt')
+                                .setDescription('Exempt (or un-exempt) a channel/role from Helix AutoMod')
+                                .addChannelOption((o) => o.setName('channel').setDescription('Channel to scope').addChannelTypes(ChannelType.GuildText, ChannelType.GuildForum, ChannelType.GuildAnnouncement))
+                                .addRoleOption((o) => o.setName('role').setDescription('Role to scope'))
+                                .addBooleanOption((o) => o.setName('exempt').setDescription('true = skip Helix AutoMod here').setRequired(true))
+                        )
+                        .addSubcommand((sub) =>
+                            sub
+                                .setName('action')
+                                .setDescription('Set the punishment for one Helix filter in a channel/role')
+                                .addChannelOption((o) => o.setName('channel').setDescription('Channel to scope').addChannelTypes(ChannelType.GuildText, ChannelType.GuildForum, ChannelType.GuildAnnouncement))
+                                .addRoleOption((o) => o.setName('role').setDescription('Role to scope'))
+                                .addStringOption((o) =>
+                                    o
+                                        .setName('filter')
+                                        .setDescription('Which Helix filter')
+                                        .setRequired(true)
+                                        .addChoices(
+                                            { name: 'Invites', value: 'invites' },
+                                            { name: 'Links', value: 'links' },
+                                            { name: 'Caps', value: 'caps' },
+                                            { name: 'Emoji', value: 'emoji' },
+                                            { name: 'Spam', value: 'spam' },
+                                            { name: 'Repeat', value: 'repeat' },
+                                            { name: 'Spoilers', value: 'spoilers' },
+                                            { name: 'Attachments', value: 'attachments' },
+                                            { name: 'Zalgo', value: 'zalgo' }
+                                        )
+                                )
+                                .addStringOption((o) =>
+                                    o
+                                        .setName('action')
+                                        .setDescription('What to do on a hit')
+                                        .setRequired(true)
+                                        .addChoices(
+                                            { name: 'Delete only', value: 'delete' },
+                                            { name: 'Delete + warn', value: 'delete_warn' },
+                                            { name: 'Delete + timeout', value: 'delete_timeout' },
+                                            { name: 'Delete + kick', value: 'delete_kick' },
+                                            { name: 'Delete + ban', value: 'delete_ban' }
+                                        )
+                                )
+                        )
+                        .addSubcommand((sub) =>
+                            sub
+                                .setName('clear')
+                                .setDescription('Remove every override for a channel/role')
+                                .addChannelOption((o) => o.setName('channel').setDescription('Channel to scope').addChannelTypes(ChannelType.GuildText, ChannelType.GuildForum, ChannelType.GuildAnnouncement))
+                                .addRoleOption((o) => o.setName('role').setDescription('Role to scope'))
+                        )
+                )
         );
     }
 
@@ -253,7 +315,81 @@ export class AutoModCommand extends HybridModuleCommand<ModerationModule> {
             return this.handleKeywordSubcommand(interaction, subcommand as KeywordSubcommand);
         }
 
+        if (subcommandGroup === 'scope') {
+            return this.handleScopeSubcommand(interaction, subcommand as ScopeSubcommand);
+        }
+
         return this.handleMainSubcommand(interaction, subcommand as MainSubcommand);
+    }
+
+    /** `/automod scope` — per-channel / per-role Helix filter rules. */
+    private async handleScopeSubcommand(interaction: Command.ChatInputCommandInteraction, subcommand: ScopeSubcommand) {
+        const channel = interaction.options.getChannel('channel');
+        const role = interaction.options.getRole('role');
+        const target = channel ? { key: channelScope(channel.id), label: `<#${channel.id}>`, kind: 'channel' as const } : role ? { key: roleScope(role.id), label: `<@&${role.id}>`, kind: 'role' as const } : null;
+        if (subcommand !== 'list' && !target) {
+            return interaction.reply({ content: 'Pick either a `channel` or a `role`.', flags: MessageFlags.Ephemeral });
+        }
+
+        if (subcommand === 'list') {
+            return this.handleListScopes(interaction);
+        }
+
+        const guildId = interaction.guildId!;
+        const doc = await Guild.findOne({ guildId });
+        if (!doc) return interaction.reply({ content: 'No guild settings found.', flags: MessageFlags.Ephemeral });
+
+        const automodSettings = (doc.automodSettings ?? {}) as CustomAutomodSettings;
+        const overrides = { ...(automodSettings.overrides ?? {}) };
+        const current = overrides[target!.key] ?? {};
+
+        if (subcommand === 'clear') {
+            if (!overrides[target!.key]) {
+                return interaction.reply({ content: `${target!.label} has no overrides.`, flags: MessageFlags.Ephemeral });
+            }
+            delete overrides[target!.key];
+        } else if (subcommand === 'exempt') {
+            const exempt = interaction.options.getBoolean('exempt', true);
+            overrides[target!.key] = { ...current, exempt };
+        } else {
+            const filter = interaction.options.getString('filter', true) as AutomodFilter;
+            const nextAction = interaction.options.getString('action', true) as AutomodAction;
+            overrides[target!.key] = {
+                ...current,
+                exempt: current.exempt,
+                settings: { ...(current.settings ?? {}), actions: { ...(current.settings?.actions ?? {}), [filter]: nextAction } }
+            };
+        }
+
+        doc.automodSettings = { ...automodSettings, overrides };
+        await doc.save();
+        clearGuildAutomation(guildId);
+
+        const done =
+            subcommand === 'clear'
+                ? `Cleared Helix filter overrides for ${target!.label}.`
+                : subcommand === 'exempt'
+                  ? `${target!.label} is now ${overrides[target!.key]?.exempt ? 'exempt from' : 'subject to'} Helix AutoMod.`
+                  : `Helix filter \`${interaction.options.getString('filter', true)}\` in ${target!.label} now runs \`${interaction.options.getString('action', true)}\`.`;
+        return interaction.reply({ content: done, flags: MessageFlags.Ephemeral });
+    }
+
+    private async handleListScopes(interaction: Command.ChatInputCommandInteraction) {
+        const doc = await Guild.findOne({ guildId: interaction.guildId! }, { automodSettings: 1 }).lean();
+        const overrides = ((doc?.automodSettings ?? {}) as CustomAutomodSettings).overrides ?? {};
+        const keys = Object.keys(overrides);
+        if (keys.length === 0) {
+            return interaction.reply({ content: 'No per-channel or per-role Helix filter overrides.', flags: MessageFlags.Ephemeral });
+        }
+        const lines = keys.slice(0, 25).map((key) => {
+            const id = scopeTarget(key) ?? key;
+            const rule = overrides[key] ?? {};
+            const actions = Object.entries(rule.settings?.actions ?? {})
+                .map(([filter, value]) => `${filter}: ${value}`)
+                .join(', ');
+            return `• ${key.startsWith('c:') ? `<#${id}>` : `<@&${id}>`}${rule.exempt ? ' — **exempt**' : ''}${actions ? ` — ${actions}` : ''}`;
+        });
+        return interaction.reply({ content: `Helix filter overrides (${keys.length}):\n${lines.join('\n')}`, flags: MessageFlags.Ephemeral });
     }
 
     private async handleKeywordSubcommand(

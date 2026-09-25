@@ -56,6 +56,7 @@ export interface WarnSettings {
 	reasonAliases?: Record<string, string>;
 	dmEnabled?: boolean;
 	dmTemplate?: string | null;
+	overrides?: Record<string, unknown>;
 }
 
 export interface ModuleEntry {

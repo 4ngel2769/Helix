@@ -1,5 +1,6 @@
 import { Schema, model, Document } from 'mongoose';
 import { getAllModuleKeys, getModuleConfig } from '../config/modules';
+import type { ScopeMap } from '../lib/utils/scopedRules';
 
 // Interface for verification settings
 interface VerificationSettings {
@@ -72,10 +73,20 @@ export interface CustomAutomodSettings {
 	action?: AutomodAction;
 	actions?: Partial<Record<AutomodFilter, AutomodAction>>;
 	timeoutSeconds?: number;
+	/** Per-channel / per-role overrides keyed `c:<channelId>` / `r:<roleId>`. */
+	overrides?: ScopeMap<CustomAutomodSettings>;
 }
 
 export type AutomodAction = 'delete' | 'delete_warn' | 'delete_timeout' | 'delete_kick' | 'delete_ban';
 export type AutomodFilter = 'invites' | 'links' | 'caps' | 'emoji' | 'spam' | 'repeat' | 'spoilers' | 'attachments' | 'zalgo';
+
+/** The subset of warnSettings a channel/role override may change. */
+export interface WarnRuleSettings {
+	thresholds?: Array<{ count: number; action: 'kick' | 'ban' | 'timeout'; duration?: number }>;
+	modChannelId?: string;
+	dmEnabled?: boolean;
+	dmTemplate?: string;
+}
 
 export interface SetupWizard {
 	startedBy: string;
@@ -198,6 +209,8 @@ export interface IGuild extends Document, LegacyModuleFlags, VerificationSetting
 		reasonAliases?: Record<string, string>;
 		dmEnabled?: boolean;
 		dmTemplate?: string;
+		/** Per-channel / per-role warn rules keyed `c:<channelId>` / `r:<roleId>`. */
+		overrides?: ScopeMap<WarnRuleSettings>;
 	};
 	setupWizard?: SetupWizard;
 }

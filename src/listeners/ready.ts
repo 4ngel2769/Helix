@@ -16,6 +16,7 @@ import { ActivityType } from 'discord.js';
 
 // Import from files
 import { Guild } from '../models/Guild';
+import { ChannelLockService } from '../lib/services/ChannelLockService';
 import config from '../config.js';
 
 const dev = process.env.NODE_ENV !== 'production';
@@ -32,7 +33,18 @@ export class UserEvent extends Listener {
 		this.applyGlobalCommandGuard();
 		this.checkDatabaseStatus();
 		this.syncGuildDatabase();
+		this.unlockExpiredChannels();
 		this.botStartupFinish();
+	}
+
+	/** Timed locks are backed by `lockedChannels.unlockTimestamp`; a restart drops
+	 * the in-process timers, so catch up on anything that already expired. */
+	private unlockExpiredChannels(): void {
+		void ChannelLockService.sweepExpired(this.container.client)
+			.then((n) => {
+				if (n > 0) this.container.logger.info(`Auto-unlocked ${n} channel(s) whose lock timer expired while offline`);
+			})
+			.catch((error) => this.container.logger.warn('Failed to sweep expired channel locks:', error));
 	}
 
 	// Experimental

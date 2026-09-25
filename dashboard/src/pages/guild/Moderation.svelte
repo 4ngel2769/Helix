@@ -44,6 +44,7 @@
 	let acting = $state(false);
 	let actMsg = $state<string | null>(null);
 	let actErr = $state<string | null>(null);
+	let warnOverrides = $state<Record<string, unknown>>({});
 
 	function syncFromCache(): void {
 		const ws = (entry.config?.warnSettings ?? {}) as WarnSettings;
@@ -52,11 +53,14 @@
 		reasonAliasesText = JSON.stringify(ws.reasonAliases ?? {}, null, 2);
 		dmEnabled = ws.dmEnabled === true;
 		dmTemplate = typeof ws.dmTemplate === 'string' ? ws.dmTemplate : '';
+		// Round-tripped untouched: this page has no override editor, and a
+		// full-object save would otherwise wipe every channel/role override.
+		warnOverrides = (ws.overrides ?? {}) as Record<string, unknown>;
 		baseline = snapshot();
 	}
 
 	function snapshot(): string {
-		return JSON.stringify({ thresholds, modChannelId, reasonAliasesText, dmEnabled, dmTemplate });
+		return JSON.stringify({ thresholds, modChannelId, reasonAliasesText, dmEnabled, dmTemplate, warnOverrides });
 	}
 
 	function aliasEntries(): Array<[string, string]> {
@@ -88,7 +92,8 @@
 					modChannelId: modChannelId === '' ? null : modChannelId,
 					reasonAliases: aliases as Record<string, string>,
 					dmEnabled,
-					dmTemplate: dmTemplate === '' ? null : dmTemplate
+					dmTemplate: dmTemplate === '' ? null : dmTemplate,
+					overrides: warnOverrides
 				}
 			});
 			baseline = snapshot();
