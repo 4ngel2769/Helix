@@ -120,7 +120,6 @@ out
 
 # Archives
 *.zip
-docs/
 bot-commands.json
 /.index
 CHANGELOG_INTERNAL.md
