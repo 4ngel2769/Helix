@@ -61,7 +61,8 @@ const UPDATABLE_FIELDS = [
 	'leveling',
 	'warnSettings',
 	'welcomeCard',
-	'farewellCard'
+	'farewellCard',
+	'locale'
 ] as const;
 
 type UpdatableField = (typeof UPDATABLE_FIELDS)[number];
@@ -250,7 +251,11 @@ export class ApiGuildConfigRoute extends Route {
 			}
 			if ('disabledCommands' in update) clearDisabledCommandsCache(guildId);
 			if ('leveling' in update || 'automodSettings' in update || 'modules' in update || 'adminRoleId' in update || 'modRoleId' in update || 'muteRoleId' in update) clearGuildAutomation(guildId);
-		if ('locale' in update || 'activeKitId' in update) clearGuildStrings(guildId);
+			// `activeKitId` is deliberately NOT in UPDATABLE_FIELDS: activating a
+			// kit has to check the guild actually owns it, which only the kit
+			// route does. Allowing it here would let any manager point a guild at
+			// somebody else's kit.
+			if ('locale' in update) clearGuildStrings(guildId);
 			return response.json({ guildId, updated: Object.keys(update), config: publicConfig(data) });
 		} catch {
 			return response.status(500).json({ error: 'Failed to update guild config' });
