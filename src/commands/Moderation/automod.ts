@@ -253,16 +253,14 @@ export class AutoModCommand extends HybridModuleCommand<ModerationModule> {
                             sub
                                 .setName('exempt')
                                 .setDescription('Exempt (or un-exempt) a channel/role from Helix AutoMod')
+                                .addBooleanOption((o) => o.setName('exempt').setDescription('true = skip Helix AutoMod here').setRequired(true))
                                 .addChannelOption((o) => o.setName('channel').setDescription('Channel to scope').addChannelTypes(ChannelType.GuildText, ChannelType.GuildForum, ChannelType.GuildAnnouncement))
                                 .addRoleOption((o) => o.setName('role').setDescription('Role to scope'))
-                                .addBooleanOption((o) => o.setName('exempt').setDescription('true = skip Helix AutoMod here').setRequired(true))
                         )
                         .addSubcommand((sub) =>
                             sub
                                 .setName('action')
                                 .setDescription('Set the punishment for one Helix filter in a channel/role')
-                                .addChannelOption((o) => o.setName('channel').setDescription('Channel to scope').addChannelTypes(ChannelType.GuildText, ChannelType.GuildForum, ChannelType.GuildAnnouncement))
-                                .addRoleOption((o) => o.setName('role').setDescription('Role to scope'))
                                 .addStringOption((o) =>
                                     o
                                         .setName('filter')
@@ -293,6 +291,8 @@ export class AutoModCommand extends HybridModuleCommand<ModerationModule> {
                                             { name: 'Delete + ban', value: 'delete_ban' }
                                         )
                                 )
+                                .addChannelOption((o) => o.setName('channel').setDescription('Channel to scope').addChannelTypes(ChannelType.GuildText, ChannelType.GuildForum, ChannelType.GuildAnnouncement))
+                                .addRoleOption((o) => o.setName('role').setDescription('Role to scope'))
                         )
                         .addSubcommand((sub) =>
                             sub
