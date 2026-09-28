@@ -5,7 +5,7 @@ import { getAllModuleKeys, getModuleConfig, moduleOptionName } from '../../confi
 import { HybridCommand } from '../../lib/structures/HybridCommand';
 import { clearGuildAutomation } from '../../lib/utils/guildAutomationCache';
 import { setGuildPrefixInCache } from '../../lib/utils/prefixCache';
-import { Guild } from '../../models/Guild';
+import { Guild, type SetupWizard } from '../../models/Guild';
 
 @ApplyOptions<Command.Options>({
 	name: 'setup',
@@ -125,7 +125,8 @@ export class SetupCommand extends HybridCommand {
 
 	private async start(interaction: Command.ChatInputCommandInteraction, guildId: string) {
 		const guildData = (await Guild.findOne({ guildId })) ?? new Guild({ guildId });
-		if (guildData.setupWizard) return this.reply(interaction, `Setup is already in progress. Current step: ${guildData.setupWizard.step}.`);
+		const step = this.wizardStep(guildData);
+		if (step) return this.reply(interaction, `Setup is already in progress. Current step: ${step}.`);
 		guildData.setupWizard = { startedBy: interaction.user.id, step: 'roles', updatedAt: new Date() };
 		await guildData.save();
 		return this.reply(interaction, 'Setup wizard started. Configure roles with `/setup roles`, then continue through each step.');
@@ -133,26 +134,28 @@ export class SetupCommand extends HybridCommand {
 
 	private async status(interaction: Command.ChatInputCommandInteraction, guildId: string) {
 		const guildData = await Guild.findOne({ guildId }, { setupWizard: 1 }).lean();
-		if (!guildData?.setupWizard) return this.reply(interaction, 'No setup wizard is active. Start one with `/setup start`.');
-		return this.reply(interaction, `Setup step: **${guildData.setupWizard.step}**. Started by <@${guildData.setupWizard.startedBy}>.`);
+		const step = this.wizardStep(guildData);
+		if (!step) return this.reply(interaction, 'No setup wizard is active. Start one with `/setup start`.');
+		return this.reply(interaction, `Setup step: **${step}**. Started by <@${guildData!.setupWizard!.startedBy}>.`);
 	}
 
 	private async cancel(interaction: Command.ChatInputCommandInteraction, guildId: string) {
 		const guildData = await Guild.findOne({ guildId });
-		if (!guildData?.setupWizard) return this.reply(interaction, 'No setup wizard is active.');
-		if (!this.canContinue(interaction, guildData.setupWizard.startedBy)) return this.reply(interaction, 'Only the setup starter or server owner can cancel this wizard.');
-		guildData.setupWizard = undefined;
-		await guildData.save();
+		if (!this.wizardStep(guildData)) return this.reply(interaction, 'No setup wizard is active.');
+		if (!this.canContinue(interaction, guildData!.setupWizard!.startedBy)) return this.reply(interaction, 'Only the setup starter or server owner can cancel this wizard.');
+		guildData!.setupWizard = undefined;
+		await guildData!.save();
 		return this.reply(interaction, 'Setup wizard cancelled.');
 	}
 
 	private async finish(interaction: Command.ChatInputCommandInteraction, guildId: string) {
 		const guildData = await Guild.findOne({ guildId });
-		if (!guildData?.setupWizard) return this.reply(interaction, 'No setup wizard is active.');
-		if (!this.canContinue(interaction, guildData.setupWizard.startedBy)) return this.reply(interaction, 'Only the setup starter or server owner can finish this wizard.');
-		if (guildData.setupWizard.step !== 'finish') return this.reply(interaction, `Complete the **${guildData.setupWizard.step}** step first.`);
-		guildData.setupWizard = undefined;
-		await guildData.save();
+		const step = this.wizardStep(guildData);
+		if (!step) return this.reply(interaction, 'No setup wizard is active.');
+		if (!this.canContinue(interaction, guildData!.setupWizard!.startedBy)) return this.reply(interaction, 'Only the setup starter or server owner can finish this wizard.');
+		if (step !== 'finish') return this.reply(interaction, `Complete the **${step}** step first.`);
+		guildData!.setupWizard = undefined;
+		await guildData!.save();
 		return this.reply(interaction, 'Setup finished. Essential settings are saved.');
 	}
 
@@ -260,19 +263,35 @@ export class SetupCommand extends HybridCommand {
 
 	private async wizardGuild(interaction: Command.ChatInputCommandInteraction, guildId: string, step: 'roles' | 'channels' | 'prefix' | 'modules') {
 		const guildData = await Guild.findOne({ guildId });
-		if (!guildData?.setupWizard) {
+		const current = this.wizardStep(guildData);
+		if (!current) {
 			await this.reply(interaction, 'No setup wizard is active. Start one with `/setup start`.');
 			return null;
 		}
-		if (!this.canContinue(interaction, guildData.setupWizard.startedBy)) {
+		if (!this.canContinue(interaction, guildData!.setupWizard!.startedBy)) {
 			await this.reply(interaction, 'Only the setup starter or server owner can continue this wizard.');
 			return null;
 		}
-		if (guildData.setupWizard.step !== step) {
-			await this.reply(interaction, `Current step is **${guildData.setupWizard.step}**, not **${step}**.`);
+		if (current !== step) {
+			await this.reply(interaction, `Current step is **${current}**, not **${step}**.`);
 			return null;
 		}
 		return guildData;
+	}
+
+	/**
+	 * The active step, or undefined when no wizard is running.
+	 *
+	 * Do NOT test `guild.setupWizard` for truthiness. `setupWizard` is a single
+	 * nested path, and Mongoose materialises it on every hydrated document to
+	 * apply `updatedAt`'s default — so a full-document read always yields a
+	 * truthy `{ startedBy: undefined, step: undefined, ... }`, even for a guild
+	 * that never started the wizard. Only `.lean()`/projection exposes the real
+	 * state, which is why `status` and `start` used to disagree. `step` is
+	 * `required` in the schema, so it is only ever set by a real wizard.
+	 */
+	private wizardStep(guildData: { setupWizard?: SetupWizard } | null): SetupWizard['step'] | undefined {
+		return guildData?.setupWizard?.step;
 	}
 
 	private canContinue(interaction: Command.ChatInputCommandInteraction, startedBy: string): boolean {
