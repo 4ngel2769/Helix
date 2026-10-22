@@ -11,7 +11,9 @@
 #
 # Optional env (sane defaults below):
 #   PREFIX                   default command prefix (default: x)
-#   MONGO                    override only to use an external database
+#   MONGO                    MongoDB connection string. Production MUST point
+#                            this at an external cluster; the bundled `mongo`
+#                            service is opt-in (see the local-db profile below).
 #   BOT_INVITE_PERMISSIONS   permissions integer for invite links (default: 8)
 #
 # Coolify domains: attach https://helixdash.angellabs.xyz to the *dashboard*
@@ -21,8 +23,16 @@
 # app's OAuth2 redirects.
 
 services:
+  # Optional bundled database for local development only:
+  #   docker compose --profile local-db up -d
+  # Production deploys must set MONGO to an external cluster. This service is
+  # NOT started by default because the bot is not gated on it (a broken local
+  # database must never block a production deploy) and because mongo:8.0
+  # refuses to start on Linux kernels >= 6.19 (SERVER-121912), which took the
+  # whole stack down on 2026-10-22.
   mongo:
-    image: mongo:8
+    image: mongo:8.2
+    profiles: ["local-db"]
     restart: unless-stopped
     volumes:
       - mongo-data:/data/db
@@ -36,9 +46,6 @@ services:
   bot:
     build: .
     restart: unless-stopped
-    depends_on:
-      mongo:
-        condition: service_healthy
     environment:
       NODE_ENV: production
       DISCORD_TOKEN: ${DISCORD_TOKEN:?DISCORD_TOKEN is required}
