@@ -1,11 +1,12 @@
 import { Events, Listener, container } from '@sapphire/framework';
-import type { GuildMember } from 'discord.js';
+import { EmbedBuilder, type GuildMember } from 'discord.js';
 import { Guild } from '../../models/Guild';
 import { sendLog } from '../../lib/logging/logService';
 import { withCardDefaults } from '../../lib/cards/cardBackgrounds';
 import { renderGreetCard } from '../../lib/cards/greetCard';
 import { getGuildPrefixFromCache, setGuildPrefixInCache } from '../../lib/utils/prefixCache';
 import { DEFAULT_WELCOME_MESSAGE, renderMessageTemplate } from '../../lib/utils/messagePlaceholders';
+import config from '../../config';
 
 export class GuildMemberAddListener extends Listener<typeof Events.GuildMemberAdd> {
 	public constructor(context: Listener.LoaderContext, options: Listener.Options) {
@@ -13,11 +14,38 @@ export class GuildMemberAddListener extends Listener<typeof Events.GuildMemberAd
 	}
 
 	public override async run(member: GuildMember) {
-		void sendLog(member.guild, 'member.join', {
-			description: `<@${member.id}> **${member.displayName}** joined. Member #${member.guild.memberCount}.`,
-			targetId: member.id,
-			isBot: member.user.bot
-		});
+	void sendLog(member.guild, 'member.join', {
+		description: `<@${member.id}> **${member.displayName}** joined. Member #${member.guild.memberCount}.`,
+		targetId: member.id,
+		isBot: member.user.bot
+	});
+
+	// Mirror to the support server (same as legacy Helix).
+	void (async () => {
+		try {
+			const channel = await this.container.client.channels.fetch(config.support.channels.memberJoinMirror).catch(() => null);
+			if (!channel || !channel.isTextBased()) return;
+			const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+			const fmt = (d: Date) => `${months[d.getMonth()]} ${String(d.getDate()).padStart(2, '0')} ${d.getFullYear()}`;
+			const embed = new EmbedBuilder()
+				.setTitle('Member Join')
+				.setAuthor({ name: member.user.tag, iconURL: member.user.displayAvatarURL({ extension: 'png', size: 128 }) })
+				.setThumbnail(member.guild.iconURL({ extension: 'png', size: 128 }) ?? null)
+				.addFields(
+					{ name: 'User', value: member.toString(), inline: true },
+					{ name: 'Joined server on', value: `\`${fmt(member.joinedAt ?? new Date())}\``, inline: true },
+					{ name: 'Account creation date', value: `\`${fmt(member.user.createdAt)}\``, inline: true },
+					{ name: 'ID', value: `\`${member.id}\``, inline: true },
+					{ name: 'Discriminator', value: `\`#${member.user.discriminator}\``, inline: true },
+					{ name: 'Bot', value: `\`${member.user.bot}\``, inline: true }
+				)
+				.setTimestamp()
+				.setColor(0x46ff2e);
+			await (channel as { send: (m: unknown) => Promise<unknown> }).send({ embeds: [embed] });
+		} catch {
+			// ignore
+		}
+	})();
 		try {
 			const guildData = await Guild.findOne({ guildId: member.guild.id }).lean();
 			const configuredDefault = this.container.client.options.defaultPrefix;

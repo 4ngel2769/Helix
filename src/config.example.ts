@@ -59,6 +59,17 @@ export const config = {
 	support: {
 		serverId: process.env.SUPPORT_SERVER_ID || '',
 		invite: process.env.SUPPORT_SERVER_INVITE || '',
+		channels: {
+			memberJoinMirror: process.env.SUPPORT_MEMBER_JOIN_CHANNEL_ID || '',
+			globalLogs: process.env.SUPPORT_GLOBAL_LOGS_CHANNEL_ID || '',
+			guildAnnounce: process.env.SUPPORT_GUILD_ANNOUNCE_CHANNEL_ID || '',
+			serverLog: process.env.SUPPORT_SERVER_LOG_CHANNEL_ID || '',
+		},
+		emojis: {
+			success: process.env.SUPPORT_EMOJI_SUCCESS || '',
+			fail: process.env.SUPPORT_EMOJI_FAIL || '',
+			blobdance: process.env.SUPPORT_EMOJI_BLOBDANCE || '',
+		},
 	},
 	dashboard: {
 		port: parseInt(process.env.DASHBOARD_PORT || '8080', 10),

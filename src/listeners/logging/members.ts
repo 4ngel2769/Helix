@@ -1,4 +1,6 @@
 import { Events, Listener } from '@sapphire/framework';
+import { EmbedBuilder } from 'discord.js';
+import config from '../../config';
 import type { GuildMember, PartialGuildMember } from 'discord.js';
 import { sendLog, consumeSuppressed } from '../../lib/logging/logService';
 
@@ -71,6 +73,24 @@ export class GuildMemberUpdateListener extends Listener<typeof Events.GuildMembe
 				roleIds: [...added, ...removed],
 				isBot: newMember.user.bot
 			});
+
+			// Mirror role removals to the support server (same as legacy Helix).
+			for (const roleId of removed) {
+				void (async () => {
+					try {
+						const channel = await this.container.client.channels.fetch(config.support.channels.globalLogs).catch(() => null);
+						if (!channel || !channel.isTextBased()) return;
+						const embed = new EmbedBuilder()
+							.setTitle('Member Update: `Role Remove`')
+							.setDescription(`${newMember} was **removed** from <@&${roleId}> role.`)
+							.setTimestamp()
+							.setColor(newMember.guild.members.me?.displayHexColor ?? '#ffffff');
+						await (channel as { send: (m: unknown) => Promise<unknown> }).send({ embeds: [embed] });
+					} catch {
+						// ignore
+					}
+				})();
+			}
 		}
 	}
 }

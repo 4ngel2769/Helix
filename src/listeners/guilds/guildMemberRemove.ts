@@ -1,10 +1,11 @@
 import { Events, Listener, container } from '@sapphire/framework';
-import type { GuildMember, PartialGuildMember } from 'discord.js';
+import { EmbedBuilder, type GuildMember, type PartialGuildMember } from 'discord.js';
 import { Guild } from '../../models/Guild';
 import { consumeSuppressed, sendLog } from '../../lib/logging/logService';
 import { withCardDefaults } from '../../lib/cards/cardBackgrounds';
 import { renderGreetCard } from '../../lib/cards/greetCard';
 import { getGuildPrefixFromCache, setGuildPrefixInCache } from '../../lib/utils/prefixCache';
+import config from '../../config';
 import { DEFAULT_FAREWELL_MESSAGE, renderMessageTemplate } from '../../lib/utils/messagePlaceholders';
 
 export class GuildMemberRemoveListener extends Listener<typeof Events.GuildMemberRemove> {
@@ -13,13 +14,35 @@ export class GuildMemberRemoveListener extends Listener<typeof Events.GuildMembe
 	}
 
 	public override async run(member: GuildMember | PartialGuildMember) {
-		if (!consumeSuppressed(member.guild.id, 'member.leave', member.id)) {
-			void sendLog(member.guild, 'member.leave', {
-				description: `<@${member.id}> **${'displayName' in member && typeof (member as GuildMember).displayName === 'string' ? (member as GuildMember).displayName : (member.user?.username ?? 'Someone')}** left.`,
-				targetId: member.id,
-				isBot: member.user?.bot ?? false
-			});
-		}
+	if (!consumeSuppressed(member.guild.id, 'member.leave', member.id)) {
+		void sendLog(member.guild, 'member.leave', {
+			description: `<@${member.id}> **${'displayName' in member && typeof (member as GuildMember).displayName === 'string' ? (member as GuildMember).displayName : (member.user?.username ?? 'Someone')}** left.`,
+			targetId: member.id,
+			isBot: member.user?.bot ?? false
+		});
+	}
+
+	// Mirror to the support server (same as legacy Helix).
+	if (member.user?.id !== this.container.client.user?.id) {
+		void (async () => {
+			try {
+				const channel = await this.container.client.channels.fetch(config.support.channels.globalLogs).catch(() => null);
+				if (!channel || !channel.isTextBased()) return;
+				const tag = member.user?.tag ?? 'unknown';
+				await (channel as { send: (m: unknown) => Promise<unknown> }).send(`${member.guild.name}: ${tag} has left the server`);
+				const embed = new EmbedBuilder()
+					.setTitle('Member Left')
+					.setAuthor({ name: member.guild.name, iconURL: member.guild.iconURL({ extension: 'png', size: 128 }) ?? undefined })
+					.setThumbnail(member.user?.displayAvatarURL({ extension: 'png', size: 128 }) ?? null)
+					.setDescription(`${member} (**${tag}**)`)
+					.setTimestamp()
+					.setColor(member.guild.members.me?.displayHexColor ?? '#ffffff');
+				await (channel as { send: (m: unknown) => Promise<unknown> }).send({ embeds: [embed] });
+			} catch {
+				// ignore
+			}
+		})();
+	}
 		try {
 			const guildData = await Guild.findOne({ guildId: member.guild.id }).lean();
 			const channelId = guildData?.farewellChannelId;
