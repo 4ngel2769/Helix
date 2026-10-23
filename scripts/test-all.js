@@ -46,7 +46,9 @@ class BotTester {
 
   async testCommands() {
     this.log('Validating commands...', 'info');
-    await this.scanDirectory(path.join(this.srcDir,'commands'), async (filePath) => {
+    await this.scanDirectory(path.join(this.srcDir,'commands'), async (filePath, fileName) => {
+      // `_`-prefixed files are helpers, not pieces; Sapphire skips them.
+      if (fileName.startsWith('_')) return;
       const content = await fs.readFile(filePath,'utf8');
       if (!content.includes('@ApplyOptions')) this.addWarning(filePath,'Missing @ApplyOptions decorator');
       if (!content.includes('name:') && !content.includes("name '")) this.addWarning(filePath,'Command name not clearly defined');
@@ -60,11 +62,22 @@ class BotTester {
 
   async testListeners() {
     this.log('Validating listeners...', 'info');
-    await this.scanDirectory(path.join(this.srcDir,'listeners'), async (filePath) => {
+    // Sapphire names a listener after its file, so two Listener classes in one
+    // file silently unload the first. Same for two files sharing a basename.
+    const names = new Map();
+    await this.scanDirectory(path.join(this.srcDir,'listeners'), async (filePath, fileName) => {
       const content = await fs.readFile(filePath,'utf8');
-      if (!content.includes('extends Listener')) this.addError(filePath,'Does not extend Listener class');
-      if (!content.includes('async run(') && !content.includes('run(')) this.addError(filePath,'Missing run() method');
-      if (!content.includes('event:') && !content.includes('Events.')) this.addWarning(filePath,'Event not clearly specified');
+      const classes = (content.match(/extends\s+Listener\b/g) || []).length;
+      const isHelper = fileName.startsWith('_');
+      if (classes > 1) this.addError(filePath, `${classes} Listener classes in one file - Sapphire keeps only the last one, split them into separate files`);
+      if (!classes && !isHelper) this.addError(filePath,'Does not extend Listener class');
+      if (!isHelper) {
+        if (!content.includes('async run(') && !content.includes('run(')) this.addError(filePath,'Missing run() method');
+        if (!content.includes('event:') && !content.includes('Events.')) this.addWarning(filePath,'Event not clearly specified');
+        const base = fileName.replace(/\.ts$/, '');
+        if (names.has(base)) this.addError(filePath, `Duplicate listener file name "${base}" (also ${names.get(base)}) - both pieces collide, only one loads`);
+        else names.set(base, path.relative(this.rootDir, filePath));
+      }
       this.stats.listenersFound++;
     });
     this.log(`Found and validated ${this.stats.listenersFound} listeners`,'success');
