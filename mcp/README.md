@@ -52,7 +52,7 @@ node ./dist/index.js   # stdio MCP server
 	"mcp": {
 		"helix": {
 			"type": "local",
-			"command": ["node", "C:/Users/Manu/Documents/GitHub/Helix/mcp/dist/index.js"],
+			"command": ["node", "<path-to-Helix>/mcp/dist/index.js"],
 			"environment": {
 				"HELIX_API_URL": "http://localhost:8080/api",
 				"HELIX_DISCORD_TOKEN": "YOUR_DISCORD_OAUTH_TOKEN"

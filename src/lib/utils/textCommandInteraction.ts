@@ -594,9 +594,9 @@ export async function __textCommandSelfCheck(): Promise<void> {
 
 	const member = {
 		id: '111111111111111111',
-		displayName: 'Manu',
+		displayName: 'Alex',
 		nickname: null,
-		user: { id: '111111111111111111', username: 'manu', globalName: 'Manu' }
+		user: { id: '111111111111111111', username: 'alex', globalName: 'Alex' }
 	};
 	const role = { id: '222222222222222222', name: 'Moderator' };
 	const channel = { id: '333333333333333333', name: 'general' };
