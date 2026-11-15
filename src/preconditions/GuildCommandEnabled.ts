@@ -8,14 +8,20 @@ import { getGuildStrings } from '../lib/i18n/guildStrings';
 export const DEFAULT_DISABLED_MESSAGE_KEY: MessageKey = 'error.guild.disabled';
 
 async function check(guildId: string, userId: string, commandName: string): Promise<MessageKey | null> {
-	// Single cached lookup — no DB on hits.
-	const flags = await loadGuildFlags(guildId);
+	// Independent lookups run together: one round trip instead of three when the
+	// database is slow, which is what pushes commands past Discord's ack window.
+	const [flags, commandDisabled, userBanned] = await Promise.all([
+		loadGuildFlags(guildId),
+		isCommandDisabled(guildId, commandName),
+		loadUserBanned(userId)
+	]);
+
 	if (flags.banned) return 'error.guild.banned';
 	// A disabled guild always blocks; whether the admin's own `disabledMessage`
 	// is used instead of the localized default is decided in `guard`.
 	if (flags.disabled) return DEFAULT_DISABLED_MESSAGE_KEY;
-	if (await isCommandDisabled(guildId, commandName)) return 'error.command.disabled';
-	if (await loadUserBanned(userId)) return 'error.user.banned';
+	if (commandDisabled) return 'error.command.disabled';
+	if (userBanned) return 'error.user.banned';
 	return null;
 }
 

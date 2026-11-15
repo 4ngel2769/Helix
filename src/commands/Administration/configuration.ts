@@ -9,6 +9,27 @@ import { clearGuildAutomation } from '../../lib/utils/guildAutomationCache';
 import { clearDisabledCommandsCache, CRITICAL_COMMANDS } from '../../lib/utils/disabledCommandsCache';
 import { HybridCommand } from '../../lib/structures/HybridCommand';
 import { commandHelpEmbed } from '../../lib/utils/commandHelp';
+import { LOG_EVENT_GROUPS } from '../../lib/logging/logEvents';
+
+/**
+ * Log events each `/config log` target is responsible for. Setting a channel is
+ * the user saying "I want these logs here", so the matching toggles are turned
+ * on — otherwise the channel is saved but the events stay disabled (several of
+ * them default to off) and the channel looks broken.
+ */
+const LOG_CHANNEL_EVENTS: Record<string, string[]> = {
+	mod: ['mod.ban', 'mod.unban', 'mod.kick', 'mod.timeout', 'mod.untimeout', 'mod.mute', 'mod.unmute', 'mod.warn', 'mod.purge', 'automod.action'],
+	member: ['member.join', 'member.leave', 'member.boost'],
+	'message-edit': ['message.edit'],
+	'message-delete': ['message.delete', 'message.bulkDelete'],
+	message: ['message.edit', 'message.delete', 'message.bulkDelete'],
+	nickname: ['member.nickname'],
+	role: ['member.roles'],
+	// The default channel receives every event, so it enables every event —
+	// otherwise voice/channel/role/emoji/invite/thread logs stay off forever and
+	// there is no way to turn them on without the dashboard.
+	default: LOG_EVENT_GROUPS.flatMap((group) => group.events.map((event) => event.key))
+};
 
 @ApplyOptions<Command.Options>({
 	name: 'config',
@@ -202,6 +223,18 @@ export class ConfigCommand extends HybridCommand {
 				return interaction.reply({ content: 'Please select a text channel.', flags: MessageFlags.Ephemeral });
 			}
 
+			// Saving a channel the bot cannot post in creates a log channel that
+			// silently never receives anything. Fail loudly instead.
+			if (channel) {
+				const missing = this.missingLogPermissions(interaction, channel.id);
+				if (missing.length > 0) {
+					return ErrorHandler.sendCommandError(
+						interaction,
+						`I can't post logs in ${channel} yet — missing ${missing.join(', ')}. Fix the channel permissions and run this again.`
+					);
+				}
+			}
+
 			if (subcommand === 'message') {
 				guildData.messageEditLogChannelId = channel?.id;
 				guildData.messageDeleteLogChannelId = channel?.id;
@@ -220,11 +253,29 @@ export class ConfigCommand extends HybridCommand {
 				guildData[field] = channel?.id;
 			}
 
+			// Clearing a channel leaves the toggles alone: the dashboard may still be
+			// routing those events through a per-event channel.
+			const enabledEvents = channel ? this.enableLogEvents(guildData, subcommand) : [];
+
 			await guildData.save();
-			return interaction.reply({
-				content: channel ? `The ${subcommand} log channel has been set to ${channel}.` : `The ${subcommand} log channel has been cleared.`,
-				flags: MessageFlags.Ephemeral
-			});
+
+			if (!channel) {
+				return interaction.reply({
+					content: `The ${subcommand} log channel has been cleared.`,
+					flags: MessageFlags.Ephemeral
+				});
+			}
+
+			const lines = [`The ${subcommand} log channel has been set to ${channel}.`];
+			if (enabledEvents.length > 0) {
+				lines.push(
+					enabledEvents.length > 6
+						? `Enabled all ${enabledEvents.length} log events.`
+						: `Enabled log events: ${enabledEvents.map((key) => `\`${key}\``).join(', ')}.`
+				);
+			}
+			lines.push('Logging starts as soon as the next matching event fires.');
+			return interaction.reply({ content: lines.join('\n'), flags: MessageFlags.Ephemeral });
 		}
 
 		if (subcommand === 'prefix') return this.setPrefix(interaction, guildData);
@@ -310,5 +361,39 @@ export class ConfigCommand extends HybridCommand {
 			PermissionFlagsBits.KickMembers,
 			PermissionFlagsBits.ModerateMembers
 		]);
+	}
+
+	/** Permissions the bot is missing in the target channel (empty when it can post). */
+	private missingLogPermissions(interaction: Command.ChatInputCommandInteraction, channelId: string): string[] {
+		const me = interaction.guild?.members.me;
+		const channel = interaction.guild?.channels.resolve(channelId);
+		if (!me || !channel || !channel.isTextBased()) return ['View Channel', 'Send Messages'];
+
+		const permissions = channel.permissionsFor(me);
+		if (!permissions) return ['View Channel', 'Send Messages'];
+
+		const missing: string[] = [];
+		if (!permissions.has(PermissionFlagsBits.ViewChannel)) missing.push('View Channel');
+		if (!permissions.has(PermissionFlagsBits.SendMessages)) missing.push('Send Messages');
+		if (!permissions.has(PermissionFlagsBits.EmbedLinks)) missing.push('Embed Links');
+		return missing;
+	}
+
+	/** Turn on the events owned by a `/config log` target; returns the keys that changed. */
+	private enableLogEvents(guildData: InstanceType<typeof Guild>, subcommand: string): string[] {
+		const keys = LOG_CHANNEL_EVENTS[subcommand] ?? [];
+		if (keys.length === 0) return [];
+
+		// `logEvents` is a Mixed field: reassign so Mongoose marks it dirty.
+		const next: Record<string, boolean> = { ...(guildData.logEvents ?? {}) };
+		const enabled: string[] = [];
+		for (const key of keys) {
+			if (next[key] === true) continue;
+			next[key] = true;
+			enabled.push(key);
+		}
+
+		if (enabled.length > 0) guildData.logEvents = next;
+		return enabled;
 	}
 }
