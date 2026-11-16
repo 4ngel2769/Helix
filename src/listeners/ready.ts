@@ -17,6 +17,7 @@ import { ActivityType } from 'discord.js';
 // Import from files
 import { Guild } from '../models/Guild';
 import { ChannelLockService } from '../lib/services/ChannelLockService';
+import { UptimeService } from '../lib/services/UptimeService';
 import config from '../config.js';
 
 const dev = process.env.NODE_ENV !== 'production';
@@ -34,6 +35,7 @@ export class UserEvent extends Listener {
 		this.checkDatabaseStatus();
 		this.syncGuildDatabase();
 		this.unlockExpiredChannels();
+		this.startUptimeTracking();
 		this.botStartupFinish();
 	}
 
@@ -125,6 +127,36 @@ export class UserEvent extends Listener {
 		return gray(`${last ? '└─' : '├─'} Loaded ${this.style(store.size.toString().padEnd(3, ' '))} ${store.name}.`);
 	}
 	
+	/**
+	 * Opens the Mongo-backed uptime interval and keeps heartbeats in sync with
+	 * the gateway. `clientReady` fires once per process, so shard events are
+	 * attached here as persistent listeners: disconnect pauses heartbeats
+	 * (downtime shows up via the stale-heartbeat window), resume restarts them.
+	 */
+	private startUptimeTracking(): void {
+		const { client, logger } = this.container;
+
+		void UptimeService.start(client)
+			.then(() => UptimeService.prune())
+			.catch((error) => logger.warn('Uptime tracking failed to start:', error));
+
+		client.on('shardDisconnect', () => {
+			logger.warn('Shard disconnected — uptime heartbeats paused');
+			UptimeService.pause();
+		});
+		client.on('shardReconnecting', () => {
+			logger.info('Shard reconnecting…');
+		});
+		client.on('shardResume', () => {
+			logger.info('Shard resumed — uptime heartbeats restarted');
+			void UptimeService.resume(client);
+		});
+		client.on('shardReady', () => {
+			// Covers the case where a shard drops before `shardResume` fires.
+			void UptimeService.resume(client);
+		});
+	}
+
 	private botStartupFinish() {
 		const { client } = this.container;
 

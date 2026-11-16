@@ -13,6 +13,7 @@ import { AuctionService } from './lib/services/AuctionService';
 import { RedditFeedService } from './lib/services/RedditFeedService';
 import { PremiumExpiryService } from './lib/services/PremiumExpiryService';
 import { getGuildPrefixFromCache, setGuildPrefixInCache } from './lib/utils/prefixCache';
+import { UptimeService } from './lib/services/UptimeService';
 
 function validateEnv() {
     if (!config.bot.token) {
@@ -103,6 +104,28 @@ const client = new SapphireClient({
 if ((client as any).api?.server) {
     (client as any).api.server.use(rateLimit({ windowMs: 60000, limit: 30, standardHeaders: true, legacyHeaders: false }));
 }
+
+// Graceful shutdown: close the uptime interval before the process exits so
+// `/api/health` uptime percentages don't count planned deploys as downtime.
+let shuttingDown = false;
+const shutdown = async (signal: string) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    container.logger.info(`Received ${signal} — shutting down`);
+    try {
+        await UptimeService.stop(signal.toLowerCase(), client.uptime ?? 0);
+    } catch (error) {
+        container.logger.warn('UptimeService.stop failed during shutdown:', error);
+    }
+    try {
+        await client.destroy();
+    } catch {
+        // already gone
+    }
+    process.exit(0);
+};
+process.on('SIGINT', () => void shutdown('SIGINT'));
+process.on('SIGTERM', () => void shutdown('SIGTERM'));
 
 const main = async () => {
     try {
