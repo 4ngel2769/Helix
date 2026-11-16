@@ -17,8 +17,11 @@
 #   BOT_INVITE_PERMISSIONS   permissions integer for invite links (default: 8)
 #
 # Coolify domains: attach https://helixdash.angellabs.xyz to the *dashboard*
-# service (port 3000, auto-TLS). The bot service needs no public domain —
-# it only talks outbound to Discord plus http://bot:8080/api internally.
+# service (port 3000, auto-TLS) and https://helixapi.angellabs.xyz to the *bot*
+# service (port 8080). The bot domain exists only so the marketing site can read
+# the public guild directory (`GET /api/guilds`, `/api/`, `/api/server-count`);
+# a Cloudflare WAF custom rule blocks every other path on that hostname, and the
+# tunnel forwards it to Coolify's Traefik on 127.0.0.1:8009 like helixdash does.
 # Also add https://helixdash.angellabs.xyz/api/auth/callback to the Discord
 # app's OAuth2 redirects.
 
@@ -46,6 +49,10 @@ services:
   bot:
     build: .
     restart: unless-stopped
+    # Published only inside the compose network; the Coolify domain for
+    # helixapi.angellabs.xyz points at this port for public read-only routes.
+    expose:
+      - "8080"
     environment:
       NODE_ENV: production
       DISCORD_TOKEN: ${DISCORD_TOKEN:?DISCORD_TOKEN is required}

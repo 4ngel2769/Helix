@@ -503,7 +503,31 @@ Paths are the `route` strings registered in `src/routes/api/*.ts` (relative to t
 | GET | `dev/stats` | Dev | — | Version, uptime, cache sizes, DB counts, memory. | Bot stats |
 | POST | `dev/ai-draft` | Dev | `{ kind, targetId, targetName?, context? }` | Drafts a ban reason with the private Ollama instance. 502 if unreachable. | Bot servers, Bot users |
 
-Routes that exist in `src/routes/api/` but are **not** called by any dashboard page: `health` (used only by the dashboard's startup handshake at `dashboard/server/index.ts:290`, with an `x-helix-dashboard` header), `hello-world`, `server-count`, `stats`, `modules`, `user-economy` (`users/[userId]/economy`), `guilds` (the open-CORS public directory behind the website marquee and the `helix_public_guilds` MCP tool), `kits` (`GET`/`POST kits`, returning `locales`, `availableKeys` and `placeholders`), and `kits-share` (`kits/[kitId]` plus `POST guilds/[guildId]/kit` for activating or clearing the active kit). The locale and message-kit features are therefore API- and command-only — they have working endpoints and no UI.
+Routes that exist in `src/routes/api/` but are **not** called by any dashboard page: `health` (used only by the dashboard's startup handshake at `dashboard/server/index.ts:290`, with an `x-helix-dashboard` header), `hello-world`, `server-count` (`GET /api/server-count`; the route name is pinned explicitly, otherwise the file path makes it `/api/api/server-count`), `stats`, `modules`, `user-economy` (`users/[userId]/economy`), `guilds` (the open-CORS public directory behind the website marquee and the `helix_public_guilds` MCP tool; `?icons=only` drops guilds without an icon and `?limit=n` caps the list at 60, which is how the site keeps every card iconful), `kits` (`GET`/`POST kits`, returning `locales`, `availableKeys` and `placeholders`), and `kits-share` (`kits/[kitId]` plus `POST guilds/[guildId]/kit` for activating or clearing the active kit). The locale and message-kit features are therefore API- and command-only — they have working endpoints and no UI.
+
+### Public bot API (helixapi.angellabs.xyz)
+
+The marketing site is a static build on Cloudflare Pages, so it cannot use the dashboard's
+cookie-authenticated `/api/bot/*` proxy. Instead the bot is published on its own hostname,
+which serves **only** these three unauthenticated, CORS-open (`*`) routes — all of them call
+`setPublicApiHeaders()` (`src/lib/utils/publicApiCors.ts`) because Sapphire's `headers`
+middleware pins `Access-Control-Allow-Origin` to the single configured dashboard origin:
+
+| GET | `/api/` | bot name, version, module and server counts |
+| GET | `/api/server-count` | `{ guilds, users, uptime }` |
+| GET | `/api/guilds` | public guild directory; `?icons=only`, `?limit=n` |
+
+Defence is layered outside the app, so the 30-ish other routes (`dev-*`, `me-*`, `guild-*`,
+`economy-*`) stay private:
+
+1. Coolify attaches `https://helixapi.angellabs.xyz` to the **bot** service (port 8080, also
+   declared via `expose` in `docker-compose.yml`); the Cloudflare tunnel for `kantr` forwards
+   that hostname to Traefik on `127.0.0.1:8009` with `noTLSVerify`, exactly like helixdash.
+2. A Cloudflare WAF custom rule on the `angellabs.xyz` zone blocks every request to that
+   hostname whose path is not one of the three above.
+3. A cache rule holds those GETs at the edge for 300s, matching the `Cache-Control` the
+   routes already emit.
+
 
 ## Known gaps / notes
 
