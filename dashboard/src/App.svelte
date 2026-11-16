@@ -44,26 +44,38 @@
 	});
 </script>
 
+{#snippet accountLinks()}
+	<a class="nav-link" style="padding: 6px 10px;" href="/panel/me" onclick={myData.onclick}>My data</a>
+	<a class="nav-link" style="padding: 6px 10px;" href="/panel/economy" onclick={economy.onclick}>Economy</a>
+	{#if session.isDeveloper}
+		<a class="nav-link" style="padding: 6px 10px;" href="/panel/dev/guilds" onclick={devGuilds.onclick}>Bot servers</a>
+		<a class="nav-link" style="padding: 6px 10px;" href="/panel/dev/users" onclick={devUsers.onclick}>Bot users</a>
+		<a class="nav-link" style="padding: 6px 10px;" href="/panel/dev/stats" onclick={devStats.onclick}>Bot stats</a>
+	{/if}
+{/snippet}
+
 <header class="topbar">
 	<a {...home} class="brand"><span class="brand-mark">H</span> Helix</a>
-	<span class="tag">Dashboard</span>
+	<span class="nav-label topbar-label" style="padding: 0;">Dashboard</span>
 	<div class="topbar-spacer"></div>
 	<button class="icon-btn" onclick={toggleTheme} aria-label="Toggle color theme">
 		{currentTheme === 'dark' ? 'Light' : 'Dark'}
 	</button>
 	{#if session.user}
-		<a class="nav-link" style="padding: 6px 10px;" href="/panel/me" onclick={myData.onclick}>My data</a>
-		<a class="nav-link" style="padding: 6px 10px;" href="/panel/economy" onclick={economy.onclick}>Economy</a>
-		{#if session.isDeveloper}
-			<a class="nav-link" style="padding: 6px 10px;" href="/panel/dev/guilds" onclick={devGuilds.onclick}>Bot servers</a>
-			<a class="nav-link" style="padding: 6px 10px;" href="/panel/dev/users" onclick={devUsers.onclick}>Bot users</a>
-			<a class="nav-link" style="padding: 6px 10px;" href="/panel/dev/stats" onclick={devStats.onclick}>Bot stats</a>
-		{/if}
+		<div class="topbar-links">{@render accountLinks()}</div>
 		<span class="user-chip">
 			{#if session.user.avatarUrl}<img src={session.user.avatarUrl} alt="" />{/if}
 			{session.user.username}
 		</span>
 		<button class="btn btn-ghost btn-sm" onclick={doLogout}>Log out</button>
+		<details class="topbar-menu">
+			<summary aria-label="Open navigation">Menu</summary>
+			<div class="topbar-menu-panel">
+				{@render accountLinks()}
+				<span class="user-chip">{session.user.username}</span>
+				<button class="btn btn-ghost btn-sm" onclick={doLogout}>Log out</button>
+			</div>
+		</details>
 	{/if}
 </header>
 
