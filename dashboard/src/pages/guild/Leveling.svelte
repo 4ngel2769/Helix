@@ -255,7 +255,7 @@
 	.hint { opacity: 0.7; font-size: 0.9em; }
 	.reward-list { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
 	.reward-row { display: flex; align-items: center; gap: 10px; }
-	.link { background: none; border: none; color: var(--accent, #3b66ff); cursor: pointer; padding: 0; }
+	.link { background: none; border: none; color: var(--accent); cursor: pointer; padding: 0; }
 	.check-list { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; margin: 0.75rem 0; }
 	.check-item { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
 	.lb { width: 100%; border-collapse: collapse; font-size: 0.92em; }

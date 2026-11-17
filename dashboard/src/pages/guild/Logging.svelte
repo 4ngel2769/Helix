@@ -235,7 +235,7 @@
 <style>
 	.group-head { display: flex; justify-content: space-between; align-items: center; }
 	.group-actions { display: flex; gap: 0.75rem; }
-	.link { background: none; border: none; color: var(--accent, #3b66ff); cursor: pointer; padding: 0; }
+	.link { background: none; border: none; color: var(--accent); cursor: pointer; padding: 0; }
 	.event-row { display: grid; grid-template-columns: 1fr 240px; gap: 1rem; align-items: start; border-top: 1px solid var(--border, #2a2d34); padding-top: 0.5rem; margin-top: 0.5rem; }
 	.check-list { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; margin: 0.75rem 0; }
 	.check-title { width: 100%; font-weight: 600; }

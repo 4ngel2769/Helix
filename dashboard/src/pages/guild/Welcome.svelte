@@ -369,7 +369,7 @@
 		text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
 	}
 	.bg-pick.sel {
-		border-color: var(--accent, #3b66ff);
+		border-color: var(--accent);
 	}
 	.bg-pick:disabled {
 		opacity: 0.7;
@@ -390,7 +390,7 @@
 		cursor: pointer;
 	}
 	.seg button.sel {
-		border-color: var(--accent, #3b66ff);
+		border-color: var(--accent);
 	}
 	.swatches {
 		display: flex;
@@ -406,7 +406,7 @@
 		cursor: pointer;
 	}
 	.sw.sel {
-		border-color: var(--accent, #3b66ff);
+		border-color: var(--accent);
 	}
 	.warn {
 		color: #f0a832;

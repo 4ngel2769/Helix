@@ -79,6 +79,8 @@
 	{/if}
 </header>
 
+
+<div class="app-content">
 {#if !session.loaded}
 	<div class="page"><p class="loading">Loading…</p></div>
 {:else if guildParams}
@@ -114,3 +116,4 @@
 		</div>
 	</div>
 {/if}
+</div>
