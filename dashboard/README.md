@@ -48,8 +48,10 @@ Precedence: real environment > `dashboard/.env` > `src/.env` > built-in defaults
 | `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET` | — | OAuth app (same app as the bot) |
 | `SESSION_SECRET` | — | Key for the session cookie (required in prod-style setups) |
 | `BOT_INVITE_PERMISSIONS` | `8` | Permissions integer for invite links |
-| `SITE_URL` | `https://helix.pages.dev` | Main website origin allowed to probe login state (`/api/me` CORS) |
+| `SITE_URL` | `https://helix.angellabs.xyz` | Main website origin allowed to probe login state (`/api/me` CORS) |
 | `NODE_ENV=production` | — | Enables `Secure` cookies |
+
+The public uptime page is [uptime.angellabs.xyz/status/helix](https://uptime.angellabs.xyz/status/helix). Website pages should link to or embed this published page rather than call Kuma's private `/api/status-page/*` endpoints from browser JavaScript.
 
 **Discord portal:** add `{DASHBOARD_WEB_URL}/api/auth/callback` to the app's OAuth2 redirects (multiple redirects are allowed alongside the bot's own). Scopes used: `identify guilds`.
 

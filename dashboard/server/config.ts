@@ -21,7 +21,7 @@ export const dashboardConfig = {
 	/** Public origin, e.g. https://helixdash.angellabs.xyz (no trailing slash). Used for the OAuth redirect URI. */
 	publicUrl: optional('DASHBOARD_WEB_URL', optional('DASHBOARD_DOMAIN', 'http://localhost:3000')).replace(/\/$/, ''),
 	/** Main website origin allowed to probe login state (CORS, credentials). No trailing slash. */
-	siteUrl: optional('SITE_URL', 'https://helix.pages.dev').replace(/\/$/, ''),
+	siteUrl: optional('SITE_URL', 'https://helix.angellabs.xyz').replace(/\/$/, ''),
 	/** Base URL of the bot HTTP API (prefix /api included), e.g. http://localhost:8080/api */
 	botApiUrl: optional('BOT_API_URL', `http://localhost:${optional('DASHBOARD_PORT', '8080')}/api`).replace(/\/$/, ''),
 	discord: {

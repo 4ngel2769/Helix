@@ -81,7 +81,8 @@ services:
       NODE_ENV: production
       DASHBOARD_WEB_PORT: 3000
       DASHBOARD_WEB_URL: https://helixdash.angellabs.xyz
-      # SITE_URL defaults to https://helix.pages.dev — set only if the main site moves.
+      # Website origin allowed to probe dashboard login state (/api/me).
+      SITE_URL: ${SITE_URL:-https://helix.angellabs.xyz}
       BOT_API_URL: http://bot:8080/api
       SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET is required}
       DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:?DISCORD_CLIENT_ID is required}
