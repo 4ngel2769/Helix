@@ -1,7 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { guildEntry, loadGuild, session } from '../lib/session.svelte';
+	import { guildEntry, loadGuild, loadSetupProgress, session, saveSetupProgress } from '../lib/session.svelte';
 	import { go, guildIcon } from '../lib/utils';
+	import { navigate } from '../lib/router.svelte';
+	import { deriveSetupStepStatuses, SETUP_STEPS } from '../lib/setup';
+	import { api } from '../lib/api';
 	import NavLink from '../components/NavLink.svelte';
 	import Overview from './guild/Overview.svelte';
 	import General from './guild/General.svelte';
@@ -15,11 +18,13 @@
 	import ReactionRoles from './guild/ReactionRoles.svelte';
 	import RedditFeeds from './guild/RedditFeeds.svelte';
 	import Messages from './guild/Messages.svelte';
+	import Setup from './guild/Setup.svelte';
 
 	let { guildId, section }: { guildId: string; section: string } = $props();
 
 	const sections = [
 		{ id: 'dashboard', label: 'Overview' },
+		{ id: 'setup', label: 'Setup checklist' },
 		{ id: 'general', label: 'General' },
 		{ id: 'modules', label: 'Modules' },
 		{ id: 'logging', label: 'Logging' },
@@ -37,13 +42,30 @@
 
 	onMount(() => {
 		if (session.user) void loadGuild(guildId);
+		if (session.user) void loadSetupProgress(guildId);
 	});
 
 	$effect(() => {
 		if (session.user) void loadGuild(guildId);
+		if (session.user) void loadSetupProgress(guildId);
 	});
 
 	const entry = $derived(guildEntry(guildId));
+	let menus = $state<import('../lib/types').ReactionRoleMenu[] | null>(null);
+	const setupStatuses = $derived(deriveSetupStepStatuses(entry.config, menus, entry.setupProgress));
+	const setupIncomplete = $derived(!entry.setupProgress?.completed && !entry.setupProgress?.dismissed);
+	$effect(() => {
+		if (section !== 'setup' || !session.user) return;
+		let cancelled = false;
+		void api<{ menus: import('../lib/types').ReactionRoleMenu[] }>(`/guilds/${guildId}/reaction-roles`)
+			.then((result) => { if (!cancelled) menus = result.menus; })
+			.catch(() => { if (!cancelled) menus = null; });
+		return () => { cancelled = true; };
+	});
+	function openSetup(step?: string): void {
+		if (step) void saveSetupProgress(guildId, { currentStep: step as import('../lib/types').SetupStepId });
+		navigate(`/panel/guilds/${guildId}/setup`);
+	}
 </script>
 
 {#if !session.user}
@@ -67,6 +89,18 @@
 				</div>
 			{/if}
 			<div class="nav-label">Settings</div>
+			{#if setupIncomplete}
+				<div class="setup-nav-group">
+					<NavLink to={`/panel/guilds/${guildId}/setup`} label="Guided setup" />
+					{#each SETUP_STEPS as step (step.id)}
+						<a class="setup-nav-step" href={`/panel/guilds/${guildId}/setup`} aria-current={section === 'setup' && entry.setupProgress?.currentStep === step.id ? 'step' : undefined} onclick={(event) => { event.preventDefault(); openSetup(step.id); }}>
+							<span>{step.label}</span><span class="setup-nav-status">{setupStatuses[step.id] === 'configured' ? '✓' : setupStatuses[step.id] === 'skipped' ? '–' : '•'}</span>
+						</a>
+					{/each}
+				</div>
+			{:else}
+				<NavLink to={`/panel/guilds/${guildId}/setup`} label="Setup checklist" />
+			{/if}
 			{#each sections as s (s.id)}
 				<NavLink to={`/panel/guilds/${guildId}/${s.id}`} label={s.label} />
 			{/each}
@@ -84,6 +118,8 @@
 					<div class="empty"><h2>Unknown section</h2></div>
 				{:else if section === 'dashboard'}
 					<Overview {guildId} />
+				{:else if section === 'setup'}
+					<Setup {guildId} />
 				{:else if section === 'general'}
 					<General {guildId} />
 				{:else if section === 'modules'}

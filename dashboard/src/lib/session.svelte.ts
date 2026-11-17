@@ -1,4 +1,4 @@
-import type { DashboardUser, GuildDetail } from './types';
+import type { DashboardSetupProgress, DashboardUser, GuildDetail } from './types';
 import { ApiError, api } from './api';
 
 function sleep(ms: number): Promise<void> {
@@ -54,20 +54,46 @@ interface GuildEntry {
 	config: Record<string, unknown> | null;
 	loading: boolean;
 	error: string | null;
+	setupProgress: DashboardSetupProgress | null;
+	setupProgressLoading: boolean;
+	setupProgressError: string | null;
 }
 
 export const guildCache = $state<Record<string, GuildEntry>>({});
 
-const EMPTY_ENTRY: GuildEntry = { detail: null, config: null, loading: true, error: null };
+const EMPTY_ENTRY: GuildEntry = { detail: null, config: null, loading: true, error: null, setupProgress: null, setupProgressLoading: false, setupProgressError: null };
 
 /** Creates the cache entry if missing. Only call from effects/events/loaders — never from $derived or templates. */
 export function ensureGuildEntry(guildId: string): GuildEntry {
 	if (!guildCache[guildId]) {
-		guildCache[guildId] = { detail: null, config: null, loading: false, error: null };
+		guildCache[guildId] = { ...EMPTY_ENTRY, loading: false };
 	}
 	// Re-read through the $state proxy: mutating the raw object handed to the
 	// cache would bypass reactivity and the UI would never update.
 	return guildCache[guildId]!;
+}
+
+export async function loadSetupProgress(guildId: string): Promise<void> {
+	const entry = ensureGuildEntry(guildId);
+	if (entry.setupProgressLoading || entry.setupProgress) return;
+	entry.setupProgressLoading = true;
+	entry.setupProgressError = null;
+	try {
+		const result = await api<{ progress: DashboardSetupProgress }>(`/guilds/${guildId}/setup-progress`);
+		entry.setupProgress = result.progress;
+	} catch (error) {
+		entry.setupProgressError = error instanceof Error ? error.message : 'Failed to load setup progress';
+	} finally {
+		entry.setupProgressLoading = false;
+	}
+}
+
+export async function saveSetupProgress(guildId: string, patch: Partial<Omit<DashboardSetupProgress, 'version'>>): Promise<DashboardSetupProgress> {
+	const entry = ensureGuildEntry(guildId);
+	const result = await api<{ progress: DashboardSetupProgress }>(`/guilds/${guildId}/setup-progress`, { method: 'PATCH', body: patch });
+	entry.setupProgress = result.progress;
+	entry.setupProgressError = null;
+	return result.progress;
 }
 
 /**

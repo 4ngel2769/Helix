@@ -1,10 +1,15 @@
 <script lang="ts">
-	import { guildEntry } from '../../lib/session.svelte';
+	import { guildEntry, saveSetupProgress } from '../../lib/session.svelte';
 	import { formatCount, go } from '../../lib/utils';
 	import PageHeader from '../../components/PageHeader.svelte';
+	import { navigate } from '../../lib/router.svelte';
+	import { deriveSetupStepStatuses } from '../../lib/setup';
 
 	let { guildId }: { guildId: string } = $props();
 	const entry = $derived(guildEntry(guildId));
+	const setupStatuses = $derived(deriveSetupStepStatuses(entry.config, null, entry.setupProgress));
+	const setupRemaining = $derived(Object.values(setupStatuses).filter((status) => status === 'needs-attention').length);
+	const showSetupPrompt = $derived(setupRemaining > 0 && !entry.setupProgress?.completed && !entry.setupProgress?.dismissed && !entry.setupProgress?.promptDismissed);
 
 	const modules = $derived((entry.config?.modules as Record<string, boolean> | undefined) ?? {});
 	const enabledCount = $derived(Object.values(modules).filter(Boolean).length);
@@ -24,6 +29,16 @@
 </script>
 
 <PageHeader title="Overview" description="Server state at a glance. Jump into a section from the sidebar to change anything." />
+
+{#if showSetupPrompt}
+	<div class="card setup-callout">
+		<div><div class="card-title"><h2>Finish setting up your server</h2></div><p class="card-desc">{setupRemaining} setup {setupRemaining === 1 ? 'step needs' : 'steps need'} attention. Continue whenever you’re ready.</p></div>
+		<div class="setup-actions">
+			<button class="btn btn-primary btn-sm" onclick={() => navigate(`/panel/guilds/${guildId}/setup`)}>Continue setup</button>
+			<button class="btn btn-ghost btn-sm" onclick={() => saveSetupProgress(guildId, { promptDismissed: true })}>Dismiss</button>
+		</div>
+	</div>
+{/if}
 
 {#if entry.detail}
 	<div class="stat-grid">

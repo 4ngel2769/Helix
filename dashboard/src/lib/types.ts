@@ -46,6 +46,18 @@ export interface GuildDetail {
 	roles?: GuildRole[];
 }
 
+export type SetupStepId = 'modules' | 'logging' | 'welcome' | 'verification' | 'automod' | 'leveling' | 'reaction-roles';
+
+export interface DashboardSetupProgress {
+	version: 1;
+	completed: boolean;
+	dismissed: boolean;
+	promptDismissed: boolean;
+	skippedSteps: SetupStepId[];
+	acknowledgedSteps: SetupStepId[];
+	currentStep: SetupStepId | null;
+}
+
 export type AutomodAction = 'delete' | 'delete_warn' | 'delete_timeout' | 'delete_kick' | 'delete_ban';
 
 export type AutomodFilter = 'invites' | 'links' | 'caps' | 'emoji' | 'spam' | 'repeat' | 'spoilers' | 'attachments' | 'zalgo';
@@ -93,6 +105,8 @@ export interface ReactionRoleMenu {
 	maxSelections: number;
 	active: boolean;
 }
+
+export type SetupStepStatus = 'needs-attention' | 'configured' | 'skipped';
 
 export interface CommandEntry {
 	name: string;

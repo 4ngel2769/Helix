@@ -683,6 +683,27 @@ textarea::placeholder {
 	margin-left: var(--sidebar-w);
 }
 
+.setup-nav-group { display: flex; flex-direction: column; gap: 1px; }
+.setup-nav-step {
+	display: flex; align-items: center; justify-content: space-between; gap: 8px;
+	padding: 5px 10px 5px 24px; border-radius: var(--r-sm); color: var(--muted); font-size: 12px;
+}
+.setup-nav-step:hover { color: var(--text); background: var(--surface-2); text-decoration: none; }
+.setup-nav-status { font-family: var(--mono); }
+.setup-layout { display: grid; grid-template-columns: minmax(210px, 0.7fr) minmax(0, 1.5fr); gap: 16px; }
+.setup-steps { display: flex; flex-direction: column; gap: 4px; }
+.setup-step { display: flex; align-items: flex-start; gap: 10px; text-align: left; border: 1px solid transparent; border-radius: var(--r-md); padding: 10px; background: transparent; color: var(--text); cursor: pointer; }
+.setup-step:hover, .setup-step.active { background: var(--surface-2); border-color: var(--border); }
+.setup-step-number { width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; background: var(--surface-2); font-family: var(--mono); flex: none; }
+.setup-step small { display: block; color: var(--muted); margin-top: 2px; }
+.setup-kicker { font-size: 11px; letter-spacing: .08em; color: var(--muted); font-weight: 700; }
+.setup-content h2 { margin: 8px 0; }
+.setup-actions, .setup-footer, .setup-callout { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.setup-footer { border-top: 1px solid var(--border); margin-top: 20px; padding-top: 14px; }
+.setup-footer > :last-child { margin-left: auto; }
+.setup-callout { justify-content: space-between; margin-bottom: 16px; }
+.setup-callout .card-desc { margin-bottom: 0; }
+
 /* ---------- Save bar ---------- */
 .savebar {
 	position: sticky;
@@ -974,6 +995,17 @@ textarea::placeholder {
 		padding-top: 0;
 	}
 	.guild-main { margin-left: 0; }
+	.setup-layout { grid-template-columns: 1fr; }
+	.setup-steps { flex-direction: row; overflow-x: auto; max-width: 100%; padding-bottom: 6px; }
+	.setup-step { min-width: max-content; }
+}
+
+@media (max-width: 640px) {
+	.setup-callout { align-items: flex-start; flex-direction: column; }
+	.setup-actions { align-items: stretch; flex-direction: column; }
+	.setup-actions .btn { justify-content: center; }
+	.setup-steps { scroll-snap-type: x mandatory; }
+	.setup-step { scroll-snap-align: start; }
 }
 
 /* ---------- Shared interaction polish ---------- */

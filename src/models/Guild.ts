@@ -1,6 +1,7 @@
 import { Schema, model, Document } from 'mongoose';
 import { getAllModuleKeys, getModuleConfig } from '../config/modules';
 import type { ScopeMap } from '../lib/utils/scopedRules';
+import type { DashboardSetupProgress } from '../lib/utils/setupProgress';
 
 // Interface for verification settings
 interface VerificationSettings {
@@ -219,6 +220,7 @@ export interface IGuild extends Document, LegacyModuleFlags, VerificationSetting
 		overrides?: ScopeMap<WarnRuleSettings>;
 	};
 	setupWizard?: SetupWizard;
+	dashboardSetupProgress?: DashboardSetupProgress;
 }
 
 const guildSchema = new Schema<IGuild>({
@@ -356,6 +358,7 @@ const guildSchema = new Schema<IGuild>({
 		step: { type: String, enum: ['roles', 'channels', 'prefix', 'modules', 'finish'], required: true },
 		updatedAt: { type: Date, default: Date.now }
 	},
+	dashboardSetupProgress: { type: Schema.Types.Mixed, default: undefined },
 
 	// AutoMod keywords
 	automodKeywords: {
