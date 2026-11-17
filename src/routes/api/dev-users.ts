@@ -44,14 +44,25 @@ export class ApiDevUsersRoute extends Route {
 			try {
 				const search = (readQueryParam(request, 'search') ?? '').trim().slice(0, 64);
 				const filter = readQueryParam(request, 'filter') ?? 'all';
+				const guild = (readQueryParam(request, 'guild') ?? '').trim();
+				const sort = (readQueryParam(request, 'sort') ?? 'wallet').trim();
 				const { page, limit } = pageParams(request);
 				const match: Record<string, unknown> = {};
 				if (search) {
 					match.$or = [{ userId: { $regex: escapeRegex(search) } }, { username: { $regex: escapeRegex(search), $options: 'i' } }];
 				}
+				if (/^\d{16,22}$/.test(guild)) match.joinedServers = guild;
 				if (filter === 'premium') match.isPremium = true;
 				else if (filter === 'banned') match.botBanned = true;
 				else if (filter === 'warned') match['warnings.active'] = true;
+
+				const sorts: Record<string, Record<string, 1 | -1>> = {
+					wallet: { 'economy.wallet': -1 },
+					commands: { commandsRun: -1 },
+					lastSeen: { lastSeen: -1 },
+					created: { accountCreatedAt: 1 },
+					name: { username: 1 }
+				};
 				const total = await User.countDocuments(match);
 				const users = await User.find(match, {
 					userId: 1,
@@ -61,12 +72,18 @@ export class ApiDevUsersRoute extends Route {
 					botBanned: 1,
 					banReason: 1,
 					lastSeen: 1,
+					avatarHash: 1,
+					commandsRun: 1,
+					lastCommandAt: 1,
+					lastCommandName: 1,
+					accountCreatedAt: 1,
+					joinedServers: 1,
 					'economy.wallet': 1,
 					'economy.bank': 1,
 					'economy.level': 1,
 					warnings: 1
 				})
-					.sort({ 'economy.wallet': -1 })
+					.sort(sorts[sort] ?? sorts.wallet)
 					.skip((page - 1) * limit)
 					.limit(limit)
 					.lean();
@@ -74,18 +91,26 @@ export class ApiDevUsersRoute extends Route {
 					total,
 					page,
 					limit,
-			users: users.map((u) => ({
-				userId: u.userId,
-				username: u.username,
-				isPremium: isPremiumActive(u),
-				premiumExpiresAt: premiumExpiryIso(u),
-					botBanned: u.botBanned === true,
-					banReason: u.banReason ?? null,
+					users: users.map((u) => ({
+						userId: u.userId,
+						username: u.username,
+						avatarUrl: u.avatarHash
+							? `https://cdn.discordapp.com/avatars/${u.userId}/${u.avatarHash}.png?size=64`
+							: null,
+						isPremium: isPremiumActive(u),
+						premiumExpiresAt: premiumExpiryIso(u),
+						botBanned: u.botBanned === true,
+						banReason: u.banReason ?? null,
 						lastSeen: u.lastSeen ?? null,
+						commandsRun: u.commandsRun ?? 0,
+						lastCommandAt: u.lastCommandAt ?? null,
+						lastCommandName: u.lastCommandName ?? null,
+						accountCreatedAt: u.accountCreatedAt ?? null,
 						wallet: u.economy?.wallet ?? 0,
 						bank: u.economy?.bank ?? 0,
 						level: u.economy?.level ?? 1,
-						activeWarnings: (u.warnings ?? []).filter((w) => w.active).length
+						activeWarnings: (u.warnings ?? []).filter((w) => w.active).length,
+						guildCount: (u.joinedServers ?? []).length
 					}))
 				});
 			} catch {

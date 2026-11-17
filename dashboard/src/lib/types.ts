@@ -196,6 +196,12 @@ export interface DevUserEntry {
 	botBanned: boolean;
 	banReason: string | null;
 	lastSeen: string | null;
+	avatarUrl: string | null;
+	commandsRun: number;
+	lastCommandAt: string | null;
+	lastCommandName: string | null;
+	accountCreatedAt: string | null;
+	guildCount: number;
 	wallet: number;
 	bank: number;
 	level: number;

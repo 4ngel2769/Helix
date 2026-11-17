@@ -55,7 +55,7 @@
 {/snippet}
 
 <header class="topbar">
-	<a {...home} class="brand"><span class="brand-mark">H</span> Helix</a>
+	<a {...home} class="brand"><img src="/helix.png" alt="" class="brand-mark" /> Helix</a>
 	<span class="nav-label topbar-label" style="padding: 0;">Dashboard</span>
 	<div class="topbar-spacer"></div>
 	<button class="icon-btn" onclick={toggleTheme} aria-label="Toggle color theme">

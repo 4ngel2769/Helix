@@ -60,11 +60,12 @@ export class ApiHealthRoute extends Route {
 			// ignore
 		}
 
-		const [uptime24h, uptime7d, uptime30d, session] = await Promise.all([
+		const [uptime24h, uptime7d, uptime30d, session, uptimeDataSince] = await Promise.all([
 			UptimeService.uptimePercent(DAY),
 			UptimeService.uptimePercent(WEEK),
 			UptimeService.uptimePercent(MONTH),
-			UptimeService.currentSession()
+			UptimeService.currentSession(),
+			UptimeService.dataSince()
 		]);
 
 		return response.json({
@@ -76,6 +77,7 @@ export class ApiHealthRoute extends Route {
 			shards: client.ws?.shards?.size ?? 1,
 			commands,
 			database,
+			uptimeDataSince,
 			uptimePercent: {
 				'24h': uptime24h,
 				'7d': uptime7d,

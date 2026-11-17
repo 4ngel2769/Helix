@@ -24,6 +24,9 @@
 	let page = $state(1);
 	let query = $state('');
 	let tab = $state('all');
+	let sort = $state('wallet');
+	let guild = $state('');
+	let guildTimer: ReturnType<typeof setTimeout> | null = null;
 	let busyId = $state<string | null>(null);
 	let expandedId = $state<string | null>(null);
 
@@ -42,7 +45,14 @@
 		error = null;
 		try {
 			const data = await api<{ total: number; page: number; users: DevUserEntry[] }>('/dev/users', {
-				query: { search: query.trim() || undefined, filter: tab, page, limit: LIMIT }
+				query: {
+					search: query.trim() || undefined,
+					filter: tab,
+					sort,
+					guild: guild.trim() || undefined,
+					page,
+					limit: LIMIT
+				}
 			});
 			total = data.total;
 			users = reset ? data.users : [...users, ...data.users];
@@ -63,6 +73,15 @@
 	function setTab(key: string): void {
 		tab = key;
 		void load(true);
+	}
+
+	function onSort(): void {
+		void load(true);
+	}
+
+	function onGuild(): void {
+		if (guildTimer) clearTimeout(guildTimer);
+		guildTimer = setTimeout(() => void load(true), 400);
 	}
 
 	function toggleExpand(u: DevUserEntry): void {
@@ -154,6 +173,22 @@
 					<button type="button" class={tab === t.key ? 'sel' : ''} onclick={() => setTab(t.key)}>{t.label}</button>
 				{/each}
 			</div>
+			<div class="user-filters">
+				<div class="field" style="max-width: 240px; margin: 0;">
+					<label for="dev-user-guild">Server ID</label>
+					<input id="dev-user-guild" type="text" placeholder="Filter by guild…" bind:value={guild} oninput={onGuild} />
+				</div>
+				<div class="field" style="max-width: 200px; margin: 0;">
+					<label for="dev-user-sort">Sort by</label>
+					<select id="dev-user-sort" bind:value={sort} onchange={onSort}>
+						<option value="wallet">Wallet</option>
+						<option value="commands">Commands run</option>
+						<option value="lastSeen">Last seen</option>
+						<option value="created">Account created</option>
+						<option value="name">Name</option>
+					</select>
+				</div>
+			</div>
 			<div class="small muted" style="margin-bottom: 10px;">{total} user{total === 1 ? '' : 's'}</div>
 			{#if loading}
 				<p class="loading">Loading users…</p>
@@ -161,16 +196,31 @@
 				<div class="empty">No users match.</div>
 			{:else}
 				<table class="table">
-					<thead><tr><th>User</th><th>Wallet / Bank</th><th>Lvl</th><th>Warns</th><th>Status</th><th></th></tr></thead>
+					<thead><tr><th>User</th><th>Commands</th><th>Last command</th><th>Last seen</th><th>Created</th><th>Warns</th><th>Status</th><th></th></tr></thead>
 					<tbody>
 						{#each users as u (u.userId)}
 							<tr>
 								<td>
-									<button type="button" class="link" onclick={() => toggleExpand(u)}><strong>{u.username ?? '?'}</strong></button><br />
-									<span class="small muted mono">{u.userId}</span>
+									<div class="dev-user-cell">
+										{#if u.avatarUrl}
+											<img class="dev-user-avatar" src={u.avatarUrl} alt="" />
+										{:else}
+											<span class="dev-user-avatar dev-user-fallback">{(u.username ?? '?').trim()[0]?.toUpperCase() ?? '?'}</span>
+										{/if}
+										<div class="min-w-0">
+											<button type="button" class="link" onclick={() => toggleExpand(u)}><strong>{u.username ?? '?'}</strong></button><br />
+											<span class="small muted mono">{u.userId}</span><br />
+											<span class="small muted">{u.guildCount} servers</span>
+										</div>
+									</div>
 								</td>
-								<td class="small mono">{u.wallet.toLocaleString('en-US')} / {u.bank.toLocaleString('en-US')}</td>
-								<td>{u.level}</td>
+								<td class="tabular">{u.commandsRun.toLocaleString('en-US')}</td>
+								<td>
+									<span class="small">{u.lastCommandName ? `/${u.lastCommandName}` : '—'}</span><br />
+									<span class="small muted">{u.lastCommandAt ? shortDate(u.lastCommandAt) : '—'}</span>
+								</td>
+								<td class="small">{u.lastSeen ? shortDate(u.lastSeen) : '—'}</td>
+								<td class="small">{u.accountCreatedAt ? shortDate(u.accountCreatedAt) : '—'}</td>
 								<td>{u.activeWarnings > 0 ? u.activeWarnings : '—'}</td>
 								<td>
 									{#if u.botBanned}<span class="tag tag-off">banned</span>
@@ -193,8 +243,8 @@
 							</tr>
 							{#if expandedId === u.userId}
 								<tr>
-									<td colspan={6}>
-										<div class="small muted" style="margin-bottom: 8px;">Last seen {u.lastSeen ?? '—'}</div>
+									<td colspan={8}>
+										<div class="small muted" style="margin-bottom: 8px;">Wallet {u.wallet.toLocaleString('en-US')} · Bank {u.bank.toLocaleString('en-US')} · Level {u.level} · Last seen {u.lastSeen ?? '—'}</div>
 										<div class="small" style="margin-bottom: 8px;">Premium: <strong>{u.isPremium ? `active till ${shortDate(u.premiumExpiresAt)}` : 'none'}</strong></div>
 										<div style="display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 8px;">
 											<div class="field" style="max-width: 110px; margin: 0;">
@@ -233,16 +283,17 @@
 		flex-wrap: wrap;
 	}
 	.seg button {
-		border: 1px solid var(--border, #2a2d34);
+		border: 1px solid var(--border);
 		background: var(--bg-soft);
 		color: inherit;
-		border-radius: 8px;
+		border-radius: var(--r-sm);
 		padding: 6px 12px;
 		cursor: pointer;
 		font-size: 13px;
 	}
 	.seg button.sel {
-		border-color: var(--accent, #3b66ff);
+		border-color: var(--accent);
+		background: var(--accent-soft);
 	}
 	.link {
 		background: none;
@@ -255,5 +306,32 @@
 	}
 	.link:hover strong {
 		text-decoration: underline;
+	}
+	.user-filters {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 12px;
+		margin-bottom: 12px;
+	}
+	.dev-user-cell {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+	}
+	.dev-user-avatar {
+		width: 36px;
+		height: 36px;
+		flex: none;
+		object-fit: cover;
+		border-radius: 999px;
+		background: var(--surface-2);
+	}
+	.dev-user-fallback {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		font-weight: 700;
+		color: var(--muted);
+		font-size: 14px;
 	}
 </style>

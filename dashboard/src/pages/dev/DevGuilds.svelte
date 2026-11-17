@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { api } from '../../lib/api';
 	import { session } from '../../lib/session.svelte';
-	import { formatCount } from '../../lib/utils';
+	import { formatCount, guildIcon } from '../../lib/utils';
 	import type { DevGuildEntry } from '../../lib/types';
 	import PageHeader from '../../components/PageHeader.svelte';
 	import TextArea from '../../components/TextArea.svelte';
@@ -189,9 +189,14 @@
 						{#each guilds as g (g.id)}
 							<tr>
 								<td>
-									<button type="button" class="link" onclick={() => toggleExpand(g)}><strong>{g.name}</strong></button><br />
-									<span class="small muted mono">{g.id}</span><br />
-									<span class="small muted">{g.ownerUsername ?? g.ownerId}</span>
+									<div class="dev-guild-cell">
+										<img class="dev-guild-icon" src={guildIcon(g.icon, g.name, 40)} alt="" />
+										<div class="min-w-0">
+											<button type="button" class="link" onclick={() => toggleExpand(g)}><strong>{g.name}</strong></button><br />
+											<span class="small muted mono">{g.id}</span><br />
+											<span class="small muted">{g.ownerUsername ?? g.ownerId}</span>
+										</div>
+									</div>
 								</td>
 								<td>{formatCount(g.memberCount)}</td>
 								<td>
@@ -273,16 +278,17 @@
 		flex-wrap: wrap;
 	}
 	.seg button {
-		border: 1px solid var(--border, #2a2d34);
+		border: 1px solid var(--border);
 		background: var(--bg-soft);
 		color: inherit;
-		border-radius: 8px;
+		border-radius: var(--r-sm);
 		padding: 6px 12px;
 		cursor: pointer;
 		font-size: 13px;
 	}
 	.seg button.sel {
-		border-color: var(--accent, #3b66ff);
+		border-color: var(--accent);
+		background: var(--accent-soft);
 	}
 	.link {
 		background: none;

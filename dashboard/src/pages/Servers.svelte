@@ -47,7 +47,7 @@
 {#if !session.user}
 	<div class="login-wrap">
 		<div class="login-card">
-			<span class="brand-mark" style="width: 44px; height: 44px; font-size: 24px;">H</span>
+			<img src="/helix.png" alt="" class="brand-mark" style="width: 44px; height: 44px;" />
 			<h1>Helix Dashboard</h1>
 			<p class="muted">Manage your Discord servers, modules and moderation in one sharp, minimal place.</p>
 			{#if oauthError}
@@ -90,8 +90,11 @@
 				{#each withBot as guild (guild.id)}
 					<div class="server-card">
 						<img src={guildIcon(guild.icon, guild.name)} alt="" />
-						<div>
-							<div class="s-name">{guild.name}</div>
+						<div class="s-body">
+							<div class="s-name-wrap" title={guild.name}>
+								<span class="s-name">{guild.name}</span>
+								<span class="s-name-scroll" aria-hidden="true"><span>{guild.name}</span><span>{guild.name}</span></span>
+							</div>
 							<div class="s-meta">
 								{#if guild.approximate_member_count}{formatCount(guild.approximate_member_count)} members · {/if}Ready
 							</div>
@@ -112,8 +115,11 @@
 				{#each withoutBot as guild (guild.id)}
 					<div class="server-card">
 						<img class="grey" src={guildIcon(guild.icon, guild.name)} alt="" />
-						<div>
-							<div class="s-name">{guild.name}</div>
+						<div class="s-body">
+							<div class="s-name-wrap" title={guild.name}>
+								<span class="s-name">{guild.name}</span>
+								<span class="s-name-scroll" aria-hidden="true"><span>{guild.name}</span><span>{guild.name}</span></span>
+							</div>
 							<div class="s-meta">Not installed</div>
 						</div>
 						<div class="s-actions">

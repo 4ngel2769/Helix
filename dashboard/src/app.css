@@ -162,11 +162,12 @@ a:hover {
 .brand-mark {
 	width: 26px;
 	height: 26px;
-	background: var(--accent);
-	color: var(--accent-ink);
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
+	object-fit: contain;
+	background: transparent;
+	color: var(--accent-ink);
 	font-weight: 900;
 	font-size: 15px;
 	border-radius: var(--r-sm);
@@ -524,7 +525,49 @@ textarea::placeholder {
 
 .server-card .s-actions {
 	margin-left: auto;
-	flex: none;
+	flex: 0 0 auto;
+}
+
+.server-card .s-body {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.server-card .s-name {
+	max-width: none;
+}
+
+.s-name-wrap {
+	position: relative;
+	overflow: hidden;
+	max-width: 100%;
+	white-space: nowrap;
+	mask-image: linear-gradient(90deg, #000 82%, transparent);
+}
+
+.s-name-scroll {
+	display: none;
+	width: max-content;
+}
+
+.s-name-scroll > span {
+	margin-right: 2rem;
+}
+
+.s-name-wrap:hover .s-name,
+.s-name-wrap:focus-visible .s-name {
+	display: none;
+}
+
+.s-name-wrap:hover .s-name-scroll,
+.s-name-wrap:focus-visible .s-name-scroll {
+	display: flex;
+	animation: guild-name-scroll 9s linear infinite;
+}
+
+@keyframes guild-name-scroll {
+	from { transform: translateX(0); }
+	to { transform: translateX(-50%); }
 }
 
 .section-title {
@@ -601,8 +644,8 @@ textarea::placeholder {
 
 .nav-link.active {
 	color: var(--text);
-	background: var(--accent-soft);
-	box-shadow: inset 2px 0 0 var(--accent);
+	background: var(--surface-2);
+	font-weight: 700;
 }
 
 .nav-label {
@@ -931,6 +974,7 @@ textarea::placeholder {
 	font-size: 11px;
 	letter-spacing: 0.04em;
 	text-transform: uppercase;
+	white-space: nowrap;
 }
 
 .tag-warn {
@@ -944,11 +988,79 @@ textarea::placeholder {
 	border-radius: 999px;
 }
 
-.nav-link.active {
-	box-shadow: inset 3px 0 0 var(--accent);
+.server-card:hover {
+	background: var(--surface-2);
 }
 
-.server-card:hover {
+/* ---------- Quiet pixel texture ---------- */
+.login-wrap,
+.topbar {
+	position: relative;
+	overflow: hidden;
+}
+
+.login-wrap::before,
+.topbar::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	background-image: radial-gradient(var(--border) 1px, transparent 1px);
+	background-size: 22px 22px;
+	opacity: 0.22;
+	mask-image: linear-gradient(180deg, transparent, #000 45%, transparent);
+}
+
+.login-wrap > * {
+	position: relative;
+}
+
+/* ---------- GitHub-style callouts ---------- */
+.notice {
+	position: relative;
+	border: 1px solid var(--border);
+	border-left: 3px solid var(--faint);
+	border-radius: var(--r-md);
+	background: var(--surface);
+	padding: 12px 16px;
+	font-size: 14px;
+	margin-bottom: 16px;
+}
+
+.notice::before {
+	display: block;
+	font-family: var(--mono);
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	margin-bottom: 4px;
+	content: 'NOTE';
+	color: var(--muted);
+}
+
+.notice-info { border-left-color: var(--accent); background: var(--accent-soft); }
+.notice-info::before { content: 'NOTE'; color: var(--accent); }
+.notice-ok { border-left-color: var(--ok); background: var(--ok-soft); }
+.notice-ok::before { content: 'TIP'; color: var(--ok); }
+.notice-warn { border-left-color: var(--warn); background: var(--warn-soft); }
+.notice-warn::before { content: 'WARNING'; color: var(--warn); }
+.notice-error { border-left-color: var(--danger); background: var(--danger-soft); }
+.notice-error::before { content: 'IMPORTANT'; color: var(--danger); }
+
+.min-w-0 { min-width: 0; }
+
+.dev-guild-cell {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+}
+
+.dev-guild-icon {
+	width: 40px;
+	height: 40px;
+	flex: none;
+	object-fit: cover;
+	border-radius: var(--r-sm);
 	background: var(--surface-2);
 }
 
@@ -1022,4 +1134,8 @@ textarea::placeholder {
 		transition-duration: 0.01ms !important;
 		scroll-behavior: auto !important;
 	}
+	.s-name-wrap:hover .s-name,
+	.s-name-wrap:focus-visible .s-name { display: block; }
+	.s-name-wrap:hover .s-name-scroll,
+	.s-name-wrap:focus-visible .s-name-scroll { display: none; }
 }

@@ -151,6 +151,14 @@ export interface IUser extends Document {
   warnings: UserWarning[];
   joinedServers: string[];
   lastSeen: Date;
+  /** Discord CDN avatar hash, captured on command use for the admin table. */
+  avatarHash?: string | null;
+  /** Lifetime commands executed by this user (tracked from deployment). */
+  commandsRun?: number;
+  lastCommandAt?: Date | null;
+  lastCommandName?: string | null;
+  /** Discord account creation time, derived from the user-ID snowflake. */
+  accountCreatedAt?: Date | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -304,7 +312,12 @@ const userSchema = new Schema<IUser>({
   }],
   
   joinedServers: [{ type: String }],
-  lastSeen: { type: Date, default: Date.now }
+  lastSeen: { type: Date, default: Date.now },
+  avatarHash: { type: String, default: null },
+  commandsRun: { type: Number, default: 0 },
+  lastCommandAt: { type: Date, default: null },
+  lastCommandName: { type: String, default: null },
+  accountCreatedAt: { type: Date, default: null }
 }, {
   timestamps: true
 });

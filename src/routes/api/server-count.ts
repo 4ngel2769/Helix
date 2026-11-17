@@ -33,10 +33,11 @@ export class ServerCountRoute extends Route {
         let members = 0;
         for (const guild of client.guilds.cache.values()) members += guild.memberCount ?? 0;
 
-        const [uptime24h, uptime7d, uptime30d] = await Promise.all([
+        const [uptime24h, uptime7d, uptime30d, uptimeDataSince] = await Promise.all([
             UptimeService.uptimePercent(DAY),
             UptimeService.uptimePercent(WEEK),
-            UptimeService.uptimePercent(MONTH)
+            UptimeService.uptimePercent(MONTH),
+            UptimeService.dataSince()
         ]);
 
         return response.json({
@@ -44,6 +45,7 @@ export class ServerCountRoute extends Route {
             members,
             users: client.users.cache.size,
             uptime: client.uptime,
+            uptimeDataSince,
             uptimePercent: {
                 '24h': uptime24h,
                 '7d': uptime7d,

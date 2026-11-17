@@ -141,6 +141,14 @@ export const UptimeService = {
 			.lean();
 		if (intervals.length === 0) return null;
 
+		// Availability can only be measured for as long as we have records. If
+		// tracking started inside the window, use that point as the denominator
+		// instead of reporting a misleadingly tiny fraction of the whole window.
+		const earliest = Math.min(...intervals.map((iv) => iv.startedAt.getTime()));
+		const effectiveStart = Math.max(windowStart.getTime(), earliest);
+		const span = now - effectiveStart;
+		if (span <= 0) return null;
+
 		let covered = 0;
 		for (const iv of intervals) {
 			const aliveFrom = Math.max(iv.startedAt.getTime(), windowStart.getTime());
@@ -158,7 +166,13 @@ export const UptimeService = {
 			aliveUntil = Math.min(aliveUntil, now);
 			if (aliveUntil > aliveFrom) covered += aliveUntil - aliveFrom;
 		}
-		return Math.min(1, covered / windowMs);
+		return Math.min(1, covered / span);
+	},
+
+	/** Earliest tracked session, so consumers can label partial-history percentages. */
+	async dataSince(): Promise<string | null> {
+		const doc = await BotUptime.findOne({}, { startedAt: 1 }).sort({ startedAt: 1 }).lean();
+		return doc?.startedAt?.toISOString() ?? null;
 	},
 
 	/** Currently-open interval, if any. */
