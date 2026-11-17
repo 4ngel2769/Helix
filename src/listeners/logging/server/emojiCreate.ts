@@ -8,7 +8,8 @@ export class EmojiCreateLogListener extends Listener<typeof Events.GuildEmojiCre
 	}
 	public override async run(emoji: GuildEmoji) {
 		await sendLog(emoji.guild, 'emoji.update', {
-			description: `Emoji ${emoji.name} (${emoji.id}) added.`
+			description: `Emoji ${emoji.name} (${emoji.id}) added.`,
+			fields: [{ name: 'Animated', value: emoji.animated ? 'Yes' : 'No', inline: true }, { name: 'Available', value: emoji.available ? 'Yes' : 'No', inline: true }, ...(emoji.roles.cache.size ? [{ name: 'Restricted roles', value: [...emoji.roles.cache.keys()].slice(0, 20).map((id) => `<@&${id}>`).join(', ') }] : [])]
 		});
 	}
 }

@@ -34,7 +34,7 @@ Helix helps you run a Discord server: moderate it, welcome new members, verify t
 ## ✨ Features
 
 - **Moderation** — bans, kicks, timeouts, mutes, purges, warnings with aliases, configurable DM templates, escalation (warn → timeout/kick/ban), and live moderation actions from the dashboard.
-- **Audit logging** — 31 event types across moderation, members, messages, voice, server changes, and AutoMod, with per-event channels and ignore lists.
+- **Audit logging** — configurable events across moderation, members, messages, voice, server changes, and AutoMod, with per-event channels and ignore lists.
 - **Verification** — button-based gate with a customizable embed; grants a role on verify.
 - **Reaction roles** — self-assignable role menus with labels, emoji, per-menu limits, and pause/resume.
 - **Welcoming** — welcome/farewell messages with placeholders, auto-role on join, and image cards.
@@ -81,20 +81,20 @@ Module defaults below come from the module catalog in `src/config/modules.ts`. E
 
 ## Versions
 
-| Core | Version(s) | Codename | Status | Engine | AI | Notes |
-|---|---|:---:|:---:|---|:---:|---|
-| — | v1.0.0 → 1.1.8 | Rootspawn | 🔴 | D.js 12.2.0 | ❌ | |
-| — | v2.0.0 → 2.6.0 | Loopback | 🔴 | D.js 12.4.1 | ❌ | |
-| — | v3.0.0 → 3.5.0 | EchoRun | 🛟 | D.js 12.5.2 | ❌ | |
-| — | v4.0.0 → 4.1.2 | Neatline | 🔴 | D.js 12.5.3 | ❌ | |
-| — | v5.0.0 | Ghostping | 🟡 | D.js 13.6.0 | ❌ | |
-| — | v5.1.0 | Signalband | 🟢 | D.js 13.11.0 | ❌ | |
-| — | v6.0.0 | Dataloom | 🔴 | D.js 13.14.0 | ❌ | |
-| — | v6.1.0 | Protothype | 🔵 | D.js 14.9.0 | ✅ | |
-| — | v7.0.0 | Cleancut | 🔴 | D.js 14.11.0 | ⚗️ | |
-| Hex_1 | v9.0.0 → 9.0.6 | Stackflow | 🔴 | D.js 14.6.0 | ⚗️ | Deprecated in favor of Carbonkernel |
-| Hex_2 | v10.0.1 | Carbonkernel | Ⓜ️ | D.js 14.26 | ⚗️ | Current. Sapphire framework + Svelte dashboard + REST API |
-| Cranberry | x | Cranberry | 🟣 | D.js 14.14.1 | 🤖 | Private moderation bot for the Helix support server |
+| Version(s) | Codename | Status | Engine | AI | Notes |
+|---|:---:|:---:|---|:---:|---|
+| v1.0.0 → 1.1.8 | Rootspawn | 🔴 | discord.js 12.2.0 | ❌ | |
+| v2.0.0 → 2.6.0 | Loopback | 🔴 | discord.js 12.4.1 | ❌ | |
+| v3.0.0 → 3.5.0 | EchoRun | 🛟 | discord.js 12.5.2 | ❌ | |
+| v4.0.0 → 4.1.2 | Neatline | 🔴 | discord.js 12.5.3 | ❌ | |
+| v5.0.0 | Ghostping | 🟡 | discord.js 13.6.0 | ❌ | |
+| v5.1.0 | Signalband | 🟢 | discord.js 13.11.0 | ❌ | |
+| v6.0.0 | Dataloom | 🔴 | discord.js 13.14.0 | ❌ | |
+| v6.1.0 | Protothype | 🔵 | discord.js 14.9.0 | ✅ | |
+| v7.0.0 | Cleancut | 🔴 | discord.js 14.11.0 | ⚗️ | |
+| v9.0.0 → 9.0.6 | Stackflow | 🔴 | discord.js 14.6.0 | ⚗️ | Deprecated; superseded by Carbonkernel |
+| **v10.0.1** | **Carbonkernel** | **Ⓜ️ Active development** | **discord.js 14.26** | ⚗️ | **Current maintained Helix version**; Sapphire + Svelte dashboard + REST API |
+| x | Cranberry | 🟣 | discord.js 14.14.1 | 🤖 | Private moderation bot for the Helix support server |
 
 > v9.0+ runs on [Paperplane](https://github.com/Helix-Labs/framework), a custom fork of [Sapphire](https://github.com/sapphiredev/framework).
 
@@ -109,17 +109,19 @@ Module defaults below come from the module catalog in `src/config/modules.ts`. E
 
 These commands and the dashboard write to the same per-guild configuration, but they do not expose the same controls:
 
-| Command | What it does | Permission |
+| Command | Summary | Access |
 |---|---|---|
-| `/setup` | Stateful, restart-safe setup wizard for roles, channels, prefix, and module states, with `start`, `status`, `finish`, and `cancel`; `legacy` preserves the one-shot form. It stores verification settings but does not post the verification button. | `Manage Guild` |
-| `/help` | Lists commands the member can use. `command:config role admin` and other grouped paths are accepted. | None |
-| `/config` | Sets roles, log channels, prefix, module states, or disabled commands through subcommands. | Slash registration: `Administrator`; runtime accepts `Manage Channels`, `Manage Roles`, `Ban Members`, `Kick Members`, or `Moderate Members` for most subcommands. The administrator role is owner-only. |
-| `/settings` | Displays the current server configuration; it does not change settings. | `Manage Guild` |
-| `/configmodule` | Enables or disables one module. | `Administrator` |
-| `/togglecommand` | Enables or disables one non-critical command for the server. | `Manage Guild` |
-| `/setup-verification` | Configures and enables verification, validates the selected role/channel, and posts the verification message. | `Manage Guild` and moderator access |
+| `/setup` | Starts or resumes guided server setup. | `Manage Guild` |
+| `/help` | Lists commands available to the member. | None |
+| `/config` | Changes roles, log channels, prefix, modules, or disabled commands. | Administrator at registration; runtime access varies by subcommand. |
+| `/settings` | Displays current server configuration. | `Manage Guild` |
+| `/configmodule` | Enables or disables a module. | `Administrator` |
+| `/togglecommand` | Enables or disables a non-critical server command. | `Manage Guild` |
+| `/setup-verification` | Configures verification and posts its verification message. | `Manage Guild` + moderator access |
 
-`/setup` is restart-safe: `start` creates the wizard, each step command saves its changes before advancing, and `status`, `finish`, or `cancel` manages the flow. The starter or server owner can continue it; the server owner alone can assign the administrator role. `/setup legacy` preserves the old one-shot form. The dashboard exposes the broader guild configuration API, including warning aliases/DM templates, AutoMod actions, per-event logging channels, and other settings that are not part of `/setup`; dashboard changes are persisted independently of the command form but share the same guild record.
+`/setup` is restart-safe: `start`, `status`, `finish`, and `cancel` manage the wizard, and each step saves before advancing. The starter or server owner can continue it; only the server owner can assign the administrator role. `/setup legacy` keeps the one-shot form. The wizard stores verification settings but does not post the verification button; use `/setup-verification` for that. The dashboard exposes additional settings (including warning aliases/DM templates, AutoMod actions, and per-event log channels); all settings share the guild record.
+
+For `/config`, Discord requires Administrator to register the command, while runtime checks allow specific management permissions for most subcommands: Manage Channels, Manage Roles, Ban Members, Kick Members, or Moderate Members. The Administrator role is owner-only.
 
 Leveling: `/level rank` and `/rank` render a canvas rank card (embed fallback if the card fails), `/level leaderboard` shows the top 10, and `/level give-xp` / `/level remove-xp` need **Manage Server**. Reward roles follow the member's level in both directions — taking XP away revokes rewards they no longer qualify for, and with stacking off only the highest earned reward is kept. Voice XP is opt-in via the dashboard Leveling page (`voiceXpPerMinute`, 0 = off); un-accrued minutes are lost if the bot restarts mid-session. The same dashboard page lists the server's XP leaderboard.
 

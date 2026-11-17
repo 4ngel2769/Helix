@@ -7,6 +7,7 @@ import { GuildConfigService } from '../../lib/services/GuildConfigService';
 import { clearGuildPrefixCache, setGuildPrefixInCache } from '../../lib/utils/prefixCache';
 import { clearDisabledCommandsCache } from '../../lib/utils/disabledCommandsCache';
 import { LOG_EVENT_KEYS } from '../../lib/logging/logEvents';
+import { getPublicLogEventGroups } from '../../lib/logging/publicLogEventGroups';
 import { isPremiumActive } from '../../lib/utils/premium';
 import { isLocale, LOCALE_CODES } from '../../lib/i18n';
 import { clearGuildStrings } from '../../lib/i18n/guildStrings';
@@ -212,7 +213,7 @@ export class ApiGuildConfigRoute extends Route {
 		if (request.method === 'GET') {
 			try {
 				const data = await GuildConfigService.getOrCreateGuildData(guildId);
-				return response.json({ guildId, config: publicConfig(data) });
+				return response.json({ guildId, config: { ...(publicConfig(data) as Record<string, unknown>), logEventGroups: getPublicLogEventGroups() } });
 			} catch {
 				return response.status(500).json({ error: 'Failed to load guild config' });
 			}

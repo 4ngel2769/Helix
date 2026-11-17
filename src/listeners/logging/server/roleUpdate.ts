@@ -7,13 +7,18 @@ export class RoleUpdateLogListener extends Listener<typeof Events.GuildRoleUpdat
 		super(context, { ...options, event: Events.GuildRoleUpdate });
 	}
 	public override async run(oldRole: Role, newRole: Role) {
-		if (oldRole.name === newRole.name && oldRole.hexColor === newRole.hexColor) return;
+		const changes = [
+			['Name', oldRole.name, newRole.name],
+			['Color', oldRole.hexColor, newRole.hexColor],
+			['Permissions', oldRole.permissions.bitfield.toString(), newRole.permissions.bitfield.toString()],
+			['Hoisted', oldRole.hoist, newRole.hoist],
+			['Mentionable', oldRole.mentionable, newRole.mentionable],
+			['Displayed separately', oldRole.tags?.availableForPurchase, newRole.tags?.availableForPurchase]
+		].filter(([, before, after]) => before !== after);
+		if (changes.length === 0) return;
 		await sendLog(newRole.guild, 'role.update', {
 			description: `Role <@&${newRole.id}> updated.`,
-			fields: [
-				{ name: 'Before', value: `${oldRole.name} (${oldRole.hexColor})`, inline: true },
-				{ name: 'After', value: `${newRole.name} (${newRole.hexColor})`, inline: true }
-			]
+			fields: changes.map(([name, before, after]) => ({ name: String(name), value: `Before: ${String(before)}\nAfter: ${String(after)}`, inline: false }))
 		});
 	}
 }

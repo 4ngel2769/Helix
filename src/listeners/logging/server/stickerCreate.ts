@@ -11,7 +11,8 @@ export class StickerCreateLogListener extends Listener<typeof Events.GuildSticke
 		if (!sticker.guild) return;
 		await sendLog(sticker.guild, 'emoji.update', {
 			title: 'Sticker added',
-			description: `Sticker **${sticker.name}** (\`${sticker.id}\`) was added.`
+			description: `Sticker **${sticker.name}** (\`${sticker.id}\`) was added.`,
+			fields: [{ name: 'Description', value: sticker.description || '*none*' }, { name: 'Tags', value: sticker.tags || '*none*', inline: true }, { name: 'Available', value: sticker.available ? 'Yes' : 'No', inline: true }]
 		});
 	}
 }

@@ -70,14 +70,21 @@ export const LOG_EVENT_GROUPS: LogEventGroup[] = [
 		events: [
 			{ key: 'channel.create', label: 'Channel created', description: 'Channel created.', defaultEnabled: true },
 			{ key: 'channel.delete', label: 'Channel deleted', description: 'Channel deleted.', defaultEnabled: true },
-			{ key: 'channel.update', label: 'Channel updated', description: 'Channel name/topic/permissions changed.', defaultEnabled: false },
+			{ key: 'channel.update', label: 'Channel updated', description: 'Channel name, topic, category, slowmode, voice settings, or permission overwrites changed.', defaultEnabled: false },
 			{ key: 'role.create', label: 'Role created', description: 'Role created.', defaultEnabled: true },
 			{ key: 'role.delete', label: 'Role deleted', description: 'Role deleted.', defaultEnabled: true },
-			{ key: 'role.update', label: 'Role updated', description: 'Role name/color/permissions changed.', defaultEnabled: false },
-			{ key: 'emoji.update', label: 'Emoji / sticker', description: 'Emoji or sticker added/removed.', defaultEnabled: false },
+			{ key: 'role.update', label: 'Role updated', description: 'Role name, color, permissions, hoist, mentionability, or display settings changed.', defaultEnabled: false },
+			{ key: 'emoji.update', label: 'Emoji / sticker', description: 'Emoji or sticker created, updated, or removed.', defaultEnabled: false },
 			{ key: 'invite.create', label: 'Invite created', description: 'Invite link created.', defaultEnabled: false },
 			{ key: 'invite.delete', label: 'Invite deleted', description: 'Invite link deleted.', defaultEnabled: false },
-			{ key: 'thread.update', label: 'Thread created / deleted', description: 'Thread created or deleted.', defaultEnabled: false }
+			{ key: 'thread.update', label: 'Thread changes', description: 'Thread created, deleted, or updated.', defaultEnabled: false },
+			{ key: 'guild.update', label: 'Server settings changed', description: 'Available server name, icon, description, locale, or verification settings changed.', defaultEnabled: false },
+			{ key: 'scheduledEvent.update', label: 'Scheduled event changes', description: 'Scheduled events created, updated, or deleted.', defaultEnabled: false },
+			{ key: 'stage.update', label: 'Stage changes', description: 'Stage instances created, updated, or deleted.', defaultEnabled: false },
+			{ key: 'webhook.update', label: 'Webhook changes', description: 'Discord notified Helix that a channel webhook changed; exact changes are not included.', defaultEnabled: false },
+			{ key: 'integration.update', label: 'Integration changes', description: 'Discord notified Helix that server integrations changed; individual details are not included.', defaultEnabled: false },
+			{ key: 'audit.entry', label: 'Audit log activity', description: 'New audit entry when delivered to Helix; requires View Audit Log permission.', defaultEnabled: false },
+			{ key: 'soundboard.update', label: 'Soundboard changes', description: 'Guild soundboard sounds created, updated, or deleted.', defaultEnabled: false }
 		]
 	},
 	{

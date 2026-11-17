@@ -22,11 +22,15 @@
 {#if saved && !dirty}
 	<div class="notice notice-ok">Saved.</div>
 {/if}
-<div class="savebar">
-	<span class="muted small">{dirty ? 'You have unsaved changes.' : 'No unsaved changes.'}</span>
-	<span style="flex: 1"></span>
-	<button class="btn btn-ghost btn-sm" disabled={!dirty || saving} onclick={onreset}>Reset</button>
-	<button class="btn btn-primary btn-sm" disabled={!dirty || saving} onclick={onsave}>
-		{saving ? 'Saving…' : 'Save changes'}
-	</button>
-</div>
+{#if dirty}
+	<div class="savebar" role="region" aria-label="Pending changes">
+		<span class="muted small" role="status" aria-live="polite">Changes are pending.</span>
+		<span class="savebar-spacer"></span>
+		<button class="btn btn-discard btn-sm" disabled={saving} onclick={onreset}>Discard</button>
+		<button class="btn btn-apply btn-sm" disabled={saving} onclick={onsave}>
+			{saving ? 'Applying…' : 'Apply'}
+		</button>
+	</div>
+{:else}
+	<div class="savebar-placeholder" aria-hidden="true"></div>
+{/if}

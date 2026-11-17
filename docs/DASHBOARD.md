@@ -161,15 +161,15 @@ Each toggle saves immediately via `PATCH`, with optimistic UI that rolls back on
 
 `GET /guilds/:id/modules` merges stored state over the catalog: `enabled: data.modules?.[key] ?? cfg.defaultEnabled`. The `emoji` field exists in `src/config/modules.ts` and is exposed by the public `GET /modules` route, but is **not** returned by `GET /guilds/:id/modules`, so the dashboard never shows module emojis. The module key is `reactionRoles` (camelCase), not `reaction_roles`.
 
-### Logging — 31 event toggles, per-event channels, ignore lists
+### Logging — server-catalogued event toggles, per-event channels, ignore lists
 
-One PATCH writes 12 keys at once. All 31 event keys and their default states are hard-coded in `Logging.svelte:12-56` as a mirror of `src/lib/logging/logEvents.ts`.
+One PATCH writes 12 keys at once. `GET /guilds/:id/config` returns detached `logEventGroups` metadata from `src/lib/logging/publicLogEventGroups.ts`; this is the authoritative catalog from `src/lib/logging/logEvents.ts`, not a dashboard-maintained mirror. The page derives its event controls and displayed description from that response. If the catalog is missing or malformed, all logging edits are unavailable and the page asks the user to reload rather than risking an incomplete event map.
 
 | Option | Type | Default | Saved to | Validation / notes |
 |---|---|---|---|---|
 | `logChannelId` | `string \| null` | `null` | `PATCH /guilds/:id/config` | Snowflake or `null`. "Events without a per-event or fallback channel are skipped." |
 | `logIncludeBots` | boolean | `false` | same | Must be a boolean (`guild-config.ts:166`). Described in the UI as "Include bot messages and bot join/leave events." |
-| `logEvents` | `Record<string, boolean>` | per-event defaults below | same | Server: plain object; every key must exist in `LOG_EVENT_KEYS` (unknown key 400s) and every value must be a boolean. The page always sends all 31 keys, so a key added server-side later is simply absent — the server tolerates a partial object. |
+| `logEvents` | `Record<string, boolean>` | per-event defaults from API catalog | same | Server: plain object; every key must exist in `LOG_EVENT_KEYS` (unknown key 400s) and every value must be a boolean. The page sends keys present in the received catalog; the server tolerates partial objects. |
 | `logEventChannels` | `Record<string, string>` | `''` per event | same | Server: plain object; every key must be in `LOG_EVENT_KEYS`, every value `''` or a snowflake. A per-event override wins over the legacy fallback channels and over `logChannelId`. |
 | `logIgnoredChannels` | `string[]` | `[]` | same | Array of ≤500 snowflakes, deduped by the server. A single non-snowflake entry fails the whole save. |
 | `logIgnoredRoles` | `string[]` | `[]` | same | Same cap and snowflake rule. |
@@ -181,7 +181,7 @@ One PATCH writes 12 keys at once. All 31 event keys and their default states are
 | `nicknameLogChannelId` | `string \| null` | `null` | same | Legacy fallback for `member.nickname`. |
 | `roleLogChannelId` | `string \| null` | `null` | same | Legacy fallback for `member.roles`. |
 
-**Event keys and their defaults** (the page header says "toggle 31 event types", which matches):
+**Event keys and their defaults** (labels, descriptions, colors, and defaults are returned by the server catalog):
 
 | Group | Keys |
 |---|---|
@@ -189,10 +189,12 @@ One PATCH writes 12 keys at once. All 31 event keys and their default states are
 | Members | `member.join`: false, `member.leave`: false, `member.nickname`: true, `member.roles`: true, `member.boost`: true |
 | Messages | `message.edit`: true, `message.delete`: true, `message.bulkDelete`: true |
 | Voice | `voice.join`: false, `voice.leave`: false, `voice.move`: false |
-| Server | `channel.create`: true, `channel.delete`: true, `channel.update`: false, `role.create`: true, `role.delete`: true, `role.update`: false, `emoji.update`: false, `invite.create`: false, `invite.delete`: false, `thread.update`: false |
+| Server | `channel.create`: true, `channel.delete`: true, `channel.update`: false, `role.create`: true, `role.delete`: true, `role.update`: false, `emoji.update`: false, `invite.create`: false, `invite.delete`: false, `thread.update`: false, `guild.update`: false, `scheduledEvent.update`: false, `stage.update`: false, `webhook.update`: false, `integration.update`: false, `audit.entry`: false, `soundboard.update`: false |
 | AutoMod | `automod.action`: true |
 
 Each group has "All on" / "All off" buttons. The ignore lists are checkbox grids over the cached channels/roles with a client-side name search. The legacy fallback block is explicitly labelled "Old per-category channels ... keep them or migrate to the default channel above."
+
+Server logging also covers role permission/hoist/mentionability changes; thread name/archive/lock/slowmode/auto-archive changes; emoji and sticker metadata changes; and available guild, scheduled-event, and stage-instance details. Channel update logs include field-level diffs where discord.js supplies before/after channel objects. Discord's webhook and integration gateway notifications are nonspecific: webhook notices only identify a channel and integration notices only identify the guild, not the specific changed object or actor. Audit-entry delivery requires the bot to have **View Audit Log**; executor/target fields are included only when Discord supplies them. Update listeners do not synthesize an actor from a nearby audit entry. No additional privileged intents are enabled for these controls. Soundboard create/update/delete gateway events are handled using discord.js's exported event constants.
 ### Welcome — welcome/farewell messages and image cards
 
 Two independent halves. Message placeholders are `{{...}}` and are rendered by `renderMessageTemplate` (`src/lib/utils/messagePlaceholders.ts:35`): `{{user.mention}}`, `{{user.name}}`, `{{user.tag}}`, `{{prefix}}`, `{{server.name}}`, `{{server.members}}`, `{{server.ordinal}}`, plus the legacy `{user}`, `{server}`, `{memberCount}`.

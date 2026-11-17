@@ -8,52 +8,14 @@
 	import ChannelPill from '../../components/ChannelPill.svelte';
 	import SaveBar from '../../components/SaveBar.svelte';
 
-	// Mirror of src/lib/logging/logEvents.ts — keep labels/defaults in sync there.
-	const GROUPS: Array<{ id: string; label: string; events: Array<{ key: string; label: string; hint: string; def: boolean }> }> = [
-		{ id: 'moderation', label: 'Moderation', events: [
-			{ key: 'mod.ban', label: 'Ban', hint: 'Member banned.', def: true },
-			{ key: 'mod.unban', label: 'Unban', hint: 'Member unbanned.', def: true },
-			{ key: 'mod.kick', label: 'Kick', hint: 'Member kicked.', def: true },
-			{ key: 'mod.timeout', label: 'Timeout', hint: 'Member timed out.', def: true },
-			{ key: 'mod.untimeout', label: 'Timeout removed', hint: 'Timeout removed.', def: false },
-			{ key: 'mod.mute', label: 'Mute', hint: 'Member muted.', def: true },
-			{ key: 'mod.unmute', label: 'Unmute', hint: 'Member unmuted.', def: false },
-			{ key: 'mod.warn', label: 'Warn', hint: 'Warning issued.', def: true },
-			{ key: 'mod.purge', label: 'Purge', hint: 'Bulk purge by a moderator.', def: true }
-		]},
-		{ id: 'members', label: 'Members', events: [
-			{ key: 'member.join', label: 'Join', hint: 'Member joined.', def: false },
-			{ key: 'member.leave', label: 'Leave', hint: 'Member left.', def: false },
-			{ key: 'member.nickname', label: 'Nickname change', hint: 'Nickname changed.', def: true },
-			{ key: 'member.roles', label: 'Role change', hint: 'Roles added or removed.', def: true },
-			{ key: 'member.boost', label: 'Boost', hint: 'Server boost started/stopped.', def: true }
-		]},
-		{ id: 'messages', label: 'Messages', events: [
-			{ key: 'message.edit', label: 'Message edited', hint: 'Message content edited.', def: true },
-			{ key: 'message.delete', label: 'Message deleted', hint: 'Single message deleted.', def: true },
-			{ key: 'message.bulkDelete', label: 'Bulk delete', hint: 'Messages bulk-deleted.', def: true }
-		]},
-		{ id: 'voice', label: 'Voice', events: [
-			{ key: 'voice.join', label: 'Voice join', hint: 'Joined a voice channel.', def: false },
-			{ key: 'voice.leave', label: 'Voice leave', hint: 'Left a voice channel.', def: false },
-			{ key: 'voice.move', label: 'Voice move', hint: 'Moved between voice channels.', def: false }
-		]},
-		{ id: 'server', label: 'Server', events: [
-			{ key: 'channel.create', label: 'Channel created', hint: '', def: true },
-			{ key: 'channel.delete', label: 'Channel deleted', hint: '', def: true },
-			{ key: 'channel.update', label: 'Channel updated', hint: 'Renames only.', def: false },
-			{ key: 'role.create', label: 'Role created', hint: '', def: true },
-			{ key: 'role.delete', label: 'Role deleted', hint: '', def: true },
-			{ key: 'role.update', label: 'Role updated', hint: 'Name/color changes.', def: false },
-			{ key: 'emoji.update', label: 'Emoji / sticker', hint: '', def: false },
-			{ key: 'invite.create', label: 'Invite created', hint: '', def: false },
-			{ key: 'invite.delete', label: 'Invite deleted', hint: '', def: false },
-			{ key: 'thread.update', label: 'Thread created / deleted', hint: '', def: false }
-		]},
-		{ id: 'automod', label: 'AutoMod', events: [
-			{ key: 'automod.action', label: 'AutoMod action', hint: 'Discord AutoMod rule triggered.', def: true }
-		]}
-	];
+	let { guildId }: { guildId: string } = $props();
+	const entry = $derived(guildEntry(guildId));
+	const GROUPS = $derived((((entry.config?.logEventGroups ?? []) as unknown[]).filter(isLogEventGroup)) as Array<{
+		id: string;
+		label: string;
+		color: string;
+		events: Array<{ key: string; label: string; description: string; defaultEnabled: boolean }>;
+	}>);
 
 	const LEGACY = [
 		{ key: 'modLogChannelId', label: 'Mod fallback', hint: 'Used for moderation events without an override.' },
@@ -63,9 +25,6 @@
 		{ key: 'nicknameLogChannelId', label: 'Nickname fallback', hint: '' },
 		{ key: 'roleLogChannelId', label: 'Role fallback', hint: '' }
 	] as const;
-
-	let { guildId }: { guildId: string } = $props();
-	const entry = $derived(guildEntry(guildId));
 
 	let defaultChannel = $state('');
 	let includeBots = $state(false);
@@ -95,7 +54,7 @@
 		const t: Record<string, boolean> = {};
 		const o: Record<string, string> = {};
 		for (const g of GROUPS) for (const e of g.events) {
-			t[e.key] = typeof ev[e.key] === 'boolean' ? ev[e.key] : e.def;
+			t[e.key] = typeof ev[e.key] === 'boolean' ? ev[e.key] : e.defaultEnabled;
 			o[e.key] = str(ch[e.key]);
 		}
 		toggles = t;
@@ -136,6 +95,24 @@
 		saved = false;
 	}
 
+	function isLogEventGroup(value: unknown): value is {
+		id: string;
+		label: string;
+		color: string;
+		events: Array<{ key: string; label: string; description: string; defaultEnabled: boolean }>;
+	} {
+		if (!value || typeof value !== 'object') return false;
+		const group = value as Record<string, unknown>;
+		return typeof group.id === 'string' && typeof group.label === 'string' && typeof group.color === 'string' && Array.isArray(group.events)
+			&& group.events.every((event: unknown) => {
+				if (!event || typeof event !== 'object') return false;
+				const item = event as Record<string, unknown>;
+				return typeof item.key === 'string' && typeof item.label === 'string' && typeof item.description === 'string' && typeof item.defaultEnabled === 'boolean';
+			});
+	}
+
+	const hasLogEventGroups = $derived(Array.isArray(entry.config?.logEventGroups) && entry.config.logEventGroups.length > 0 && entry.config.logEventGroups.every(isLogEventGroup));
+
 	async function save(): Promise<void> {
 		saving = true;
 		error = null;
@@ -151,6 +128,7 @@
 				logIgnoredUsers: ignoredUsers
 			};
 			for (const f of LEGACY) patch[f.key] = legacy[f.key] === '' ? null : legacy[f.key];
+			if (!hasLogEventGroups) throw new Error('The logging event catalog is unavailable. Reload before applying changes.');
 			await saveGuildConfig(guildId, patch);
 			baseline = snapshot();
 			saved = true;
@@ -162,8 +140,9 @@
 	}
 </script>
 
-<PageHeader title="Logging" description="Pick a default channel, toggle 31 event types, override per-event channels, and ignore noise." />
+<PageHeader title="Logging" description="Configure the server-provided logging events, destinations, and ignored sources." />
 
+{#if hasLogEventGroups}
 <div class="card">
 	<h3>Default destination</h3>
 	<div class="grid-2">
@@ -175,7 +154,7 @@
 {#each GROUPS as g (g.id)}
 	<div class="card">
 		<div class="group-head">
-			<h3>{g.label}</h3>
+			<h3 style={`--group-color: ${g.color}`}>{g.label}</h3>
 			<div class="group-actions">
 				<button type="button" class="link" onclick={() => toggleGroup(g, true)}>All on</button>
 				<button type="button" class="link" onclick={() => toggleGroup(g, false)}>All off</button>
@@ -184,7 +163,7 @@
 		{#each g.events as e (e.key)}
 			<div class="event-row">
 				<div class="event-toggle">
-					<Toggle title={e.label} description={e.hint} checked={toggles[e.key] ?? e.def} onchange={(v) => { toggles[e.key] = v; saved = false; }} />
+				<Toggle title={e.label} description={e.description} checked={toggles[e.key] ?? e.defaultEnabled} onchange={(v) => { toggles[e.key] = v; saved = false; }} />
 				</div>
 				<div class="event-channel">
 					<SearchPicker label="Channel override" value={overrides[e.key] ?? ''} options={channelOptions} noneLabel="Use default" onchange={(v) => { overrides[e.key] = v; saved = false; }} />
@@ -193,7 +172,11 @@
 		{/each}
 	</div>
 {/each}
+{:else}
+	<div class="card"><p class="hint">Logging controls are unavailable because the server event catalog could not be loaded. Reload this page before editing logging settings.</p></div>
+{/if}
 
+{#if hasLogEventGroups}
 <div class="card">
 	<h3>Fallback channels</h3>
 	<p class="hint">Old per-category channels. Used when an event has no override — keep them or migrate to the default channel above.</p>
@@ -229,11 +212,13 @@
 	</div>
 	<TextInput label="Ignored user IDs" bind:value={ignoredUsersText} placeholder="1234..., 5678..." hint="Comma-separated Discord user IDs." />
 </div>
+{/if}
 
 <SaveBar {dirty} {saving} {error} {saved} onsave={() => void save()} onreset={syncFromCache} />
 
 <style>
 	.group-head { display: flex; justify-content: space-between; align-items: center; }
+	.group-head h3 { color: var(--group-color); }
 	.group-actions { display: flex; gap: 0.75rem; }
 	.link { background: none; border: none; color: var(--accent); cursor: pointer; padding: 0; }
 	.event-row { display: grid; grid-template-columns: 1fr 240px; gap: 1rem; align-items: start; border-top: 1px solid var(--border, #2a2d34); padding-top: 0.5rem; margin-top: 0.5rem; }

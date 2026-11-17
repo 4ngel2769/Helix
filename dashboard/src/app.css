@@ -706,8 +706,13 @@ textarea::placeholder {
 
 /* ---------- Save bar ---------- */
 .savebar {
-	position: sticky;
+	position: fixed;
+	left: calc(var(--sidebar-w) + 22px);
+	right: 22px;
 	bottom: 16px;
+	z-index: 19;
+	max-width: 1036px;
+	margin: 0 auto;
 	display: flex;
 	align-items: center;
 	gap: 12px;
@@ -717,6 +722,24 @@ textarea::placeholder {
 	box-shadow: var(--shadow);
 	padding: 12px 16px;
 	margin-top: 20px;
+}
+
+.savebar-spacer { flex: 1; }
+.savebar-placeholder { height: 76px; margin-top: 20px; }
+.btn-apply { background: var(--ok); color: #06231a; border-color: var(--ok); }
+.btn-apply:hover:not(:disabled) { filter: brightness(1.08); }
+.btn-discard { background: var(--danger-soft); color: var(--danger); border-color: var(--danger); }
+.btn-discard:hover:not(:disabled) { background: var(--danger); color: #fff; }
+
+@media (max-width: 900px) {
+	.savebar { left: 16px; right: 16px; }
+}
+
+@media (max-width: 520px) {
+	.savebar { bottom: 10px; left: 10px; right: 10px; gap: 8px; padding: 10px 12px; }
+	.savebar .small { font-size: 12px; }
+	.savebar .btn { padding-inline: 10px; }
+	.savebar-placeholder { height: 88px; }
 }
 
 /* ---------- Tables ---------- */

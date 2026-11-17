@@ -11,7 +11,8 @@ export class StickerDeleteLogListener extends Listener<typeof Events.GuildSticke
 		if (!sticker.guild) return;
 		await sendLog(sticker.guild, 'emoji.update', {
 			title: 'Sticker removed',
-			description: `Sticker **${sticker.name}** (\`${sticker.id}\`) was removed.`
+			description: `Sticker **${sticker.name}** (\`${sticker.id}\`) was removed.`,
+			fields: [{ name: 'Description', value: sticker.description || '*none*' }, { name: 'Tags', value: sticker.tags || '*none*', inline: true }]
 		});
 	}
 }
